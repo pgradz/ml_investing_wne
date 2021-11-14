@@ -129,4 +129,4 @@ dmypy.json
 .pyre/
 
 # data
-src/ml_investing_wne/data/raw/
+src/ml_investing_wne/data/raw/*
