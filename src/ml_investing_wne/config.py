@@ -1,9 +1,9 @@
 import os
 import datetime
 
-currency = 'USDJPY'
+currency = 'EURPLN'
 # leave empty if training from scratch
-load_model = 'EURCHF'
+load_model = 'USDJPY'
 freq = '60min'
 input_dim = '2d'  # 2d or 1d
 model = 'deepLOB'
@@ -12,7 +12,7 @@ val_end = datetime.datetime(2021, 10, 1, 0, 0, 0)
 test_end = datetime.datetime(2021, 10, 30, 0, 0, 0)
 seq_len = 96
 batch = 128
-patience = 10
+patience = 5
 epochs = 100
 nb_classes = 2
 

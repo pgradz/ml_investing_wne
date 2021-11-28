@@ -67,6 +67,8 @@ def train_test_val_split(df, seq_len):
     X_val, y_val = split_sequences(val_x, val_y, seq_len, val_datetime)
     X_test, y_test = split_sequences(test_x, test_y, seq_len, test_datetime)
 
+    # You always have to give a 4D array as input to the cnn when using conv2d
+    # So input data has a shape of (batch_size, height, width, depth)
     # if using conv2d instead of conv1d then:
     if config.input_dim == '2d':
         X = X.reshape(X.shape + (1,))
