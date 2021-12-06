@@ -65,7 +65,7 @@ def build_model(input_shape, nb_classes):
     shortcut_y = keras.layers.BatchNormalization()(output_block_2)
 
     output_block_3 = keras.layers.add([shortcut_y, conv_z])
-    output_block_3 = keras.layers.LSTM(128)(output_block_3)
+    output_block_3 = keras.layers.LSTM(64)(output_block_3)
 
     # FINAL
 

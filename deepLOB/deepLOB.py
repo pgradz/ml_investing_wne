@@ -45,16 +45,7 @@ def prepare_x_y(data, k, T):
     y = np_utils.to_categorical(y, 3)
     return x, y
 
-x = prepare_x(dec_train)
-y = get_label(dec_train)
-[N, D] = x.shape
-df = np.array(x)
-dY = np.array(y)
-dataY = dY[T - 1:N]
-dataX = np.zeros((N - T + 1, T, D))
-for i in range(T, N + 1):
-    dataX[i - T] = df[i - T:i, :]
-dataX = dataX.reshape(dataX.shape + (1,))
+
 
 dec_data = np.loadtxt('/Users/i0495036/Downloads/data/Train_Dst_NoAuction_DecPre_CF_7.txt')
 dec_train = dec_data[:, :int(np.floor(dec_data.shape[1] * 0.8))]
@@ -68,6 +59,18 @@ dec_test = np.hstack((dec_test1, dec_test2, dec_test3))
 k = 4 # which prediction horizon
 T = 100 # the length of a single input
 n_hiddens = 64
+
+x = prepare_x(dec_train)
+y = get_label(dec_train)
+[N, D] = x.shape
+df = np.array(x)
+dY = np.array(y)
+dataY = dY[T - 1:N]
+dataX = np.zeros((N - T + 1, T, D))
+for i in range(T, N + 1):
+    dataX[i - T] = df[i - T:i, :]
+dataX = dataX.reshape(dataX.shape + (1,))
+y = dataY[:,k] - 1
 
 checkpoint_filepath = os.path.join(config.package_directory, '../..','deepLOB/weights')
 

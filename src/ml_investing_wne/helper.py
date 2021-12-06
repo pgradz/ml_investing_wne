@@ -1,6 +1,7 @@
 from sklearn.metrics import confusion_matrix
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import logging
 import os
 import itertools
@@ -66,5 +67,53 @@ def compute_profitability_classes(df, y_pred, date_start, date_end):
                              format(config.model, config.currency, config.nb_classes)))
 
     logger.info('Portfolio result:  {}'.format(prediction.loc[i - 1, 'budget']))
+
+    # cut off analysis starts here
+    cutoffs = [0.9, 0.8, 0.75, 0.7, 0.6, 0.55, 0.45, 0.4, 0.3, 0.25, 0.2, 0.1]
+    prediction['y_prob'] = y_pred[:, 1]
+    cutoff_df = pd.DataFrame(
+        columns=['currency', 'probability_cutoff', 'no_of_rows', 'no_of_rows_perc', 'correct_predictions',
+                 'correct_predictions_perc', 'prod_result'])
+
+    for cutoff in cutoffs:
+        if cutoff > 0.5:
+            no_of_rows = prediction.loc[prediction['y_prob'] > cutoff].shape[0]
+            try:
+                no_of_rows_perc = round(prediction.loc[(prediction['y_prob'] > cutoff)].shape[0] / prediction.shape[0],3)
+            except ZeroDivisionError:
+                no_of_rows_perc = 0
+            correct_predictions = prediction.loc[(prediction['y_pred'] > 0) & (prediction['y_prob'] > cutoff)].shape[0]
+            try:
+                correct_predictions_perc = round(correct_predictions / no_of_rows, 3)
+            except ZeroDivisionError:
+                correct_predictions_perc = 0
+            prod = prediction.loc[(prediction['y_prob'] > cutoff)]['y_pred'] + 1
+            prod_result = round(np.prod(list(prod)), 3)
+        else:
+            no_of_rows = prediction.loc[prediction['y_prob'] < cutoff].shape[0]
+            try:
+                no_of_rows_perc = round(prediction.loc[(prediction['y_prob'] < cutoff)].shape[0] / prediction.shape[0],3)
+            except ZeroDivisionError:
+                no_of_rows_perc = 0
+            correct_predictions = prediction.loc[(prediction['y_pred'] < 0) & (prediction['y_prob'] < cutoff)].shape[0]
+            try:
+                correct_predictions_perc = round(correct_predictions / no_of_rows, 3)
+            except ZeroDivisionError:
+                correct_predictions_perc = 0
+            prod = prediction.loc[(prediction['y_prob'] < cutoff)]['y_pred'] + 1
+            prod_result = round(np.prod(list(prod)), 3)
+
+        row = {'currency': config.currency,
+               'probability_cutoff': cutoff,
+               'no_of_rows': no_of_rows,
+               'no_of_rows_perc': no_of_rows_perc,
+               'correct_predictions': correct_predictions,
+               'correct_predictions_perc': correct_predictions_perc,
+               'prod_result': prod_result
+               }
+        cutoff_df = cutoff_df.append(row, ignore_index=True)
+
+    cutoff_df.to_csv(os.path.join(config.package_directory, 'models', 'cut_off_analysis_{}_{}_{}.csv'.
+                                 format(config.model, config.currency, config.nb_classes)), sep=";", decimal=",")
 
     return prediction.loc[i - 1, 'budget']

@@ -39,7 +39,7 @@ df.drop(columns=['ask_open', 'ask_high', 'ask_min', 'ask_close', 'spread_open', 
 X, y, X_val, y_val, X_test, y_test, y_cat, y_val_cat, y_test_cat, train = train_test_val_split(df, config.seq_len)
 
 mlflow.set_experiment(experiment_name=config.model + '_' + str(config.nb_classes))
-early_stop = EarlyStopping(monitor='val_loss', patience=config.patience)
+early_stop = EarlyStopping(monitor='val_accuracy', patience=config.patience)
 model_checkpoint = ModelCheckpoint(filepath=config.model_path, monitor='val_accuracy', verbose=1, save_best_only=True)
 csv_logger = CSVLogger(os.path.join(config.package_directory, 'logs', 'keras_log.csv'), append=True, separator=';')
 callbacks = [early_stop, model_checkpoint, csv_logger]
@@ -75,16 +75,17 @@ confusion_matrix_plot(y_pred, y_test)
 mlflow.log_artifact(os.path.join(config.package_directory, 'models', 'confusion_matrix_{}_{}_{}.png'.
                                  format(config.model, config.currency, config.nb_classes)))
 
-portfolio_result = compute_profitability_classes(df, y_pred,datetime.datetime(2021,10,7,0,0,0),
-                                                  datetime.datetime(2021,10,29,19,0,0) )
+portfolio_result = compute_profitability_classes(df, y_pred, datetime.datetime(2021, 10, 7, 0, 0, 0),
+                                                 datetime.datetime(2021, 11, 29, 23, 0, 0))
 mlflow.log_metric("portfolio_result", portfolio_result)
 
+mlflow.log_artifact(os.path.join(config.package_directory, 'models',
+                                                        'portfolio_evolution_{}_{}_{}.png'.
+                                                        format(config.model, config.currency, config.nb_classes)))
+mlflow.log_artifact(os.path.join(config.package_directory, 'models', 'cut_off_analysis_{}_{}_{}.csv'.
+                                 format(config.model, config.currency, config.nb_classes)))
+
 # mlflow ui --backend-store-uri /Users/i0495036/Documents/sandbox/ml_investing_wne/mlruns
-
-
-
-
-
 
 
 
