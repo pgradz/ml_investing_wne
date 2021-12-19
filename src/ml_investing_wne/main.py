@@ -1,9 +1,9 @@
 import datetime
 import os
 import logging
-from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, CSVLogger
-from keras.utils.vis_utils import plot_model
-from keras.models import load_model
+from keras.callbacks import ModelCheckpoint, EarlyStopping, CSVLogger
+from tensorflow.keras.utils import plot_model
+from tensorflow.keras.models import load_model
 import mlflow.keras
 import ml_investing_wne.config as config
 from ml_investing_wne.data_engineering.prepare_dataset import prepare_processed_dataset
@@ -31,10 +31,12 @@ logger.addHandler(file_h)
 
 # autlog ends run after keras.fit, hence all logging later will be added to another run. This is inconvenient, but
 # the alternative is to manually create run and replicate functionalities of autlog
-mlflow.keras.autolog()
+mlflow.tensorflow.autolog()
 
 df = prepare_processed_dataset()
-df.drop(columns=['ask_open', 'ask_high', 'ask_min', 'ask_close', 'spread_open', 'spread_high', 'spread_min', 'currency']
+# df.drop(columns=['ask_open', 'ask_high', 'ask_min', 'ask_close', 'spread_open', 'spread_high', 'spread_min', 'currency']
+#         , axis=1, inplace=True)
+df.drop(columns=['ask_open', 'ask_high', 'ask_min', 'ask_close',  'currency']
         , axis=1, inplace=True)
 X, y, X_val, y_val, X_test, y_test, y_cat, y_val_cat, y_test_cat, train = train_test_val_split(df, config.seq_len)
 
@@ -60,7 +62,7 @@ plot_model(model, to_file=os.path.join(config.package_directory, 'models', 'mode
 train.loc[:1].to_csv(os.path.join(config.package_directory, 'models', 'features.csv'))
 mlflow.log_artifact(os.path.join(config.package_directory, 'models', 'model_plot.png'))
 mlflow.log_artifact(os.path.join(config.package_directory, 'models', 'features.csv'))
-
+model.summary()
 model.save(config.model_path_final)
 test_loss, test_acc = model.evaluate(X_test, y_test_cat)
 logger.info('Test accuracy : {}'.format(test_acc))
@@ -88,4 +90,30 @@ mlflow.log_artifact(os.path.join(config.package_directory, 'models', 'cut_off_an
 # mlflow ui --backend-store-uri /Users/i0495036/Documents/sandbox/ml_investing_wne/mlruns
 
 
+# print(model.summary())
+#
+# manual checks
+prediction = df.copy()
+prediction.reset_index(inplace=True)
+df['y_pred'] = df['close'].shift(-1) / df['close'] - 1
+# new_start = config.val_end + config.seq_len * datetime.timedelta(minutes=int(''.join(filter(str.isdigit, config.freq))))
+prediction = df.loc[(df.datetime >= datetime.datetime(2021, 10, 7, 0, 0, 0)) & (df.datetime <= datetime.datetime(2021, 11, 29, 23, 0, 0))]
+prediction['trade'] = y_pred.argmax(axis=1)
+prediction.reset_index(inplace=True)
+prediction['y_prob'] = y_pred[:, 1]
 
+correct_predictions = prediction.loc[(prediction['y_pred'] > 0) & (prediction['y_prob'] > 0.5) ].shape[0]
+correct_predictions =  correct_predictions + prediction.loc[(prediction['y_pred'] < 0) & (prediction['y_prob'] < 0.5)].shape[0]
+correct_predictions / prediction.shape[0]
+
+prediction.loc[(prediction['y_pred'] > 0) & (prediction['y_prob'] > 0.7)].shape[0]/ prediction.loc[(prediction['y_prob'] > 0.7)].shape[0]
+
+prediction.loc[(prediction['y_pred'] > 0) & (prediction['y_prob'] > 0.5) & (prediction['y_prob'] < 0.53)].shape[0] / prediction.loc[ (prediction['y_prob'] > 0.5) & (prediction['y_prob'] < 0.53)].shape[0]
+import pandas as pd
+prediction['correct_prediction'] = 0
+prediction.loc[(prediction['y_pred'] > 0) & (prediction['y_prob'] > 0.5), 'correct_prediction' ] = 1
+prediction.loc[(prediction['y_pred'] < 0) & (prediction['y_prob'] < 0.5), 'correct_prediction' ] = 1
+prediction['correct_prediction'].mean()
+prediction['probability_binned'] = pd.cut(prediction['y_prob'], [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1])
+prediction.groupby('probability_binned')['correct_prediction'].mean()
+prediction.groupby('probability_binned')['correct_prediction'].count()

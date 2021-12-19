@@ -35,19 +35,20 @@ def aggregate_time_window(df, freq):
     df_agg_bid = df_agg['bid'].resample(freq).agg({'bid_open': 'first',
                                                    'bid_high': 'max',
                                                    'bid_min': 'min',
-                                                   'bid_close': 'last',
-                                                   'no_of_ticks': 'size'})
+                                                   'bid_close': 'last'
+                                                   # ,'no_of_ticks': 'size'
+                                                   })
     df_agg_ask = df_agg['ask'].resample(freq).agg({'ask_open': 'first',
                                                    'ask_high': 'max',
                                                    'ask_min': 'min',
                                                    'ask_close': 'last'})
-    df_agg_spread = df_agg['spread'].resample(freq).agg({'spread_open': 'first',
-                                                         'spread_high': 'max',
-                                                         'spread_min': 'min',
-                                                         'spread_close': 'last'})
+    # df_agg_spread = df_agg['spread'].resample(freq).agg({'spread_open': 'first',
+    #                                                      'spread_high': 'max',
+    #                                                      'spread_min': 'min',
+    #                                                      'spread_close': 'last'})
 
     df_all = pd.merge(df_agg_bid, df_agg_ask, how='inner', left_index=True, right_index=True)
-    df_all = pd.merge(df_all, df_agg_spread, how='inner', left_index=True, right_index=True)
+    # df_all = pd.merge(df_all, df_agg_spread, how='inner', left_index=True, right_index=True)
     df_all['currency'] = currency
 
     return df_all

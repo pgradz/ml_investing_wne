@@ -34,14 +34,16 @@ def prepare_processed_dataset(plot=False):
         df.ta.ema(length=ma, append=True)
         df.ta.variance(length=ma, append=True)
 
-    df.ta.macd(append=True)
-    df.ta.rsi(append=True)
+    df.ta.macd(append=True) # adds 3 columns
+    df.ta.rsi(append=True) # adds 1 column
+    df.ta.rsi(append=True, length=10)
+    df.ta.rsi(append=True, length=6)
     #df.ta.rsi(length=10, append=True)
     #df.ta.rsi(length=20, append=True)
-    df.ta.stoch(append=True)
-    df.ta.willr(append=True)
-    df.ta.bbands(append=True)
-    df.ta.xsignals(append=True)
+    df.ta.stoch(append=True) # adds 2 columns
+    df.ta.willr(append=True) # adds 1 column
+    df.ta.bbands(append=True) # adds 5 columns
+    df.ta.xsignals(append=True) # does nothing
     # ta.roc doesn't work as expected
     # df.ta.roc(append=True)
     # df.ta.roc(length=12, append=True)

@@ -11,7 +11,7 @@ import ml_investing_wne.config as config
 logger = logging.getLogger(__name__)
 
 # prepare sequences
-def split_sequences(sequences_x, sequences_y, n_steps, datetime_series):
+def split_sequences(sequences_x, sequences_y, n_steps, datetime_series, steps_ahead):
     X, y = list(), list()
     for i in range(len(sequences_x)):
         # find the end of this pattern
@@ -22,12 +22,12 @@ def split_sequences(sequences_x, sequences_y, n_steps, datetime_series):
             logger.info('first sequence begins: {}'.format(datetime_series[i]))
             logger.info('first sequence ends: {}'.format(datetime_series[end_ix-1]))
         # check if we are beyond the dataset
-        if end_ix > len(sequences_x):
+        if end_ix  +  steps_ahead> len(sequences_x):
             logger.info('last sequence begins: {}'.format(datetime_series[i-2]))
             logger.info('last sequence ends: {}'.format(datetime_series[end_ix-2]))
             break
         # gather input and output parts of the pattern
-        seq_x, seq_y = sequences_x[i:end_ix, :-1], sequences_y[end_ix - 1]
+        seq_x, seq_y = sequences_x[i:end_ix, :-1], sequences_y[end_ix - 1 + steps_ahead]
         X.append(seq_x)
         y.append(seq_y)
     return np.array(X), np.array(y)
@@ -63,9 +63,9 @@ def train_test_val_split(df, seq_len):
     joblib.dump(sc_x, os.path.join(config.package_directory, 'models',
                                    'sc_x_{}_{}.save'.format(config.currency, config.freq)))
 
-    X, y = split_sequences(train_x, train_y, seq_len, train_datetime)
-    X_val, y_val = split_sequences(val_x, val_y, seq_len, val_datetime)
-    X_test, y_test = split_sequences(test_x, test_y, seq_len, test_datetime)
+    X, y = split_sequences(train_x, train_y, seq_len, train_datetime, steps_ahead=config.steps_ahead)
+    X_val, y_val = split_sequences(val_x, val_y, seq_len, val_datetime, steps_ahead=config.steps_ahead)
+    X_test, y_test = split_sequences(test_x, test_y, seq_len, test_datetime, steps_ahead=config.steps_ahead)
 
     # You always have to give a 4D array as input to the cnn when using conv2d
     # So input data has a shape of (batch_size, height, width, depth)

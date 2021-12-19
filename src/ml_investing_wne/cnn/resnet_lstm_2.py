@@ -27,6 +27,7 @@ def build_model(input_shape, nb_classes):
 
     output_block_1 = keras.layers.add([shortcut_y, conv_z])
     output_block_1 = keras.layers.Activation('relu')(output_block_1)
+    output_block_1 = keras.layers.Dropout(0.25)(output_block_1, training=True)
 
     # BLOCK 2
 
@@ -48,30 +49,11 @@ def build_model(input_shape, nb_classes):
     output_block_2 = keras.layers.add([shortcut_y, conv_z])
     output_block_2 = keras.layers.Activation('relu')(output_block_2)
 
-    # BLOCK 3
-
-    conv_x = keras.layers.Conv1D(filters=n_feature_maps * 2, kernel_size=8, padding='same')(output_block_2)
-    conv_x = keras.layers.BatchNormalization()(conv_x)
-    conv_x = keras.layers.Activation('relu')(conv_x)
-
-    conv_y = keras.layers.Conv1D(filters=n_feature_maps * 2, kernel_size=5, padding='same')(conv_x)
-    conv_y = keras.layers.BatchNormalization()(conv_y)
-    conv_y = keras.layers.Activation('relu')(conv_y)
-
-    conv_z = keras.layers.Conv1D(filters=n_feature_maps * 2, kernel_size=3, padding='same')(conv_y)
-    conv_z = keras.layers.BatchNormalization()(conv_z)
-
-    # no need to expand channels because they are equal
-    shortcut_y = keras.layers.BatchNormalization()(output_block_2)
-
-    output_block_3 = keras.layers.add([shortcut_y, conv_z])
-    output_block_3 = keras.layers.Activation('relu')(output_block_3)
-    output_block_3 = keras.layers.Dropout(0.4)(output_block_3, training=True)
-    output_block_3 = keras.layers.LSTM(64)(output_block_3)
-
     # FINAL
 
     #gap_layer = keras.layers.GlobalAveragePooling1D()(output_block_3)
+    output_block_3 = keras.layers.Dropout(0.4)(output_block_2, training=True)
+    output_block_3 = keras.layers.LSTM(64)(output_block_2)
 
     output_layer = keras.layers.Dense(nb_classes, activation='softmax')(output_block_3)
 
@@ -83,5 +65,4 @@ def build_model(input_shape, nb_classes):
     return model
 
 
-# model = build_model(input_shape=(96, 40), nb_classes=2)
-# model.summary()
+model = build_model(input_shape=(96, 40), nb_classes=2)
