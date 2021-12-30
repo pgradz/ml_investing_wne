@@ -335,9 +335,15 @@ def main():
 
     # second method of invoking commands
     resp = client.commandExecute('getAllSymbols')
-    resp = client.commandExecute('getChartRangeRequest', {'info':{"end": 1639464000, "period": 60,
-                                                          "start": 1639360000, "symbol": "BITCOIN", "ticks": 0}})
+    resp = client.commandExecute('getChartLastRequest', {'info':{"period": 60,"start": 1638319997000,
+                                                          "symbol": "EURPLN"}})
 
+
+    resp = client.commandExecute('getChartLastRequest', {'info':{"end": 1639464000, "period": 1440,
+                                                          "start": 1639360000, "symbol": "EURUSD", "ticks": 0}})
+    resp['returnData']['rateInfos'][1]
+    import pandas as pd
+    df = pd.DataFrame(resp['returnData']['rateInfos'])
     dict([('command', 'getChartRangeRequest'), ('arguments', {'info':{"end": 1639360000, "period": 5,
                                                           "start": 1639364000, "symbol": "EURUSD", "ticks": 0}})])
 

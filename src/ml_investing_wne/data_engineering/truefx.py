@@ -67,3 +67,4 @@ def check_time_delta(df):
     else:
         logger.error('there are multiple time intervals in data')
     df.drop(['datetime', 'time_delta'], axis=1, inplace=True)
+

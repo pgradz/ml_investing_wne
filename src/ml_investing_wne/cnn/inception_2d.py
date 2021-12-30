@@ -70,9 +70,9 @@ def build_model(input_shape, nb_classes):
     return model
 
 
-# model = build_model(input_shape=(96, 40, 1), nb_classes=2)
-# model.summary()
+model = build_model(input_shape=(96, 40, 1), nb_classes=2)
+model.summary()
 #
-# plot_model(model, to_file=os.path.join(config.package_directory, 'models', 'model_plot_inception.png'), show_shapes=True,
-#            show_layer_names=True)
+plot_model(model, to_file=os.path.join(config.package_directory, 'models', 'model_plot_inception.png'), show_shapes=True,
+           show_layer_names=True)
 

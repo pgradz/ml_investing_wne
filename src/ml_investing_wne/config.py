@@ -1,18 +1,18 @@
 import os
 import datetime
 
-currency = 'USDCHF'
+currency = 'EURGBP'
 # leave empty if training from scratch
-load_model = ''
+load_model = 'USDCHF'
 freq = '60min'
 input_dim = '2d'  # 2d or 1d
-model = 'inception_2d'
+model = 'deepLOB'
 train_end = datetime.datetime(2021, 8, 1, 0, 0, 0)
 val_end = datetime.datetime(2021, 10, 1, 0, 0, 0)
 test_end = datetime.datetime(2021, 11, 30, 0, 0, 0)
 seq_len = 96
 batch = 128
-patience = 8
+patience = 4
 epochs = 100
 nb_classes = 2
 steps_ahead = 0  # 0 for 1 step ahead

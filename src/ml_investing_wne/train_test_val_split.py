@@ -27,7 +27,7 @@ def split_sequences(sequences_x, sequences_y, n_steps, datetime_series, steps_ah
             logger.info('last sequence ends: {}'.format(datetime_series[end_ix-2]))
             break
         # gather input and output parts of the pattern
-        seq_x, seq_y = sequences_x[i:end_ix, :-1], sequences_y[end_ix - 1 + steps_ahead]
+        seq_x, seq_y = sequences_x[i:end_ix,:], sequences_y[end_ix - 1 + steps_ahead]
         X.append(seq_x)
         y.append(seq_y)
     return np.array(X), np.array(y)
@@ -80,3 +80,31 @@ def train_test_val_split(df, seq_len):
     y_test_cat = to_categorical(y_test)
 
     return X, y, X_val, y_val, X_test, y_test, y_cat, y_val_cat, y_test_cat, train
+
+
+def test_split(df, seq_len, sc_x):
+    # classification ?
+    if config.nb_classes == 2:
+        df['y_pred'] = [1 if y > 1 else 0 for y in df['y_pred']]
+    else:
+        df['y_pred'] = pd.qcut(df['y_pred'], config.nb_classes, labels=range(config.nb_classes))
+
+    # split train val test
+    test = df.copy()
+    test.reset_index(inplace=True)
+    test_datetime = test['datetime']
+    test_x = test.drop(columns=['y_pred', 'datetime'])
+    test_y = test['y_pred']
+    test_x = sc_x.transform(test_x)
+    #test_x = test_x.to_numpy() - it was to check that last row is kept
+    X_test, y_test = split_sequences(test_x, test_y, seq_len, test_datetime, steps_ahead=config.steps_ahead)
+
+    # You always have to give a 4D array as input to the cnn when using conv2d
+    # So input data has a shape of (batch_size, height, width, depth)
+    # if using conv2d instead of conv1d then:
+    if config.input_dim == '2d':
+        X_test = X_test.reshape(X_test.shape + (1,))
+
+    y_test_cat = to_categorical(y_test)
+
+    return X_test, y_test, y_test_cat

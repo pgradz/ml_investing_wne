@@ -9,13 +9,14 @@ from ml_investing_wne.data_engineering.truefx import import_truefx_csv, aggregat
 
 logger = logging.getLogger(__name__)
 
-def prepare_processed_dataset(plot=False):
+def prepare_processed_dataset(plot=False, df=None, allow_null=False):
 
-    df = pd.concat(import_truefx_csv(config.raw_data_path, config.currency))
-    df = aggregate_time_window(df, config.freq)
-    check_time_delta(df)
-    # pick bid for technical indicators
-    df.rename(columns={'bid_open': 'open', 'bid_close': 'close', 'bid_high': 'high', 'bid_min': 'low'}, inplace=True)
+    if not isinstance(df, pd.DataFrame):
+        df = pd.concat(import_truefx_csv(config.raw_data_path, config.currency))
+        df = aggregate_time_window(df, config.freq)
+        check_time_delta(df)
+        # pick bid for technical indicators
+        df.rename(columns={'bid_open': 'open', 'bid_close': 'close', 'bid_high': 'high', 'bid_min': 'low'}, inplace=True)
 
     if plot:
         check = df.copy()
@@ -50,8 +51,8 @@ def prepare_processed_dataset(plot=False):
     # df.ta.roc(length=1, append=True)
     df['y_pred'] = df['close'].shift(-1) / df['close']
     df['roc_1'] = df['y_pred'].shift(1)
-    df['y_roc_12'] = df['close'].shift(-12) / df['close']
-    df['y_roc_12'] = df['y_roc_12'].shift(12)
+    # df['y_roc_12'] = df['close'].shift(-12) / df['close']
+    # df['y_roc_12'] = df['y_roc_12'].shift(12)
     df['datetime'] = df.index
     df['hour'] = df.datetime.dt.hour
     df['weekday'] = df.datetime.dt.weekday
@@ -63,7 +64,8 @@ def prepare_processed_dataset(plot=False):
     # df.plot.scatter('hour_sin', 'hour_cos')
     # df.plot.scatter('weekday_sin', 'weekday_cos')
     df.drop(columns=['datetime'], axis=1, inplace=True)
-    df.dropna(inplace=True)
+    if not allow_null:
+        df.dropna(inplace=True)
     output_directory = os.path.join(config.processed_data_path, config.currency)
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)

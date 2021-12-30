@@ -77,6 +77,8 @@ confusion_matrix_plot(y_pred, y_test)
 mlflow.log_artifact(os.path.join(config.package_directory, 'models', 'confusion_matrix_{}_{}_{}.png'.
                                  format(config.model, config.currency, config.nb_classes)))
 
+pips = 1
+df['cost'] = (pips/10000)/df['close']
 portfolio_result = compute_profitability_classes(df, y_pred, datetime.datetime(2021, 10, 7, 0, 0, 0),
                                                  datetime.datetime(2021, 11, 29, 23, 0, 0))
 mlflow.log_metric("portfolio_result", portfolio_result)

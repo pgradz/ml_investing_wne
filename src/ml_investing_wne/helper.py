@@ -45,9 +45,15 @@ def compute_profitability_classes(df, y_pred, date_start, date_end):
 
     for i in range(prediction.shape[0]):
         if (prediction.loc[i, 'trade'] == config.nb_classes -1):
+            # add transaction cost if position changes
+            if transaction!='buy':
+                budget = budget * (1-prediction.loc[i, 'cost'])
             transaction = 'buy'
             budget = budget + budget * prediction.loc[i, 'y_pred']
         elif (prediction.loc[i, 'trade'] == 0):
+            # add transaction cost if position changes
+            if transaction!='sell':
+                budget = budget * (1-prediction.loc[i, 'cost'])
             transaction = 'sell'
             budget = budget + budget * (-prediction.loc[i, 'y_pred'])
         else:
