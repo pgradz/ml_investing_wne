@@ -24,7 +24,7 @@ model = load_model(os.path.join(config.package_directory, 'models',
 start = datetime.datetime(2021, 1, 1, 1, 0, 0, 0)
 userId = 12896600
 password = "xoh10026"
-symbol = 'SILVER'
+symbol = 'EURPLN'
 
 client = APIClient()
 

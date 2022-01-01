@@ -10,6 +10,7 @@ from ml_investing_wne.data_engineering.prepare_dataset import prepare_processed_
 from ml_investing_wne.train_test_val_split import train_test_val_split
 from ml_investing_wne.helper import confusion_matrix_plot, compute_profitability_classes
 import importlib
+import joblib
 
 # load model dynamically
 build_model = getattr(importlib.import_module('ml_investing_wne.cnn.{}'.format(config.model)), 'build_model')
@@ -71,21 +72,36 @@ mlflow.log_metric("test_acc", test_acc)
 mlflow.log_metric("test_loss", test_loss)
 mlflow.log_metric("test_loss", test_loss)
 mlflow.set_tag('currency', config.currency)
+mlflow.set_tag('frequency', config.freq)
+mlflow.set_tag('steps_ahead', config.steps_ahead)
+mlflow.log_metric('y_distribution', y.mean())
+mlflow.log_metric('y_val_distribution', y_val.mean())
+mlflow.log_metric('y_test_distribution', y_test.mean())
+mlflow.log_metric('cost', config.pips)
 
 y_pred = model.predict(X_test)
 confusion_matrix_plot(y_pred, y_test)
 mlflow.log_artifact(os.path.join(config.package_directory, 'models', 'confusion_matrix_{}_{}_{}.png'.
                                  format(config.model, config.currency, config.nb_classes)))
 
-pips = 1
-df['cost'] = (pips/10000)/df['close']
-portfolio_result = compute_profitability_classes(df, y_pred, datetime.datetime(2021, 10, 7, 0, 0, 0),
-                                                 datetime.datetime(2021, 11, 29, 23, 0, 0))
-mlflow.log_metric("portfolio_result", portfolio_result)
+df['cost'] = (config.pips/10000)/df['close']
+start_date = joblib.load(os.path.join(config.package_directory, 'models',
+                                           'first_sequence_ends_{}_{}_{}.save'.format('test', config.currency, config.freq)))
+end_date = joblib.load(os.path.join(config.package_directory, 'models',
+                                           'last_sequence_ends_{}_{}_{}.save'.format('test', config.currency, config.freq)))
+lower_bounds =[0.1,0.15,0.2,0.25, 0.3,0.35, 0.4, 0.45, 0.5]
+upper_bounds = [1 - lower for lower in lower_bounds]
 
-mlflow.log_artifact(os.path.join(config.package_directory, 'models',
-                                                        'portfolio_evolution_{}_{}_{}.png'.
-                                                        format(config.model, config.currency, config.nb_classes)))
+for lower_bound, upper_bound in zip(lower_bounds, upper_bounds):
+    portfolio_result, hit_ratio, time_active = compute_profitability_classes(df, y_pred, start_date, end_date, lower_bound, upper_bound)
+    mlflow.log_metric("portfolio_result_{}_{}".format(lower_bound, upper_bound), portfolio_result)
+    mlflow.log_metric("hit_ratio_{}_{}".format(lower_bound, upper_bound), hit_ratio)
+    mlflow.log_metric("time_active_{}_{}".format(lower_bound, upper_bound), time_active)
+    mlflow.log_artifact(os.path.join(config.package_directory, 'models',
+                                                        'portfolio_evolution_{}_{}_{}_{}_{}.png'.
+                                                        format(config.model, config.currency, config.nb_classes,
+                                                               lower_bound, upper_bound)))
+
 mlflow.log_artifact(os.path.join(config.package_directory, 'models', 'cut_off_analysis_{}_{}_{}.csv'.
                                  format(config.model, config.currency, config.nb_classes)))
 
@@ -94,28 +110,28 @@ mlflow.log_artifact(os.path.join(config.package_directory, 'models', 'cut_off_an
 
 # print(model.summary())
 #
-# manual checks
-prediction = df.copy()
-prediction.reset_index(inplace=True)
-df['y_pred'] = df['close'].shift(-1) / df['close'] - 1
-# new_start = config.val_end + config.seq_len * datetime.timedelta(minutes=int(''.join(filter(str.isdigit, config.freq))))
-prediction = df.loc[(df.datetime >= datetime.datetime(2021, 10, 7, 0, 0, 0)) & (df.datetime <= datetime.datetime(2021, 11, 29, 23, 0, 0))]
-prediction['trade'] = y_pred.argmax(axis=1)
-prediction.reset_index(inplace=True)
-prediction['y_prob'] = y_pred[:, 1]
-
-correct_predictions = prediction.loc[(prediction['y_pred'] > 0) & (prediction['y_prob'] > 0.5) ].shape[0]
-correct_predictions =  correct_predictions + prediction.loc[(prediction['y_pred'] < 0) & (prediction['y_prob'] < 0.5)].shape[0]
-correct_predictions / prediction.shape[0]
-
-prediction.loc[(prediction['y_pred'] > 0) & (prediction['y_prob'] > 0.7)].shape[0]/ prediction.loc[(prediction['y_prob'] > 0.7)].shape[0]
-
-prediction.loc[(prediction['y_pred'] > 0) & (prediction['y_prob'] > 0.5) & (prediction['y_prob'] < 0.53)].shape[0] / prediction.loc[ (prediction['y_prob'] > 0.5) & (prediction['y_prob'] < 0.53)].shape[0]
-import pandas as pd
-prediction['correct_prediction'] = 0
-prediction.loc[(prediction['y_pred'] > 0) & (prediction['y_prob'] > 0.5), 'correct_prediction' ] = 1
-prediction.loc[(prediction['y_pred'] < 0) & (prediction['y_prob'] < 0.5), 'correct_prediction' ] = 1
-prediction['correct_prediction'].mean()
-prediction['probability_binned'] = pd.cut(prediction['y_prob'], [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1])
-prediction.groupby('probability_binned')['correct_prediction'].mean()
-prediction.groupby('probability_binned')['correct_prediction'].count()
+# # manual checks
+# prediction = df.copy()
+# prediction.reset_index(inplace=True)
+# df['y_pred'] = df['close'].shift(-1) / df['close'] - 1
+# # new_start = config.val_end + config.seq_len * datetime.timedelta(minutes=int(''.join(filter(str.isdigit, config.freq))))
+# prediction = df.loc[(df.datetime >= datetime.datetime(2021, 10, 7, 0, 0, 0)) & (df.datetime <= datetime.datetime(2021, 11, 29, 23, 0, 0))]
+# prediction['trade'] = y_pred.argmax(axis=1)
+# prediction.reset_index(inplace=True)
+# prediction['y_prob'] = y_pred[:, 1]
+#
+# correct_predictions = prediction.loc[(prediction['y_pred'] > 0) & (prediction['y_prob'] > 0.5) ].shape[0]
+# correct_predictions =  correct_predictions + prediction.loc[(prediction['y_pred'] < 0) & (prediction['y_prob'] < 0.5)].shape[0]
+# correct_predictions / prediction.shape[0]
+#
+# prediction.loc[(prediction['y_pred'] > 0) & (prediction['y_prob'] > 0.7)].shape[0]/ prediction.loc[(prediction['y_prob'] > 0.7)].shape[0]
+#
+# prediction.loc[(prediction['y_pred'] > 0) & (prediction['y_prob'] > 0.5) & (prediction['y_prob'] < 0.53)].shape[0] / prediction.loc[ (prediction['y_prob'] > 0.5) & (prediction['y_prob'] < 0.53)].shape[0]
+# import pandas as pd
+# prediction['correct_prediction'] = 0
+# prediction.loc[(prediction['y_pred'] > 0) & (prediction['y_prob'] > 0.5), 'correct_prediction' ] = 1
+# prediction.loc[(prediction['y_pred'] < 0) & (prediction['y_prob'] < 0.5), 'correct_prediction' ] = 1
+# prediction['correct_prediction'].mean()
+# prediction['probability_binned'] = pd.cut(prediction['y_prob'], [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1])
+# prediction.groupby('probability_binned')['correct_prediction'].mean()
+# prediction.groupby('probability_binned')['correct_prediction'].count()

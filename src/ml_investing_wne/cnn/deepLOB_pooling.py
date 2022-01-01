@@ -1,6 +1,6 @@
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Flatten, Dense, Dropout, Activation, Input, LSTM, Reshape, Conv2D,\
-    concatenate, MaxPooling2D, LeakyReLU
+    concatenate, MaxPooling2D, LeakyReLU, GlobalAveragePooling1D
 from tensorflow.keras.utils import plot_model
 import os
 import ml_investing_wne.config as config
@@ -52,18 +52,20 @@ def build_model(input_shape, nb_classes, number_of_lstm=64):
                                                                                                 training=True)
 
     # build the last LSTM layer
-    conv_lstm = LSTM(number_of_lstm)(conv_reshape)
 
-    # build the output layer
-    out = Dense(nb_classes, activation='softmax')(conv_lstm)
+    gap_layer = GlobalAveragePooling1D()(conv_reshape)
+
+    # build the output laye
+    out = Dense(nb_classes, activation='softmax')(gap_layer)
     model = Model(inputs=input_lmd, outputs=out)
     # adam = keras.optimizers.Adam(lr=0.0001)
     model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
     return model
 
 
-model = build_model(input_shape=(96, 40, 1), nb_classes=2)
-model.summary()
 
-plot_model(model, to_file=os.path.join(config.package_directory, 'models', 'model_plot_deepLOB.png'), show_shapes=True,
-           show_layer_names=True)
+# model = build_model(input_shape=(96, 40, 1), nb_classes=2)
+# model.summary()
+#
+# plot_model(model, to_file=os.path.join(config.package_directory, 'models', 'model_plot_deepLOB_pooling.png'), show_shapes=True,
+#            show_layer_names=True)

@@ -1,10 +1,13 @@
+import os
 import tensorflow.keras as keras
 import tensorflow as tf
 import numpy as np
+from tensorflow.keras.utils import plot_model
+import ml_investing_wne.config as config
 
 
 def build_model(input_shape, nb_classes):
-    n_feature_maps = 64
+    n_feature_maps = 32
 
     input_layer = keras.layers.Input(input_shape)
 
@@ -79,3 +82,9 @@ def build_model(input_shape, nb_classes):
                   metrics=['accuracy'])
 
     return model
+
+# model = build_model(input_shape=(96, 40), nb_classes=2)
+# model.summary()
+#
+# plot_model(model, to_file=os.path.join(config.package_directory, 'models', 'model_plot_resnet.png'), show_shapes=True,
+#            show_layer_names=True)

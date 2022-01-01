@@ -51,10 +51,12 @@ balance = client.commandExecute('getMarginLevel')
 
 
 class Trader():
-    def __init__(self, client, symbol, volume):
+    def __init__(self, client, symbol, volume, upper_bound, lower_bound):
         self.client = client
         self.symbol = symbol
         self.volume = volume
+        self.upper_bound = upper_bound
+        self.lower_bound = lower_bound
         self.order = 0
         self.retries = 3
         self.last_timestamp = None
@@ -69,7 +71,7 @@ class Trader():
                                                     "start": int(start.timestamp() * 1000),
                                                     "symbol": self.symbol
                                                     }
-                                           }
+                                           }, verbose=False
                                           )
         df = pd.DataFrame(resp['returnData']['rateInfos'])
         last_timestamp = df.loc[df.index[-1], 'ctmString']
@@ -79,8 +81,14 @@ class Trader():
         df['high'] = (df['open'] + df['high']) / 100000
         df['low'] = (df['open'] + df['low']) / 100000
         df['open'] = df['open'] / 100000
+
+        df['datetime'] = df['datetime'].dt.tz_localize('UTC').dt.tz_convert('Europe/Warsaw')
+        df['datetime'] = df['datetime'].dt.tz_localize(None)
+        df = df.sort_values(by=['datetime'], ascending=True)
         df = df.set_index('datetime')
-        df.drop(columns=['ctm', 'ctmString', 'vol'], inplace=True)
+        # order in hist data - open, high, low, close
+        df = df[['open', 'high', 'low', 'close']]
+
         df = prepare_processed_dataset(df=df, allow_null=True)
         X_test, y_test, y_test_cat = test_split(df, config.seq_len, sc_x)
         y_pred = model.predict(X_test[-1:])
@@ -127,7 +135,7 @@ class Trader():
         open_trades = self.client.commandExecute("getTrades", {"openedOnly": True})
         open_trades_symbol = []
         for i in open_trades['returnData']:
-            if i['symbol'] == symbol:
+            if i['symbol'] == self.symbol:
                 open_trades_symbol.append(i)
         if len(open_trades_symbol) == 0:
             self.position = None
@@ -249,7 +257,7 @@ class Trader():
             # update status as sometimes it's too quick to be updated
             self.trade_status()
             self.get_tick_prices()
-            if self.y_pred > 0.65:
+            if self.y_pred > self.upper_bound:
                 if self.position == 'long':
                     pass
                 if self.position is None:
@@ -259,7 +267,7 @@ class Trader():
                     # verify that short was closed
                     if self.position is None:
                         self.go_long()
-            elif self.y_pred > 0.35:
+            elif self.y_pred > self.lower_bound:
                 if self.position == 'long':
                     self.close_long()
                 elif self.position == 'short':
@@ -283,7 +291,10 @@ class Trader():
             time.sleep(difference)
 
 
-trader = Trader(client, symbol, volume=0.1)
+trader = Trader(client, symbol, volume=0.1, upper_bound=0.6, lower_bound=0.4)
+trader.trade()
+
+trader = Trader(client, symbol, volume=0.1, upper_bound=0.65, lower_bound=0.35)
 trader.trade()
 
 open_trades = client.commandExecute("getTrades", {"openedOnly": True})
@@ -338,3 +349,18 @@ close = client.commandExecute('tradeTransaction', {
 trade_status = client.commandExecute("tradeTransactionStatus", {"order": trade['returnData']['order']})
 trade_status['returnData']['requestStatus']
 trade_status = client.commandExecute("tradeTransactionStatus", {"order": 123})
+
+open_trades = client.commandExecute("getTrades", {"openedOnly": True})
+open_trades_symbol = []
+for i in open_trades['returnData']:
+    if i['symbol'] == symbol:
+        open_trades_symbol.append(i)
+
+
+resp = client.commandExecute('getChartLastRequest',
+                                          {'info': {"period": 60,
+                                                    "start": int(start.timestamp() * 1000),
+                                                    "symbol": symbol
+                                                    }
+                                           }, verbose=False
+                                          )

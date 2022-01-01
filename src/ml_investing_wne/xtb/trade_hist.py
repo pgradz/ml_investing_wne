@@ -12,12 +12,13 @@ from ml_investing_wne.helper import confusion_matrix_plot, compute_profitability
 
 
 logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 sc_x = joblib.load(os.path.join(config.package_directory, 'models',
                                    'sc_x_{}_{}.save'.format(config.currency, config.freq)))
 model = load_model(os.path.join(config.package_directory, 'models',
-                                    '{}_{}_{}.hdf5'.format(config.model, config.currency, config.freq)))
+                                    '{}_hist_data_{}_{}.h5'.format(config.model, config.currency, config.freq)))
 
-start = datetime.datetime(2021, 10, 1, 1, 0, 0, 0)
+start = datetime.datetime(2021, 7, 1, 1, 0, 0, 0)
 userId = 12896600
 password = "xoh10026"
 symbol = 'EURPLN'
@@ -44,8 +45,15 @@ df['close'] = (df['open'] + df['close'])/100000
 df['high'] = (df['open'] + df['high'])/100000
 df['low'] = (df['open'] + df['low'])/100000
 df['open'] = df['open']/100000
+df['datetime'] = df['datetime'].dt.tz_localize('UTC').dt.tz_convert('Europe/Warsaw')
+df['datetime'] = df['datetime'].dt.tz_localize(None)
+df = df.sort_values(by=['datetime'], ascending=True)
 df = df.set_index('datetime')
+
 df.drop(columns=['ctm', 'ctmString', 'vol'], inplace=True)
+# order in hist data - open, high, low, close
+df = df[['open', 'high', 'low', 'close']]
+
 df = prepare_processed_dataset(df=df)
 X_test, y_test, y_test_cat = test_split(df, config.seq_len, sc_x)
 
@@ -69,8 +77,12 @@ correct_predictions / prediction.shape[0]
 pips = 25
 df['cost'] = (pips/10000)/df['close']
 df.reset_index(inplace=True)
-portfolio_result = compute_profitability_classes(df.iloc[95:], y_pred, datetime.datetime(2021, 10, 4, 9, 0, 0),
-                                                 datetime.datetime(2021, 12, 28, 16, 0, 0))
+
+start_date = joblib.load(os.path.join(config.package_directory, 'models',
+                                           'first_sequence_ends_{}_{}_{}.save'.format('test_xtb', config.currency, config.freq)))
+end_date = joblib.load(os.path.join(config.package_directory, 'models',
+                                           'last_sequence_ends_{}_{}_{}.save'.format('test_xtb', config.currency, config.freq)))
+portfolio_result = compute_profitability_classes(df.iloc[95:], y_pred, start_date, end_date, 0.35, 0.65)
 
 
 

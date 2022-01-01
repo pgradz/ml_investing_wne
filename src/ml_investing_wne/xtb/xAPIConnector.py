@@ -90,7 +90,7 @@ class JsonSocket(object):
                 logger.info('Sent: ' + str(msg))
                 time.sleep(API_SEND_TIMEOUT / 1000)
 
-    def _read(self, bytesSize=4096):
+    def _read(self, verbose, bytesSize=4096):
         if not self.socket:
             raise RuntimeError("socket connection broken")
         while True:
@@ -106,11 +106,12 @@ class JsonSocket(object):
                     break
             except ValueError as e:
                 continue
-        logger.info('Received: ' + str(resp))
+        if verbose:
+            logger.info('Received: ' + str(resp))
         return resp
 
-    def _readObj(self):
-        msg = self._read()
+    def _readObj(self, verbose=True):
+        msg = self._read(verbose)
         return msg
 
     def close(self):
@@ -164,15 +165,15 @@ class APIClient(JsonSocket):
             raise Exception(
                 "Cannot connect to " + address + ":" + str(port) + " after " + str(API_MAX_CONN_TRIES) + " retries")
 
-    def execute(self, dictionary):
+    def execute(self, dictionary, verbose=True):
         self._sendObj(dictionary)
-        return self._readObj()
+        return self._readObj(verbose)
 
     def disconnect(self):
         self.close()
 
-    def commandExecute(self, commandName, arguments=None):
-        return self.execute(baseCommand(commandName, arguments))
+    def commandExecute(self, commandName, arguments=None, verbose=True):
+        return self.execute(baseCommand(commandName, arguments), verbose)
 
 
 class APIStreamClient(JsonSocket):
