@@ -37,7 +37,7 @@ def split_sequences(sequences_x, sequences_y, n_steps, datetime_series, steps_ah
     return np.array(X), np.array(y)
 
 
-def train_test_val_split(df, seq_len):
+def train_test_val_split(df, seq_len, sc_x=None):
     # classification ?
     if config.nb_classes == 2:
         df['y_pred'] = [1 if y > 1 else 0 for y in df['y_pred']]
@@ -60,8 +60,11 @@ def train_test_val_split(df, seq_len):
     test_datetime = test['datetime']
     test_x = test.drop(columns=['y_pred', 'datetime', 'index'])
     test_y = test['y_pred']
-    sc_x = StandardScaler()
-    train_x = sc_x.fit_transform(train_x)
+    if not sc_x:
+        sc_x = StandardScaler()
+        train_x = sc_x.fit_transform(train_x)
+    else:
+        train_x = sc_x.transform(train_x)
     val_x = sc_x.transform(val_x)
     test_x = sc_x.transform(test_x)
     joblib.dump(sc_x, os.path.join(config.package_directory, 'models',

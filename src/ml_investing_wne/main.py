@@ -106,7 +106,7 @@ mlflow.log_artifact(os.path.join(config.package_directory, 'models', 'cut_off_an
                                  format(config.model, config.currency, config.nb_classes)))
 
 # mlflow ui --backend-store-uri /Users/i0495036/Documents/sandbox/ml_investing_wne/mlruns
-
+#  ps -A | grep gunicorn
 
 # print(model.summary())
 #

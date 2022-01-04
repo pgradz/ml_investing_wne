@@ -16,16 +16,18 @@ import importlib
 build_model = getattr(importlib.import_module('ml_investing_wne.cnn.{}'.format(config.model)), 'build_model')
 
 logger = logging.getLogger()
-sc_x = joblib.load(os.path.join(config.package_directory, 'models',
-                                   'sc_x_{}_{}.save'.format(config.currency, config.freq)))
-model = load_model(os.path.join(config.package_directory, 'models',
-                                    '{}_{}_{}.hdf5'.format(config.model, config.currency, config.freq)))
+logger.setLevel(logging.INFO)
 
-start = datetime.datetime(2021, 1, 1, 1, 0, 0, 0)
+start = datetime.datetime(2018, 1, 1, 1, 0, 0, 0)
 userId = 12896600
 password = "xoh10026"
-symbol = 'EURPLN'
-
+symbol = 'USDCHF'
+config.train_end = datetime.datetime(2021, 9, 1, 0, 0, 0)
+config.val_end = datetime.datetime(2021, 11, 1, 0, 0, 0)
+config.test_end = datetime.datetime(2021, 12, 31, 15, 0, 0)
+#
+# sc_x = joblib.load(os.path.join(config.package_directory, 'models',
+#                                    'sc_x_{}_{}.save'.format(config.currency, config.freq)))
 client = APIClient()
 
 # connect to RR socket, login
@@ -39,7 +41,7 @@ if (loginResponse['status'] == False):
 # get ssId from login response
 ssid = loginResponse['streamSessionId']
 
-resp = client.commandExecute('getChartLastRequest', {'info': {"period": 60, "start": int(start.timestamp() * 1000),
+resp = client.commandExecute('getChartLastRequest', {'info': {"period": 1440, "start": int(start.timestamp() * 1000),
                                                               "symbol": symbol}})
 
 df = pd.DataFrame(resp['returnData']['rateInfos'])
@@ -48,22 +50,67 @@ df['close'] = (df['open'] + df['close'])/100000
 df['high'] = (df['open'] + df['high'])/100000
 df['low'] = (df['open'] + df['low'])/100000
 df['open'] = df['open']/100000
+df['datetime'] = df['datetime'].dt.tz_localize('GMT').dt.tz_convert('US/Eastern').dt.tz_localize(None)
 df = df.set_index('datetime')
 df.drop(columns=['ctm', 'ctmString', 'vol'], inplace=True)
+df = df[['open', 'high', 'low', 'close']]
+
 df = prepare_processed_dataset(df=df)
+#X, y, X_val, y_val, X_test, y_test, y_cat, y_val_cat, y_test_cat, train = train_test_val_split(df, config.seq_len, sc_x)
 X, y, X_val, y_val, X_test, y_test, y_cat, y_val_cat, y_test_cat, train = train_test_val_split(df, config.seq_len)
 
 
-mlflow.set_experiment(experiment_name=symbol + '_' + str(config.nb_classes))
-early_stop = EarlyStopping(monitor='val_accuracy', patience=10)
+mlflow.set_experiment(experiment_name=symbol + '_xtb_retrain_' + config.model + '_' + str(config.nb_classes))
+early_stop = EarlyStopping(monitor='val_accuracy', patience=3)
 model_path_final = os.path.join(config.package_directory, 'models',
-                               '{}_{}_{}.h5'.format(model, symbol, config.freq))
+                               '{}_{}_xtb_retrain_{}.h5'.format(config.model, symbol, config.freq))
 model_checkpoint = ModelCheckpoint(filepath=model_path_final, monitor='val_accuracy', verbose=1, save_best_only=True)
 csv_logger = CSVLogger(os.path.join(config.package_directory, 'logs', 'keras_log.csv'), append=True, separator=';')
 callbacks = [early_stop, model_checkpoint, csv_logger]
 
-# continue training or start new model
-model = build_model(input_shape=(X.shape[1], X.shape[2]), nb_classes=config.nb_classes)
+if len(config.currency) > 1:
+    model = load_model(os.path.join(config.package_directory, 'models',
+                                    '{}_{}_{}_{}.h5'.format(config.model, 'hist_data', symbol, config.freq)))
+else:
+    model = build_model(input_shape=(X.shape[1], X.shape[2]), nb_classes=config.nb_classes)
 
 history = model.fit(X, y_cat, batch_size=64, epochs=config.epochs, verbose=2,
                     validation_data=(X_val, y_val_cat), callbacks=callbacks)
+
+test_loss, test_acc = model.evaluate(X_test, y_test_cat)
+logger.info('Test accuracy : {}'.format(test_acc))
+logger.info('Test loss : {}'.format(test_loss))
+mlflow.log_metric("test_acc", test_acc)
+mlflow.log_metric("test_loss", test_loss)
+mlflow.log_metric("test_loss", test_loss)
+mlflow.set_tag('currency', config.currency)
+mlflow.set_tag('frequency', config.freq)
+mlflow.set_tag('steps_ahead', config.steps_ahead)
+mlflow.log_metric('y_distribution', y.mean())
+mlflow.log_metric('y_val_distribution', y_val.mean())
+mlflow.log_metric('y_test_distribution', y_test.mean())
+mlflow.log_metric('cost', config.pips)
+
+y_pred = model.predict(X_test)
+
+df['cost'] = (config.pips/10000)/df['close']
+start_date = joblib.load(os.path.join(config.package_directory, 'models',
+                                           'first_sequence_ends_{}_{}_{}.save'.format('test', config.currency, config.freq)))
+end_date = joblib.load(os.path.join(config.package_directory, 'models',
+                                           'last_sequence_ends_{}_{}_{}.save'.format('test', config.currency, config.freq)))
+lower_bounds =[0.1,0.15,0.2,0.25, 0.3,0.35, 0.4, 0.45, 0.5]
+upper_bounds = [1 - lower for lower in lower_bounds]
+
+for lower_bound, upper_bound in zip(lower_bounds, upper_bounds):
+    portfolio_result, hit_ratio, time_active = compute_profitability_classes(df, y_pred, start_date, end_date, lower_bound, upper_bound)
+    mlflow.log_metric("portfolio_result_{}_{}".format(lower_bound, upper_bound), portfolio_result)
+    mlflow.log_metric("hit_ratio_{}_{}".format(lower_bound, upper_bound), hit_ratio)
+    mlflow.log_metric("time_active_{}_{}".format(lower_bound, upper_bound), time_active)
+    mlflow.log_artifact(os.path.join(config.package_directory, 'models',
+                                     'portfolio_evolution_{}_{}_{}_{}_{}.png'.
+                                     format(config.model, config.currency, config.nb_classes,
+                                            lower_bound, upper_bound)))
+
+mlflow.log_artifact(os.path.join(config.package_directory, 'models', 'cut_off_analysis_{}_{}_{}.csv'.
+                                 format(config.model, config.currency, config.nb_classes)))
+

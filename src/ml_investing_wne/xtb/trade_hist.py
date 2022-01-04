@@ -3,6 +3,7 @@ import pandas as pd
 import logging
 import datetime
 import joblib
+import mlflow.keras
 from tensorflow.keras.models import load_model
 from ml_investing_wne.xtb.xAPIConnector import APIClient, APIStreamClient, loginCommand
 from ml_investing_wne.data_engineering.prepare_dataset import prepare_processed_dataset
@@ -15,13 +16,18 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 sc_x = joblib.load(os.path.join(config.package_directory, 'models',
                                    'sc_x_{}_{}.save'.format(config.currency, config.freq)))
+# hist model
 model = load_model(os.path.join(config.package_directory, 'models',
                                     '{}_hist_data_{}_{}.h5'.format(config.model, config.currency, config.freq)))
+# old model
+# model = load_model(os.path.join(config.package_directory, 'models',
+#                                     '{}_{}_{}.h5'.format(config.model, config.currency, config.freq)))
 
-start = datetime.datetime(2021, 7, 1, 1, 0, 0, 0)
+
+start = datetime.datetime(2021, 10, 27, 1, 0, 0, 0)
 userId = 12896600
 password = "xoh10026"
-symbol = 'EURPLN'
+symbol = 'EURGBP'
 
 client = APIClient()
 
@@ -45,8 +51,40 @@ df['close'] = (df['open'] + df['close'])/100000
 df['high'] = (df['open'] + df['high'])/100000
 df['low'] = (df['open'] + df['low'])/100000
 df['open'] = df['open']/100000
-df['datetime'] = df['datetime'].dt.tz_localize('UTC').dt.tz_convert('Europe/Warsaw')
-df['datetime'] = df['datetime'].dt.tz_localize(None)
+#
+# df['datetime3'] = df['datetime2'].dt.tz_convert('Etc/GMT+5')
+#
+# df['datetime2'] = df['datetime'].dt.tz_localize('CET').dt.tz_convert('CET')
+#
+# df['datetime2'] = df['datetime'].dt.tz_convert('CET')
+# df['datetime2'] = df['datetime2'].dt.tz_localize(None)
+#
+# df['datetime2'] = df['datetime'].dt.tz_localize('GMT').dt.tz_convert('CET')
+# df['datetime2'] = df['datetime2'].dt.tz_localize(None)
+#
+# df['datetime3'] = df['datetime2'].dt.tz_convert('America/New_York')
+# df['datetime3'] = df['datetime2'].dt.tz_convert('Etc/GMT+4')
+#
+# df['datetime3'] = df['datetime2'].dt.tz_convert('Etc/GMT+4')
+#
+# df['datetime3'] = df['datetime2'].dt.tz_convert('America/New_York')
+# df['datetime3'] = df['datetime3'].dt.tz_localize(None)
+#df['datetime2'] = df['datetime'] + pd.DateOffset(hours=-4)
+
+# if hist model
+df['datetime'] = df['datetime'].dt.tz_localize('GMT').dt.tz_convert('US/Eastern').dt.tz_localize(None)
+#df['datetime'] = df['datetime'].dt.tz_localize('GMT').dt.tz_convert('Europe/Warsaw').dt.tz_localize(None)
+
+# df['datetime2'] = df['datetime'].dt.tz_localize('CET')
+#
+# df['datetime2'] = df['datetime'].dt.tz_localize('CET').dt.tz_convert('EST')
+# df['datetime2'] = df['datetime'].dt.tz_localize('GMT').dt.tz_convert('EST')
+# df['datetime3'] = df['datetime'].dt.tz_localize('UTC').dt.tz_convert('EST')
+# df['datetime'] = df['datetime'].dt.tz_localize(None)
+
+# df['datetime'] = df['datetime'].dt.tz_localize('UTC').dt.tz_convert('Europe/Warsaw')
+# df['datetime'] = df['datetime'].dt.tz_localize('UTC').dt.tz_convert('EST')
+# df['datetime'] = df['datetime'].dt.tz_localize(None)
 df = df.sort_values(by=['datetime'], ascending=True)
 df = df.set_index('datetime')
 
@@ -74,15 +112,29 @@ prediction['y_prob'] = y_pred[:, 1]
 correct_predictions = prediction.loc[(prediction['y_pred'] > 0) & (prediction['y_prob'] > 0.5) ].shape[0]
 correct_predictions =  correct_predictions + prediction.loc[(prediction['y_pred'] < 0) & (prediction['y_prob'] < 0.5)].shape[0]
 correct_predictions / prediction.shape[0]
-pips = 25
-df['cost'] = (pips/10000)/df['close']
-df.reset_index(inplace=True)
 
+df['cost'] = (config.pips/10000)/df['close']
+df.reset_index(inplace=True)
+# prediction[['datetime','y_prob','close']].to_csv('xtb_test_3.csv', decimal=',', sep=';')
 start_date = joblib.load(os.path.join(config.package_directory, 'models',
                                            'first_sequence_ends_{}_{}_{}.save'.format('test_xtb', config.currency, config.freq)))
 end_date = joblib.load(os.path.join(config.package_directory, 'models',
                                            'last_sequence_ends_{}_{}_{}.save'.format('test_xtb', config.currency, config.freq)))
-portfolio_result = compute_profitability_classes(df.iloc[95:], y_pred, start_date, end_date, 0.35, 0.65)
+
+mlflow.set_experiment(experiment_name=symbol + '_xtb_last_period_' + config.model + '_' + str(config.nb_classes))
+lower_bounds =[0.1,0.15,0.2,0.25, 0.3,0.35, 0.4, 0.45, 0.5]
+upper_bounds = [1 - lower for lower in lower_bounds]
+
+for lower_bound, upper_bound in zip(lower_bounds, upper_bounds):
+    portfolio_result, hit_ratio, time_active = compute_profitability_classes(df, y_pred, start_date, end_date, lower_bound, upper_bound)
+    mlflow.log_metric("portfolio_result_{}_{}".format(lower_bound, upper_bound), portfolio_result)
+    mlflow.log_metric("hit_ratio_{}_{}".format(lower_bound, upper_bound), hit_ratio)
+    mlflow.log_metric("time_active_{}_{}".format(lower_bound, upper_bound), time_active)
+    mlflow.log_artifact(os.path.join(config.package_directory, 'models',
+                                     'portfolio_evolution_{}_{}_{}_{}_{}.png'.
+                                     format(config.model, config.currency, config.nb_classes,
+                                            lower_bound, upper_bound)))
+
 
 
 

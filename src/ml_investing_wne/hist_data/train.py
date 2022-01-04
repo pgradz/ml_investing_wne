@@ -62,7 +62,10 @@ df['minute']=df['datetime_text'].str[11:13].astype(int)
 
 df['datetime'] = pd.to_datetime(df[['year', 'month', 'day', 'hour', 'minute']])
 # covert to warsaw time
-df['datetime'] = df['datetime'].dt.tz_localize('Etc/GMT+5').dt.tz_convert('Europe/Warsaw')
+# df['datetime_2'] = df['datetime'].dt.tz_localize('Etc/GMT+5').dt.tz_convert('Europe/Warsaw')
+#df['datetime'] = df['datetime'].dt.tz_localize('US/Eastern').dt.tz_convert('Europe/Warsaw')
+#df['datetime'] = df['datetime'].dt.tz_localize('Etc/GMT+5').dt.tz_convert('Europe/Warsaw')
+# df.loc[df['datetime_3']!=df['datetime_2']]
 # strip time zone so later can be compared with datetime
 df['datetime'] = df['datetime'].dt.tz_localize(None)
 df = df.sort_values(by=['datetime'], ascending=True)
@@ -81,8 +84,8 @@ df = prepare_processed_dataset(df=df)
 
 X, y, X_val, y_val, X_test, y_test, y_cat, y_val_cat, y_test_cat, train = train_test_val_split(df, config.seq_len)
 
-mlflow.set_experiment(experiment_name='hist_data' + '_' + config.model + '_' + str(config.nb_classes))
-early_stop = EarlyStopping(monitor='val_accuracy', patience=5)
+mlflow.set_experiment(experiment_name='hist_data' + '_' + config.model + '_' + str(config.nb_classes)+'_' + config.freq)
+early_stop = EarlyStopping(monitor='val_accuracy', patience=15)
 model_path_final = os.path.join(config.package_directory, 'models',
                                '{}_{}_{}_{}.h5'.format(config.model, 'hist_data', config.currency, config.freq))
 model_checkpoint = ModelCheckpoint(filepath=model_path_final, monitor='val_accuracy', verbose=1, save_best_only=True)
@@ -136,6 +139,3 @@ for lower_bound, upper_bound in zip(lower_bounds, upper_bounds):
 mlflow.log_artifact(os.path.join(config.package_directory, 'models', 'cut_off_analysis_{}_{}_{}.csv'.
                                  format(config.model, config.currency, config.nb_classes)))
 
-
-for lower_bound, upper_bound in zip(lower_bounds, upper_bounds):
-    portfolio_result, hit_ratio, time_active = compute_profitability_classes(df, y_pred[-1318:], datetime.datetime(2021,10,8,10,0,0), end_date, lower_bound, upper_bound)

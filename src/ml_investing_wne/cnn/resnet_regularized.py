@@ -51,7 +51,7 @@ def build_model(input_shape, nb_classes):
 
     output_block_2 = keras.layers.add([shortcut_y, conv_z])
     output_block_2 = keras.layers.Activation('relu')(output_block_2)
-    output_block_2 = keras.layers.Dropout(0.25)(output_block_2, training=True)
+    output_block_2 = keras.layers.Dropout(0.20)(output_block_2, training=True)
 
     # BLOCK 3
 
@@ -71,7 +71,7 @@ def build_model(input_shape, nb_classes):
 
     output_block_3 = keras.layers.add([shortcut_y, conv_z])
     output_block_3 = keras.layers.Activation('relu')(output_block_3)
-    output_block_3 = keras.layers.Dropout(0.25)(output_block_3, training=True)
+    output_block_3 = keras.layers.Dropout(0.2)(output_block_3, training=True)
     # FINAL
 
     gap_layer = keras.layers.GlobalAveragePooling1D()(output_block_3)
