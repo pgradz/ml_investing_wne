@@ -1,3 +1,5 @@
+import datetime
+
 from sklearn.metrics import confusion_matrix
 import matplotlib.pyplot as plt
 import numpy as np
@@ -30,27 +32,32 @@ def confusion_matrix_plot(y_pred, y_test):
     plt.savefig(os.path.join(config.package_directory, 'models', 'confusion_matrix_{}_{}_{}.png'.
                              format(config.model, config.currency, config.nb_classes)))
 
-#
-# upper_bound = 0.75
-# lower_bound = 0.25
+# #
+# upper_bound = 0.5
+# lower_bound = 0.5
 # date_start = start_date
 # date_end = end_date
 
-def compute_profitability_classes(df, y_pred, date_start, date_end, lower_bound, upper_bound):
+def compute_profitability_classes(df, y_pred, date_start, date_end, lower_bound, upper_bound, time_waw_list=None):
     prediction = df.copy()
     prediction.reset_index(inplace=True)
     df['y_pred'] = df['close'].shift(-1) / df['close'] - 1
     # new_start = config.val_end + config.seq_len * datetime.timedelta(minutes=int(''.join(filter(str.isdigit, config.freq))))
     prediction = df.loc[(df.datetime >= date_start) & (df.datetime <= date_end)]
+    prediction['datetime_waw'] = prediction['datetime'].dt.tz_localize('US/Eastern').dt.tz_convert(
+        'Europe/Warsaw').dt.tz_localize(None)
+    prediction['hour_waw'] = prediction['datetime_waw'].dt.time
     # prediction['trade'] = y_pred.argmax(axis=1)
     prediction['prediction'] = y_pred[:, 1]
     conditions = [
-        (prediction['prediction'] <= lower_bound),
-        (prediction['prediction'] > lower_bound) & (prediction['prediction'] <= upper_bound),
-        (prediction['prediction'] > upper_bound)
+            (prediction['prediction'] <= lower_bound),
+            (prediction['prediction'] > lower_bound) & (prediction['prediction'] <= upper_bound),
+            (prediction['prediction'] > upper_bound)
     ]
     values = [0, 0.5, 1]
     prediction['trade'] = np.select(conditions, values)
+    if time_waw_list:
+        prediction.loc[~prediction['hour_waw'].isin(time_waw_list), 'trade'] = 0.5
     prediction.reset_index(inplace=True)
     budget = 100
     transaction = None
@@ -153,3 +160,34 @@ def compute_profitability_classes(df, y_pred, date_start, date_end, lower_bound,
                                   format(config.model, config.currency, config.nb_classes)), sep=";", decimal=",")
 
     return prediction.loc[i - 1, 'budget'], hits_ratio, share_of_time_active
+
+
+# time_waw_list = [datetime.time(21,0,0), datetime.time(22,0,0), datetime.time(23,0,0)]
+def check_hours(df, y_pred, date_start, date_end, lower_bound, upper_bound):
+    prediction = df.copy()
+    prediction.reset_index(inplace=True)
+    df['y_pred'] = df['close'].shift(-1) / df['close'] - 1
+    # new_start = config.val_end + config.seq_len * datetime.timedelta(minutes=int(''.join(filter(str.isdigit, config.freq))))
+    prediction = df.loc[(df.datetime >= date_start) & (df.datetime <= date_end)]
+    prediction['datetime_waw'] = prediction['datetime'].dt.tz_localize('US/Eastern').dt.tz_convert(
+        'Europe/Warsaw').dt.tz_localize(None)
+    prediction['hour_waw'] = prediction['datetime_waw'].dt.time
+    # prediction['trade'] = y_pred.argmax(axis=1)
+    prediction['prediction'] = y_pred[:, 1]
+    conditions = [
+            (prediction['prediction'] <= lower_bound),
+            (prediction['prediction'] > lower_bound) & (prediction['prediction'] <= upper_bound),
+            (prediction['prediction'] > upper_bound)
+    ]
+    values = [0, 0.5, 1]
+    prediction['trade'] = np.select(conditions, values)
+
+
+    prediction['success'] = 0
+    prediction.loc[((prediction['trade'] == 1) & (prediction['y_pred'] > 0)) |
+                          ((prediction['trade'] == 0) & (prediction['y_pred'] < 0)), 'success'] = 1
+    prediction.loc[prediction['trade']==0].hour_waw.value_counts()
+    prediction.loc[prediction['trade']==1].hour_waw.value_counts(normalize=True)
+    print(prediction.loc[prediction['trade']!=0.5].groupby('hour_waw').agg(count=('trade', 'size'), success=('success', 'mean')))
+
+# prediction.loc[prediction['hour_waw'].isin([datetime.time(20,0,0), datetime.time(22,0,0)])]

@@ -107,7 +107,7 @@ mlflow.log_artifact(os.path.join(config.package_directory, 'models', 'cut_off_an
 
 # mlflow ui --backend-store-uri /Users/i0495036/Documents/sandbox/ml_investing_wne/mlruns
 #  ps -A | grep gunicorn
-
+# mlflow ui --port=5001 --backend-store-uri /Users/i0495036/Documents/sandbox/ml_investing_wne/ml_investing_wne/src/mlruns
 # print(model.summary())
 #
 # # manual checks

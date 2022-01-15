@@ -1,16 +1,19 @@
 import os
 import datetime
 
-currency = 'USDCHF'
+currency = 'EURGBP'
 # leave empty if training from scratch
 load_model = ''
-freq = '1440min'
+freq = '120min'
 input_dim = '1d'  # 2d or 1d
-model = 'resnet'
-pips = 2 # transactional costs
-# train_end = datetime.datetime(2021, 9, 1, 0, 0, 0)
+model = 'resnet_lstm'
+pips = 2.5 # transactional costs
+# train_end = datetime.datetime(2021, 7, 1, 0, 0, 0)
 # val_end = datetime.datetime(2021, 10, 1, 0, 0, 0)
-# test_end = datetime.datetime(2021, 11, 30, 0, 0, 0)
+# test_end = datetime.datetime(2021, 12, 30, 0, 0, 0)
+# train_end = datetime.datetime(2020, 12, 30, 0, 0, 0)
+# val_end = datetime.datetime(2021, 7, 1, 0, 0, 0)
+# test_end = datetime.datetime(2021, 12, 30, 0, 0, 0)
 train_end = datetime.datetime(2020, 12, 30, 0, 0, 0)
 val_end = datetime.datetime(2021, 7, 1, 0, 0, 0)
 test_end = datetime.datetime(2021, 12, 30, 0, 0, 0)

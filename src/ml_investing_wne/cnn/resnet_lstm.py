@@ -72,11 +72,12 @@ def build_model(input_shape, nb_classes):
     output_block_3 = keras.layers.add([shortcut_y, conv_z])
     output_block_3 = keras.layers.Activation('relu')(output_block_3)
     output_block_3 = keras.layers.Dropout(0.25)(output_block_3, training=True)
-    output_block_3 = keras.layers.LSTM(64)(output_block_3)
+    # output_block_3 = keras.layers.LSTM(64)(output_block_3)
 
     # FINAL
 
-    #gap_layer = keras.layers.GlobalAveragePooling1D()(output_block_3)
+    #output_block_3 = keras.layers.GlobalAveragePooling1D()(output_block_3)
+    output_block_3 = keras.layers.LSTM(64)(output_block_3)
 
     output_layer = keras.layers.Dense(nb_classes, activation='softmax')(output_block_3)
 
@@ -88,8 +89,8 @@ def build_model(input_shape, nb_classes):
     return model
 
 
-# model = build_model(input_shape=(96, 40), nb_classes=2)
-# model.summary()
-#
-# plot_model(model, to_file=os.path.join(config.package_directory, 'models', 'model_plot_resnet_lstm.png'), show_shapes=True,
-#            show_layer_names=True)
+model = build_model(input_shape=(96, 40), nb_classes=2)
+model.summary()
+
+plot_model(model, to_file=os.path.join(config.package_directory, 'models', 'model_plot_resnet_lstm.png'), show_shapes=True,
+           show_layer_names=True)

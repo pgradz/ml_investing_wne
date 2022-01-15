@@ -31,15 +31,15 @@ logger.addHandler(file_h)
 start = datetime.datetime(2021, 10, 1, 1, 0, 0, 0)
 userId = 12896600
 password = "xoh10026"
-symbol = 'USDCHF'
-freq = '60min'
+symbol = 'EURGBP'
 input_dim = '1d'
 model = 'resnet'
+freq = '60min'
 
-sc_x = joblib.load(os.path.join(config.package_directory, 'models',
-                                'sc_x_{}_{}.save'.format(symbol, config.freq)))
-model = load_model(os.path.join(config.package_directory, 'models',
-                                    '{}_hist_data_{}_{}'.format(model, symbol, config.freq)))
+sc_x = joblib.load(os.path.join(config.package_directory, 'models', 'production',
+                                'sc_x_{}_{}.save'.format(symbol, freq)))
+model = load_model(os.path.join(config.package_directory, 'models', 'production',
+                                    '{}_hist_data_{}_{}'.format(model, symbol, freq)))
 
 client = APIClient()
 
@@ -54,22 +54,7 @@ if (loginResponse['status'] == False):
 ssid = loginResponse['streamSessionId']
 balance = client.commandExecute('getMarginLevel')
 
-# EURCHF
-trader = Trader(client, symbol, volume=0.1, upper_bound=0.7, lower_bound=0.3, max_spread=2.1)
-trader.trade()
-
 #EURGBP
-trader = Trader(client, symbol, volume=0.1, upper_bound=0.6, lower_bound=0.4, max_spread=2.1)
-trader.trade()
-
-#EURCAD
-trader = Trader(client, symbol, volume=0.1, upper_bound=0.65, lower_bound=0.35, max_spread=3.1)
-trader.trade()
-
-#EURAUD
-trader = Trader(client, symbol, volume=0.1, upper_bound=0.65, lower_bound=0.35, max_spread=3.1)
-trader.trade()
-
-#USDCHF
-trader = Trader(client, symbol, volume=0.1, upper_bound=0.65, lower_bound=0.35, max_spread=2.1)
+trader = Trader(client, symbol, volume=0.1, upper_bound=0.6, lower_bound=0.4, max_spread=2.1, start=start, model=model,
+                sc_x=sc_x, time_interval_in_min=60)
 trader.trade()

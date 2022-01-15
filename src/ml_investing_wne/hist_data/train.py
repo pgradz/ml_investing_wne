@@ -10,7 +10,7 @@ from ml_investing_wne.xtb.xAPIConnector import APIClient, APIStreamClient, login
 from ml_investing_wne.data_engineering.prepare_dataset import prepare_processed_dataset
 import ml_investing_wne.config as config
 from ml_investing_wne.train_test_val_split import train_test_val_split
-from ml_investing_wne.helper import confusion_matrix_plot, compute_profitability_classes
+from ml_investing_wne.helper import confusion_matrix_plot, compute_profitability_classes, check_hours
 import importlib
 
 build_model = getattr(importlib.import_module('ml_investing_wne.cnn.{}'.format(config.model)), 'build_model')
@@ -85,7 +85,7 @@ df = prepare_processed_dataset(df=df)
 X, y, X_val, y_val, X_test, y_test, y_cat, y_val_cat, y_test_cat, train = train_test_val_split(df, config.seq_len)
 
 mlflow.set_experiment(experiment_name='hist_data' + '_' + config.model + '_' + str(config.nb_classes)+'_' + config.freq)
-early_stop = EarlyStopping(monitor='val_accuracy', patience=15)
+early_stop = EarlyStopping(monitor='val_accuracy', patience=5, restore_best_weights=True)
 model_path_final = os.path.join(config.package_directory, 'models',
                                '{}_{}_{}_{}.h5'.format(config.model, 'hist_data', config.currency, config.freq))
 model_checkpoint = ModelCheckpoint(filepath=model_path_final, monitor='val_accuracy', verbose=1, save_best_only=True)
@@ -102,6 +102,14 @@ else:
 history = model.fit(X, y_cat, batch_size=64, epochs=config.epochs, verbose=2,
                     validation_data=(X_val, y_val_cat), callbacks=callbacks)
 
+model.save(os.path.join(config.package_directory, 'models',
+                                '{}_{}_{}_{}'.format(config.model, 'hist_data', config.currency, config.freq)))
+
+# model2 = load_model(os.path.join(config.package_directory, 'models',
+#                                 '{}_{}_{}_{}'.format(config.model, 'hist_data', config.currency, config.freq)))
+# model2.evaluate(X_val, y_val_cat)
+# test_loss, test_acc = model2.evaluate(X_test, y_test_cat)
+model.evaluate(X_val, y_val_cat)
 test_loss, test_acc = model.evaluate(X_test, y_test_cat)
 logger.info('Test accuracy : {}'.format(test_acc))
 logger.info('Test loss : {}'.format(test_loss))
@@ -119,6 +127,8 @@ mlflow.log_metric('cost', config.pips)
 y_pred = model.predict(X_test)
 
 df['cost'] = (config.pips/10000)/df['close']
+# for JPY
+# df['cost'] = (config.pips/100)/df['close']
 start_date = joblib.load(os.path.join(config.package_directory, 'models',
                                            'first_sequence_ends_{}_{}_{}.save'.format('test', config.currency, config.freq)))
 end_date = joblib.load(os.path.join(config.package_directory, 'models',
@@ -138,4 +148,12 @@ for lower_bound, upper_bound in zip(lower_bounds, upper_bounds):
 
 mlflow.log_artifact(os.path.join(config.package_directory, 'models', 'cut_off_analysis_{}_{}_{}.csv'.
                                  format(config.model, config.currency, config.nb_classes)))
+
+check_hours(df, y_pred, start_date, end_date, lower_bound=0.5, upper_bound=0.5)
+
+for lower_bound, upper_bound in zip(lower_bounds, upper_bounds):
+    portfolio_result, hit_ratio, time_active = compute_profitability_classes(df, y_pred, start_date, end_date, lower_bound, upper_bound,
+                                                                             time_waw_list=[datetime.time(22,0,0)
+                                                                                ])
+
 

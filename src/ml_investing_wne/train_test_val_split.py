@@ -6,6 +6,8 @@ import joblib
 import numpy as np
 from tensorflow.keras.utils import to_categorical
 import ml_investing_wne.config as config
+import datetime
+import re
 
 
 logger = logging.getLogger(__name__)
@@ -50,12 +52,15 @@ def train_test_val_split(df, seq_len, sc_x=None):
     train_datetime = train['datetime']
     train_x = train.drop(columns=['y_pred', 'datetime'])
     train_y = train['y_pred']
-    val = df.loc[(df.datetime >= config.train_end) & (df.datetime < config.val_end)]
+    #val = df.loc[(df.datetime >= config.train_end) & (df.datetime < config.val_end)]
+    val = df.loc[(df.datetime >= (config.train_end - datetime.timedelta(minutes=config.seq_len * int(re.findall("\d+", config.freq)[0]))))
+                 & (df.datetime < config.val_end)]
     val.reset_index(inplace=True)
     val_datetime = val['datetime']
     val_x = val.drop(columns=['y_pred', 'datetime', 'index'])
     val_y = val['y_pred']
-    test = df.loc[(df.datetime > config.val_end) & (df.datetime < config.test_end)]
+    test = df.loc[(df.datetime > (config.val_end - datetime.timedelta(minutes=config.seq_len * int(re.findall("\d+", config.freq)[0])))) &
+                   (df.datetime < config.test_end)]
     test.reset_index(inplace=True)
     test_datetime = test['datetime']
     test_x = test.drop(columns=['y_pred', 'datetime', 'index'])
