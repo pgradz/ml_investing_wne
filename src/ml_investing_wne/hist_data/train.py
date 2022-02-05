@@ -11,7 +11,10 @@ from ml_investing_wne.data_engineering.prepare_dataset import prepare_processed_
 import ml_investing_wne.config as config
 from ml_investing_wne.train_test_val_split import train_test_val_split
 from ml_investing_wne.helper import confusion_matrix_plot, compute_profitability_classes, check_hours
+from ml_investing_wne.hist_data.helper import import_hist_data_csv
 import importlib
+import matplotlib.pyplot as plt
+
 
 build_model = getattr(importlib.import_module('ml_investing_wne.cnn.{}'.format(config.model)), 'build_model')
 
@@ -36,50 +39,7 @@ mlflow.tensorflow.autolog()
 # model = load_model(os.path.join(config.package_directory, 'models',
 #                                     '{}_{}_{}.hdf5'.format(config.model, config.currency, config.freq)))
 
-
-def import_hist_data_csv(raw_data_path, currency, names=['currency', 'datetime', 'bid', 'ask'], **kwargs):
-    '''
-    read all csv files for currency pairs defined in config
-    :param raw_data_path: str path to raw data folder
-    :param currencies: currency
-    :param names: list of headers
-    :param kwargs:
-    :return: generator of pandas dataframes
-    '''
-    path = os.path.join(raw_data_path, currency)
-    files = [os.path.join(path, f) for f in os.listdir(path) if '.csv' in f]
-    for file in files:
-        yield pd.read_csv(file, sep=';', names=['datetime_text', 'open', 'high', 'low', 'close', 'volume'], header=None)
-
-data_path = '/Users/i0495036/Documents/sandbox/ml_investing_wne/ml_investing_wne/src/ml_investing_wne/data/raw/hist_data'
-df = pd.concat(import_hist_data_csv(data_path, config.currency))
-
-df['year']=df['datetime_text'].str[:4].astype(int)
-df['month']=df['datetime_text'].str[4:6].astype(int)
-df['day']=df['datetime_text'].str[6:8].astype(int)
-df['hour']=df['datetime_text'].str[9:11].astype(int)
-df['minute']=df['datetime_text'].str[11:13].astype(int)
-
-df['datetime'] = pd.to_datetime(df[['year', 'month', 'day', 'hour', 'minute']])
-# covert to warsaw time
-# df['datetime_2'] = df['datetime'].dt.tz_localize('Etc/GMT+5').dt.tz_convert('Europe/Warsaw')
-#df['datetime'] = df['datetime'].dt.tz_localize('US/Eastern').dt.tz_convert('Europe/Warsaw')
-#df['datetime'] = df['datetime'].dt.tz_localize('Etc/GMT+5').dt.tz_convert('Europe/Warsaw')
-# df.loc[df['datetime_3']!=df['datetime_2']]
-# strip time zone so later can be compared with datetime
-df['datetime'] = df['datetime'].dt.tz_localize(None)
-df = df.sort_values(by=['datetime'], ascending=True)
-df = df.drop_duplicates()
-df['datetime'].nunique()
-df = df.set_index('datetime')
-df.drop(columns=['year', 'month', 'day', 'hour', 'minute', 'volume', 'datetime_text' ], inplace=True)
-
-df = df.resample(config.freq).agg({'open': 'first',
-                                               'high': 'max',
-                                               'low': 'min',
-                                               'close': 'last'
-                                               })
-
+df = import_hist_data_csv(currency=config.currency)
 df = prepare_processed_dataset(df=df)
 
 X, y, X_val, y_val, X_test, y_test, y_cat, y_val_cat, y_test_cat, train = train_test_val_split(df, config.seq_len)
@@ -149,11 +109,64 @@ for lower_bound, upper_bound in zip(lower_bounds, upper_bounds):
 mlflow.log_artifact(os.path.join(config.package_directory, 'models', 'cut_off_analysis_{}_{}_{}.csv'.
                                  format(config.model, config.currency, config.nb_classes)))
 
-check_hours(df, y_pred, start_date, end_date, lower_bound=0.5, upper_bound=0.5)
+predicton = check_hours(df, y_pred, start_date, end_date, lower_bound=0.5, upper_bound=0.5)
 
 for lower_bound, upper_bound in zip(lower_bounds, upper_bounds):
     portfolio_result, hit_ratio, time_active = compute_profitability_classes(df, y_pred, start_date, end_date, lower_bound, upper_bound,
                                                                              time_waw_list=[datetime.time(22,0,0)
                                                                                 ])
 
+predicton['pips_difference'] = (predicton['close'].shift(-1) - predicton['close'])*10000
+predicton['pips_difference'] = (predicton['high'].shift(-1) - predicton['close'])*10000
+# for JPY
+#predicton['pips_difference'] = (predicton['close'].shift(-1) - predicton['close'])*100
 
+t2h = [
+datetime.time(2,0,0),
+datetime.time(4,0,0),
+datetime.time(6,0,0),
+datetime.time(8,0,0),
+datetime.time(10,0,0),
+datetime.time(12,0,0),
+datetime.time(14,0,0),
+datetime.time(16,0,0),
+datetime.time(18,0,0),
+datetime.time(20,0,0),
+datetime.time(22,0,0),
+datetime.time(0,0,0),
+]
+
+predicton.boxplot(column = 'pips_difference', by = 'hour_waw', figsize=(30,10))
+#predicton.loc[predicton['hour_waw'].isin(t2h)].boxplot(column = 'pips_difference', by = 'hour_waw', figsize=(30,10))
+plt.title('Difference in price in pips between consecutive periods for {}'.format(config.currency))
+plt.xticks(rotation=90)
+plt.savefig(os.path.join(config.package_directory, 'models', 'Price_difference_{}_{}_{}.png'.
+                         format(config.model, config.currency, config.freq)))
+
+predicton['sign'] = [1 if y > 0 else 0 for y in predicton['y_pred']]
+predicton.groupby('hour_waw')['sign'].mean()
+#predicton.loc[predicton['hour_waw'].isin(t2h)].groupby('hour_waw')['sign'].mean()
+
+# full dataset
+df['datetime_waw'] = df['datetime'].dt.tz_localize('US/Eastern').dt.tz_convert(
+    'Europe/Warsaw').dt.tz_localize(None)
+df['hour_waw'] = df['datetime_waw'].dt.time
+df['pips_difference'] = (df['close'].shift(-1) - df['close'])*10000
+df['pips_difference'] = (df['high'].shift(-1) - df['close'])*10000
+
+df.boxplot(column = 'pips_difference', by = 'hour_waw', figsize=(30,10))
+df.loc[(df['pips_difference']<200) & (df['pips_difference']>-200)].boxplot(column = 'pips_difference', by = 'hour_waw', figsize=(30,10))
+plt.title('Difference in price in pips between consecutive periods for {} full period'.format(config.currency))
+plt.xticks(rotation=90)
+plt.savefig(os.path.join(config.package_directory, 'models', 'Price_difference_full_period_{}_{}_{}.png'.
+                         format(config.model, config.currency, config.freq)))
+
+
+df.loc[df['hour_waw']==datetime.time(21,0,0)]['pips_difference'].describe(percentiles=[0.1,0.25,0.33,0.4,0.5,0.6,0.66,0.75,0.8,0.9])
+df.loc[df['hour_waw']==datetime.time(22,0,0)]['pips_difference'].describe(percentiles=[0.1,0.25,0.33,0.4,0.5,0.6,0.66,0.75,0.8,0.9])
+df.loc[df['hour_waw']==datetime.time(23,0,0)]['pips_difference'].describe(percentiles=[0.1,0.25,0.33,0.4,0.5,0.6,0.66,0.75,0.8,0.9])
+predicton.loc[predicton['hour_waw']==datetime.time(20,0,0)]['pips_difference'].describe(percentiles=[0.1,0.25,0.33,0.4,0.5,0.6,0.66,0.75,0.8,0.9])
+predicton.loc[predicton['hour_waw']==datetime.time(21,0,0)]['pips_difference'].describe(percentiles=[0.1,0.25,0.33,0.4,0.5,0.6,0.66,0.75,0.8,0.9])
+predicton.loc[predicton['hour_waw']==datetime.time(22,0,0)]['pips_difference'].describe(percentiles=[0.1,0.25,0.33,0.4,0.5,0.6,0.66,0.75,0.8,0.9])
+predicton.loc[predicton['hour_waw']==datetime.time(22,0,0)]['pips_difference'].mean()
+df.loc[df['hour_waw']==datetime.time(22,0,0)]['pips_difference'].mean()

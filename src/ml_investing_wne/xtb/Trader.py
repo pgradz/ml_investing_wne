@@ -24,7 +24,8 @@ logger.addHandler(stream_h)
 logger.addHandler(file_h)
 
 class Trader():
-    def __init__(self, client, symbol, volume, upper_bound, lower_bound, max_spread, start, model, sc_x, time_interval_in_min):
+    def __init__(self, client, symbol, volume, upper_bound, lower_bound, max_spread, start, model, sc_x, time_interval_in_min,
+                 freq, hours_to_trade, hours_to_exclude, take_profit_pips):
         self.client = client
         self.symbol = symbol
         self.volume = volume
@@ -35,8 +36,12 @@ class Trader():
         self.model = model
         self.sc_x = sc_x
         self.time_interval_in_min = time_interval_in_min
+        self.freq = freq
+        self.hours_to_trade = hours_to_trade
+        self.hours_to_exclude = hours_to_exclude
+        self.take_profit_pips = take_profit_pips
         self.order = 0
-        self.retries = 3
+        self.retries = 8
         self.last_timestamp = None
         self.last_price = None
         self.y_pred = None
@@ -66,6 +71,12 @@ class Trader():
         df = df.set_index('datetime')
         # order in hist data - open, high, low, close
         df = df[['open', 'high', 'low', 'close']]
+
+        df = df.resample(self.freq).agg({'open': 'first',
+                                           'high': 'max',
+                                           'low': 'min',
+                                           'close': 'last'
+                                           })
 
         df = prepare_processed_dataset(df=df, allow_null=True)
         X_test, y_test, y_test_cat = test_split(df, config.seq_len, self.sc_x)
@@ -150,7 +161,7 @@ class Trader():
                                                     "price": self.tick['returnData']['quotations'][0]['ask'],
                                                     "sl": 0.0,
                                                     "symbol": self.symbol,
-                                                    "tp": 0.0,
+                                                    "tp": self.tick['returnData']['quotations'][0]['bid'] + self.take_profit_pips/10000,
                                                     "type": 0,
                                                     "volume": self.volume
                                                     }
@@ -165,7 +176,7 @@ class Trader():
             "tradeTransInfo":
                 {"cmd": 1,
                  "customComment": "Decision to close long at {}".format(self.last_price),
-                 "expiration": int(datetime.datetime.now().timestamp() * 1000 + 300000),
+                 "expiration": int(datetime.datetime.now().timestamp() * 1000 + 600000),
                  "offset": 0,
                  "order": self.order,
                  "price": self.tick['returnData']['quotations'][0]['bid'],
@@ -193,7 +204,7 @@ class Trader():
                                                     "price": self.tick['returnData']['quotations'][0]['bid'],
                                                     "sl": 0.0,
                                                     "symbol": self.symbol,
-                                                    "tp": 0.0,
+                                                    "tp": self.tick['returnData']['quotations'][0]['ask'] - self.take_profit_pips/10000,
                                                     "type": 0,
                                                     "volume": self.volume
                                                     }
@@ -212,7 +223,7 @@ class Trader():
                                                     "customComment": "Decision to close short at {}".format(
                                                         self.last_price),
                                                     "expiration": int(
-                                                        datetime.datetime.now().timestamp() * 1000 + 300000),
+                                                        datetime.datetime.now().timestamp() * 1000 + 600000),
                                                     "offset": 0,
                                                     "order": self.order,
                                                     "price": self.tick['returnData']['quotations'][0]['ask'],
@@ -251,36 +262,58 @@ class Trader():
             # sometimes spread is not available, retry then
             if self.spread is None:
                 retry = 0
-                while self.spread is None and retry < self.retries:
+                while (self.spread is None or self.spread > self.max_spread) and retry < self.retries:
                     self.get_tick_prices()
+                    if self.spread <= self.max_spread:
+                        break
                     retry += 1
-            if self.y_pred > self.upper_bound:
-                if self.position == 'long':
-                    pass
-                if self.position is None and self.spread < self.max_spread:
-                    self.go_long()
-                if self.position == 'short':
-                    self.close_short()
-                    # verify that short was closed
+                    time.sleep(15)
+            # trading logic
+            if datetime.datetime.now().hour in self.hours_to_trade:
+
+                if self.y_pred > self.upper_bound:
+                    if self.position == 'long':
+                        pass
                     if self.position is None and self.spread < self.max_spread:
                         self.go_long()
-            elif self.y_pred > self.lower_bound:
+                    if self.position == 'short':
+                        self.close_short()
+                        # verify that short was closed
+                        if self.position is None and self.spread < self.max_spread:
+                            self.go_long()
+                elif self.y_pred > self.lower_bound:
+                    if self.position == 'long':
+                        self.close_long()
+                    elif self.position == 'short':
+                        self.close_short()
+                    else:
+                        pass
+                else:
+                    if self.position == 'long':
+                        self.close_long()
+                        # verify that long was closed
+                        if self.position is None and self.spread < self.max_spread:
+                            self.go_short()
+                    elif self.position is None and self.spread < self.max_spread:
+                        self.go_short()
+                    else:
+                        pass
+            elif datetime.datetime.now().hour not in self.hours_to_exclude:
+                # before closing transaction check again spread
+                if self.position in ['long', 'short'] and self.spread > self.max_spread:
+                    retry = 0
+                    while self.spread > self.max_spread and retry < self.retries:
+                        self.get_tick_prices()
+                        if self.spread <= self.max_spread:
+                            break
+                        retry += 1
+                        time.sleep(15)
                 if self.position == 'long':
                     self.close_long()
                 elif self.position == 'short':
                     self.close_short()
                 else:
-                    pass
-            else:
-                if self.position == 'long':
-                    self.close_long()
-                    # verify that long was closed
-                    if self.position is None and self.spread < self.max_spread:
-                        self.go_short()
-                elif self.position is None and self.spread < self.max_spread:
-                    self.go_short()
-                else:
-                    pass
+                    logger.info('currently no position - nothing to do')
 
             now = datetime.datetime.now()
             next_time = self.ceil_dt(now, datetime.timedelta(minutes=self.time_interval_in_min))
@@ -289,3 +322,4 @@ class Trader():
             difference = (next_time - now).total_seconds()
             logger.info('going to wait {} seconds'.format(difference))
             time.sleep(difference)
+

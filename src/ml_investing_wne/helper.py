@@ -162,7 +162,7 @@ def compute_profitability_classes(df, y_pred, date_start, date_end, lower_bound,
     return prediction.loc[i - 1, 'budget'], hits_ratio, share_of_time_active
 
 
-# time_waw_list = [datetime.time(21,0,0), datetime.time(22,0,0), datetime.time(23,0,0)]
+# time_waw_list = [datetime.time(20,0,0), datetime.time(22,0,0)]
 def check_hours(df, y_pred, date_start, date_end, lower_bound, upper_bound):
     prediction = df.copy()
     prediction.reset_index(inplace=True)
@@ -189,5 +189,94 @@ def check_hours(df, y_pred, date_start, date_end, lower_bound, upper_bound):
     prediction.loc[prediction['trade']==0].hour_waw.value_counts()
     prediction.loc[prediction['trade']==1].hour_waw.value_counts(normalize=True)
     print(prediction.loc[prediction['trade']!=0.5].groupby('hour_waw').agg(count=('trade', 'size'), success=('success', 'mean')))
+    return prediction
 
 # prediction.loc[prediction['hour_waw'].isin([datetime.time(20,0,0), datetime.time(22,0,0)])]
+
+def check_volatility(df, y_pred, date_start, date_end, lower_bound, upper_bound, sell_limit, time_waw_list=None):
+
+    df['y_pred'] = df['close'].shift(-1) / df['close'] - 1
+    df['close_close'] = df['close'].shift(-1) - df['close']
+    df['high_close'] = df['high'].shift(-1) - df['close']
+    df['low_close'] = df['low'].shift(-1) - df['close']
+    df['close_close'] = df['close_close'].round(4)
+    df['high_close'] = df['high_close'].round(4)
+    df['low_close'] = df['low_close'].round(4)
+
+    # new_start = config.val_end + config.seq_len * datetime.timedelta(minutes=int(''.join(filter(str.isdigit, config.freq))))
+    prediction = df.loc[(df.datetime >= date_start) & (df.datetime <= date_end)]
+    prediction['datetime_waw'] = prediction['datetime'].dt.tz_localize('US/Eastern').dt.tz_convert(
+        'Europe/Warsaw').dt.tz_localize(None)
+    prediction['hour_waw'] = prediction['datetime_waw'].dt.time
+    # prediction['trade'] = y_pred.argmax(axis=1)
+    prediction['prediction'] = y_pred[:, 1]
+    conditions = [
+            (prediction['prediction'] <= lower_bound),
+            (prediction['prediction'] > lower_bound) & (prediction['prediction'] <= upper_bound),
+            (prediction['prediction'] > upper_bound)
+    ]
+    values = [0, 0.5, 1]
+    prediction['trade'] = np.select(conditions, values)
+    if time_waw_list:
+        prediction.loc[~prediction['hour_waw'].isin(time_waw_list), 'trade'] = 0.5
+
+    buy = prediction.loc[prediction['trade'] == 1]
+    print('buy high close \n', buy['high_close'].describe())
+    print('buy close close \n', buy['close_close'].describe())
+
+    sell = prediction.loc[prediction['trade'] == 0]
+    print('sell low close \n', sell['low_close'].describe())
+    print('sell close close \n', sell['close_close'].describe())
+
+    prediction.reset_index(inplace=True)
+
+    budget = 100
+    transaction = None
+    sell_limit = sell_limit/10000
+    for i in range(prediction.shape[0]):
+        if prediction.loc[i, 'trade'] == config.nb_classes - 1:
+            # add transaction cost if position changes
+            if transaction != 'buy':
+                budget = budget * (1 - prediction.loc[i, 'cost'])
+                transaction = 'buy'
+            if prediction.loc[i, 'high_close'] > sell_limit:
+                budget = budget + budget * sell_limit/prediction.loc[i, 'close']
+            else:
+                budget = budget + budget * prediction.loc[i, 'y_pred']
+        elif prediction.loc[i, 'trade'] == 0:
+            # add transaction cost if position changes
+            if transaction != 'sell':
+                budget = budget * (1 - prediction.loc[i, 'cost'])
+                transaction = 'sell'
+            if prediction.loc[i, 'low_close'] < -sell_limit:
+                budget = budget + budget * sell_limit / prediction.loc[i, 'close']
+            else:
+                budget = budget + budget * (-prediction.loc[i, 'y_pred'])
+            # close transaction
+        elif prediction.loc[i, 'trade'] == 0.5:
+            if transaction in ['buy', 'sell']:
+                # budget = budget * (1 - prediction.loc[i, 'cost'])
+                transaction = None
+        prediction.loc[i, 'budget'] = budget
+        prediction.loc[i, 'transaction'] = transaction
+
+    hits = prediction.loc[((prediction['transaction']=='buy') & (prediction['y_pred'] > 0)) |
+                          ((prediction['transaction'] == 'sell') & (prediction['y_pred'] < 0))].shape[0]
+    transactions = prediction.loc[prediction['transaction'].isin(['buy', 'sell'])].shape[0]
+    try:
+        hits_ratio = hits/transactions
+    except ZeroDivisionError:
+        hits_ratio = 0
+    share_of_time_active = round(prediction.loc[prediction['transaction'].isin(['buy', 'sell'])].shape[0]/prediction.shape[0],2)
+    logger.info('share_of_time_active for bounds {}-{} is {} and hit ratio is {}'.format(lower_bound, upper_bound,
+                                                                                         share_of_time_active, hits_ratio))
+    plt.figure(2)
+    plt.plot(prediction['datetime'], prediction['budget'])
+    plt.axhline(y=100, color='r', linestyle='-')
+    plt.savefig(os.path.join(config.package_directory, 'models', 'portfolio_evolution_{}_{}_{}_{}_{}.png'.
+                             format(config.model, config.currency, config.nb_classes, lower_bound, upper_bound)))
+    plt.close()
+
+    logger.info('Portfolio result:  {}'.format(prediction.loc[i - 1, 'budget']))
+
+    return prediction.loc[i - 1, 'budget'], hits_ratio, share_of_time_active

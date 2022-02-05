@@ -9,7 +9,7 @@ from ml_investing_wne.xtb.xAPIConnector import APIClient, APIStreamClient, login
 from ml_investing_wne.data_engineering.prepare_dataset import prepare_processed_dataset
 import ml_investing_wne.config as config
 from ml_investing_wne.train_test_val_split import test_split
-from ml_investing_wne.helper import confusion_matrix_plot, compute_profitability_classes, check_hours
+from ml_investing_wne.helper import confusion_matrix_plot, compute_profitability_classes, check_hours, check_volatility
 
 
 logger = logging.getLogger()
@@ -24,10 +24,10 @@ model = load_model(os.path.join(config.package_directory, 'models',
 #                                     '{}_{}_{}.h5'.format(config.model, config.currency, config.freq)))
 
 
-start = datetime.datetime(2021, 6, 27, 1, 0, 0, 0)
-userId = 12896600
-password = "xoh10026"
-symbol = 'EURGBP'
+start = datetime.datetime(2021, 10, 27, 1, 0, 0, 0)
+userId = 13004922
+password = "Xtbgitara1"
+symbol = 'USDCHF'
 
 client = APIClient()
 
@@ -42,7 +42,7 @@ if (loginResponse['status'] == False):
 # get ssId from login response
 ssid = loginResponse['streamSessionId']
 
-resp = client.commandExecute('getChartLastRequest', {'info': {"period": 60, "start": int(start.timestamp() * 1000),
+resp = client.commandExecute('getChartLastRequest', {'info': {"period": 5, "start": int(start.timestamp() * 1000),
                                                               "symbol": symbol}})
 
 df = pd.DataFrame(resp['returnData']['rateInfos'])
@@ -62,6 +62,7 @@ df['open'] = df['open']/100000
 
 # if hist model
 df['datetime'] = df['datetime'].dt.tz_localize('GMT').dt.tz_convert('US/Eastern').dt.tz_localize(None)
+# df['datetime'] = df['datetime'].dt.tz_localize('GMT').dt.tz_convert('Europe/Warsaw').dt.tz_localize(None)
 df = df.sort_values(by=['datetime'], ascending=True)
 df = df.set_index('datetime')
 
@@ -129,8 +130,15 @@ for lower_bound, upper_bound in zip(lower_bounds, upper_bounds):
 
 for lower_bound, upper_bound in zip(lower_bounds, upper_bounds):
     portfolio_result, hit_ratio, time_active = compute_profitability_classes(df, y_pred, start_date, end_date, lower_bound, upper_bound,
-                                                                             time_waw_list=[datetime.time(20,0,0)])
+                                                                             time_waw_list=[datetime.time(22,0,0)])
 
+
+for lower_bound, upper_bound in zip(lower_bounds, upper_bounds):
+    portfolio_result, hit_ratio, time_active = check_volatility(df, y_pred, start_date, end_date, lower_bound,
+                                                                             upper_bound, sell_limit=8,
+                                                                             time_waw_list=[
+                                                                                 datetime.time(20, 0, 0),
+                                                                                 datetime.time(22,0,0)])
 
 
 

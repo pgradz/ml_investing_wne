@@ -19,9 +19,8 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 start = datetime.datetime(2019, 7, 1, 1, 0, 0, 0)
-userId = 12896600
-password = "xoh10026"
-symbol = 'EURCHF'
+
+symbol = 'W20'
 # config.train_end = datetime.datetime(2021, 9, 1, 0, 0, 0)
 # config.val_end = datetime.datetime(2021, 11, 1, 0, 0, 0)
 # config.test_end = datetime.datetime(2021, 12, 31, 15, 0, 0)
@@ -31,7 +30,7 @@ symbol = 'EURCHF'
 client = APIClient()
 
 # connect to RR socket, login
-loginResponse = client.execute(loginCommand(userId=userId, password=password))
+loginResponse = client.execute(loginCommand(userId=config.userId, password=config.password))
 logger.info(str(loginResponse))
 
 # check if user logged in correctly
@@ -50,6 +49,14 @@ df['close'] = (df['open'] + df['close'])/100000
 df['high'] = (df['open'] + df['high'])/100000
 df['low'] = (df['open'] + df['low'])/100000
 df['open'] = df['open']/100000
+
+#EURPLN
+# df['datetime'] = pd.to_datetime(df['ctm'], unit='ms')
+# df['close'] = (df['open'] + df['close'])/10000
+# df['high'] = (df['open'] + df['high'])/10000
+# df['low'] = (df['open'] + df['low'])/10000
+# df['open'] = df['open']/10000
+
 df['datetime'] = df['datetime'].dt.tz_localize('GMT').dt.tz_convert('US/Eastern').dt.tz_localize(None)
 df = df.set_index('datetime')
 df.drop(columns=['ctm', 'ctmString', 'vol'], inplace=True)
@@ -121,7 +128,7 @@ mlflow.log_artifact(os.path.join(config.package_directory, 'models', 'cut_off_an
                                  format(config.model, config.currency, config.nb_classes)))
 
 
-check_hours(df, y_pred, start_date, end_date, lower_bound=0.45, upper_bound=0.55)
+check_hours(df, y_pred, start_date, end_date, lower_bound=0.35, upper_bound=0.65)
 
 
 for lower_bound, upper_bound in zip(lower_bounds, upper_bounds):

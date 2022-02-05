@@ -55,6 +55,7 @@ ssid = loginResponse['streamSessionId']
 balance = client.commandExecute('getMarginLevel')
 
 #USDCHF
-trader = Trader(client, symbol, volume=0.1, upper_bound=0.65, lower_bound=0.35, max_spread=2.1, start=start, model=model,
-                sc_x=sc_x, time_interval_in_min=60)
+trader = Trader(client, symbol, volume=0.35, upper_bound=0.55, lower_bound=0.45, max_spread=3, start=start, model=model,
+                sc_x=sc_x, time_interval_in_min=60, freq=freq, hours_to_trade=[22,0], hours_to_exclude=[23],
+                take_profit_pips=8)
 trader.trade()

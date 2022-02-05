@@ -49,7 +49,8 @@ def prepare_processed_dataset(plot=False, df=None, allow_null=False):
     # df.ta.roc(append=True)
     # df.ta.roc(length=12, append=True)
     # df.ta.roc(length=1, append=True)
-    df['y_pred'] = df['close'].shift(-1) / df['close']
+    lag = config.steps_ahead - 1
+    df['y_pred'] = df['close'].shift(lag) / df['close']
     df['roc_1'] = df['y_pred'].shift(1)
     # df['y_roc_12'] = df['close'].shift(-12) / df['close']
     # df['y_roc_12'] = df['y_roc_12'].shift(12)
