@@ -30,8 +30,6 @@ def build_model(input_shape, nb_classes):
 
     output_block_1 = keras.layers.add([shortcut_y, conv_z])
     output_block_1 = keras.layers.Activation('relu')(output_block_1)
-    #output_block_1 = keras.layers.Dropout(0.25)(output_block_1, training=True)
-    #output_block_1 = keras.layers.Dropout(0.25)(output_block_1)
 
     # BLOCK 2
 
@@ -52,8 +50,7 @@ def build_model(input_shape, nb_classes):
 
     output_block_2 = keras.layers.add([shortcut_y, conv_z])
     output_block_2 = keras.layers.Activation('relu')(output_block_2)
-    #output_block_2 = keras.layers.Dropout(0.25)(output_block_2, training=True)
-    #output_block_2 = keras.layers.Dropout(0.25)(output_block_2)
+
     # BLOCK 3
 
     conv_x = keras.layers.Conv1D(filters=n_feature_maps * 2, kernel_size=8, padding='same')(output_block_2)
@@ -72,16 +69,13 @@ def build_model(input_shape, nb_classes):
 
     output_block_3 = keras.layers.add([shortcut_y, conv_z])
     output_block_3 = keras.layers.Activation('relu')(output_block_3)
-    #output_block_3 = keras.layers.Dropout(0.25)(output_block_3, training=True)
-    #output_block_3 = keras.layers.Dropout(0.25)(output_block_3)
-    # output_block_3 = keras.layers.LSTM(64)(output_block_3)
 
     # FINAL
 
-    #output_block_3 = keras.layers.GlobalAveragePooling1D()(output_block_3)
-    output_block_3 = keras.layers.LSTM(64)(output_block_3)
+    gap_layer = keras.layers.GlobalAveragePooling1D()(output_block_3)
+    fc_layer = keras.layers.Dense(128, activation='softmax')(gap_layer)
 
-    output_layer = keras.layers.Dense(nb_classes, activation='softmax')(output_block_3)
+    output_layer = keras.layers.Dense(nb_classes, activation='softmax')(fc_layer)
 
     model = keras.models.Model(inputs=input_layer, outputs=output_layer)
 
@@ -90,9 +84,8 @@ def build_model(input_shape, nb_classes):
 
     return model
 
-
-model = build_model(input_shape=(96, 40), nb_classes=2)
-model.summary()
-
-plot_model(model, to_file=os.path.join(config.package_directory, 'models', 'model_plot_resnet_lstm.png'), show_shapes=True,
-           show_layer_names=True)
+# model = build_model(input_shape=(96, 40), nb_classes=2)
+# model.summary()
+#
+# plot_model(model, to_file=os.path.join(config.package_directory, 'models', 'model_plot_resnet.png'), show_shapes=True,
+#            show_layer_names=True)

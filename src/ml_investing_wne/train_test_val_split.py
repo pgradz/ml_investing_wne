@@ -33,7 +33,7 @@ def split_sequences(sequences_x, sequences_y, n_steps, datetime_series, steps_ah
                                            'last_sequence_ends_{}_{}_{}.save'.format(name, config.currency, config.freq)))
             break
         # gather input and output parts of the pattern
-        seq_x, seq_y = sequences_x[i:end_ix,:], sequences_y[end_ix - 1 + steps_ahead]
+        seq_x, seq_y = sequences_x[i:end_ix,:], sequences_y[end_ix - 1]
         X.append(seq_x)
         y.append(seq_y)
     return np.array(X), np.array(y)

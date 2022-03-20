@@ -35,6 +35,7 @@ def build_model(input_shape, nb_classes):
     x_1 = keras.layers.Concatenate(axis=2)(conv_list)
     x_1 = keras.layers.BatchNormalization()(x_1)
     x_1 = keras.layers.Activation(activation='relu')(x_1)
+    x_1 = keras.layers.Dropout(0.25)(x_1, training=True)
 
     # 2nd inception
 
@@ -55,10 +56,11 @@ def build_model(input_shape, nb_classes):
     x_2 = keras.layers.Concatenate(axis=2)(conv_list)
     x_2 = keras.layers.BatchNormalization()(x_2)
     x_2 = keras.layers.Activation(activation='relu')(x_2)
+    x_2 = keras.layers.Dropout(0.25)(x_2, training=True)
 
-    gap_layer = keras.layers.GlobalAveragePooling1D()(x_2)
+    lstm = keras.layers.LSTM(64)(x_2)
 
-    output_layer = keras.layers.Dense(nb_classes, activation='softmax')(gap_layer)
+    output_layer = keras.layers.Dense(nb_classes, activation='softmax')(lstm)
     model = keras.models.Model(inputs=input_layer, outputs=output_layer)
 
     model.compile(loss='categorical_crossentropy', optimizer=keras.optimizers.Adam(),

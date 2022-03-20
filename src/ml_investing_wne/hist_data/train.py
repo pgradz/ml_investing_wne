@@ -4,6 +4,7 @@ import logging
 import datetime
 import joblib
 import mlflow.keras
+from sklearn.metrics import roc_auc_score, f1_score
 from tensorflow.keras.models import load_model
 from keras.callbacks import ModelCheckpoint, EarlyStopping, CSVLogger
 from ml_investing_wne.xtb.xAPIConnector import APIClient, APIStreamClient, loginCommand
@@ -11,9 +12,10 @@ from ml_investing_wne.data_engineering.prepare_dataset import prepare_processed_
 import ml_investing_wne.config as config
 from ml_investing_wne.train_test_val_split import train_test_val_split
 from ml_investing_wne.helper import confusion_matrix_plot, compute_profitability_classes, check_hours
-from ml_investing_wne.hist_data.helper import import_hist_data_csv
+from ml_investing_wne.hist_data.helper import get_hist_data
 import importlib
 import matplotlib.pyplot as plt
+
 
 
 build_model = getattr(importlib.import_module('ml_investing_wne.cnn.{}'.format(config.model)), 'build_model')
@@ -39,36 +41,40 @@ mlflow.tensorflow.autolog()
 # model = load_model(os.path.join(config.package_directory, 'models',
 #                                     '{}_{}_{}.hdf5'.format(config.model, config.currency, config.freq)))
 
-df = import_hist_data_csv(currency=config.currency)
+df = get_hist_data(currency=config.currency)
 df = prepare_processed_dataset(df=df)
 
 X, y, X_val, y_val, X_test, y_test, y_cat, y_val_cat, y_test_cat, train = train_test_val_split(df, config.seq_len)
 
-mlflow.set_experiment(experiment_name='hist_data' + '_' + config.model + '_' + str(config.nb_classes)+'_' + config.freq)
-early_stop = EarlyStopping(monitor='val_accuracy', patience=5, restore_best_weights=True)
+mlflow.set_experiment(experiment_name='hist_data' + '_' + config.model + '_' + str(config.nb_classes) + '_' + \
+                                      config.freq +'_' + str(config.steps_ahead) + '_' + str(config.seq_len))
+early_stop = EarlyStopping(monitor='val_accuracy', patience=3, restore_best_weights=True)
 model_path_final = os.path.join(config.package_directory, 'models',
-                               '{}_{}_{}_{}.h5'.format(config.model, 'hist_data', config.currency, config.freq))
+                               '{}_{}_{}_{}_{}.h5'.format(config.model, 'hist_data', config.currency, config.freq, config.steps_ahead))
 model_checkpoint = ModelCheckpoint(filepath=model_path_final, monitor='val_accuracy', verbose=1, save_best_only=True)
 csv_logger = CSVLogger(os.path.join(config.package_directory, 'logs', 'keras_log.csv'), append=True, separator=';')
 callbacks = [early_stop, model_checkpoint, csv_logger]
 
+# config.load_model = ''
 # continue training or start new model
 if len(config.load_model) > 1:
-    model = load_model(os.path.join(config.package_directory, 'models',
-                                    '{}_{}_{}_{}.h5'.format(config.model, 'hist_data', config.load_model, config.freq)))
+    # model = load_model(os.path.join(config.package_directory, 'models',
+    #                                 '{}_{}_{}_{}.h5'.format(config.model, 'hist_data', config.load_model, config.freq)))
+    model = load_model(os.path.join(config.package_directory, 'models', 'production',
+                                    '{}_hist_data_{}_{}_{}'.format(config.model, config.load_model, config.freq, config.steps_ahead)))
 else:
     model = build_model(input_shape=(X.shape[1], X.shape[2]), nb_classes=config.nb_classes)
+
 
 history = model.fit(X, y_cat, batch_size=64, epochs=config.epochs, verbose=2,
                     validation_data=(X_val, y_val_cat), callbacks=callbacks)
 
-model.save(os.path.join(config.package_directory, 'models',
-                                '{}_{}_{}_{}'.format(config.model, 'hist_data', config.currency, config.freq)))
+model.save(os.path.join(config.package_directory, 'models', 'production',
+                                '{}_{}_{}_{}_{}_{}'.format(config.model, 'hist_data', config.currency, config.freq, str(config.steps_ahead), config.seq_len)))
 
-# model2 = load_model(os.path.join(config.package_directory, 'models',
-#                                 '{}_{}_{}_{}'.format(config.model, 'hist_data', config.currency, config.freq)))
 # model2.evaluate(X_val, y_val_cat)
 # test_loss, test_acc = model2.evaluate(X_test, y_test_cat)
+
 model.evaluate(X_val, y_val_cat)
 test_loss, test_acc = model.evaluate(X_test, y_test_cat)
 logger.info('Test accuracy : {}'.format(test_acc))
@@ -83,12 +89,23 @@ mlflow.log_metric('y_distribution', y.mean())
 mlflow.log_metric('y_val_distribution', y_val.mean())
 mlflow.log_metric('y_test_distribution', y_test.mean())
 mlflow.log_metric('cost', config.pips)
+mlflow.log_metric('seq_len', config.seq_len)
 
 y_pred = model.predict(X_test)
+y_pred_class = y_pred.argmax(axis=-1)
 
-df['cost'] = (config.pips/10000)/df['close']
-# for JPY
-# df['cost'] = (config.pips/100)/df['close']
+
+roc_auc = roc_auc_score(y_test, y_pred_class)
+f1 = f1_score(y_test, y_pred_class)
+mlflow.log_metric('roc_auc', roc_auc)
+mlflow.log_metric('f1', f1)
+
+if 'JPY' in config.currency:
+    df['cost'] = (config.pips/100)/df['close']
+else:
+    df['cost'] = (config.pips/10000)/df['close']
+
+
 start_date = joblib.load(os.path.join(config.package_directory, 'models',
                                            'first_sequence_ends_{}_{}_{}.save'.format('test', config.currency, config.freq)))
 end_date = joblib.load(os.path.join(config.package_directory, 'models',
@@ -106,18 +123,20 @@ for lower_bound, upper_bound in zip(lower_bounds, upper_bounds):
                                      format(config.model, config.currency, config.nb_classes,
                                             lower_bound, upper_bound)))
 
-mlflow.log_artifact(os.path.join(config.package_directory, 'models', 'cut_off_analysis_{}_{}_{}.csv'.
-                                 format(config.model, config.currency, config.nb_classes)))
+mlflow.log_artifact(os.path.join(config.package_directory, 'models', 'cut_off_analysis_{}_{}_{}_{}.csv'.
+                                 format(config.model, config.currency, config.nb_classes, config.steps_ahead)))
 
 predicton = check_hours(df, y_pred, start_date, end_date, lower_bound=0.5, upper_bound=0.5)
+predicton = check_hours(df, y_pred, start_date, end_date, lower_bound=0.45, upper_bound=0.55)
+predicton = check_hours(df, y_pred, start_date, end_date, lower_bound=0.4, upper_bound=0.6)
 
 for lower_bound, upper_bound in zip(lower_bounds, upper_bounds):
     portfolio_result, hit_ratio, time_active = compute_profitability_classes(df, y_pred, start_date, end_date, lower_bound, upper_bound,
                                                                              time_waw_list=[datetime.time(22,0,0)
                                                                                 ])
 
-predicton['pips_difference'] = (predicton['close'].shift(-1) - predicton['close'])*10000
-predicton['pips_difference'] = (predicton['high'].shift(-1) - predicton['close'])*10000
+predicton['pips_difference'] = (predicton['close'].shift(-config.steps_ahead) - predicton['close'])*10000
+predicton['pips_difference'] = (predicton['high'].shift(-config.steps_ahead) - predicton['close'])*10000
 # for JPY
 #predicton['pips_difference'] = (predicton['close'].shift(-1) - predicton['close'])*100
 
@@ -137,6 +156,9 @@ datetime.time(0,0,0),
 ]
 
 predicton.boxplot(column = 'pips_difference', by = 'hour_waw', figsize=(30,10))
+predicton.loc[predicton['hour_waw']==datetime.time(22,0,0),'pips_difference'].describe(percentiles=[0.25, 0.33, 0.4, 0.45, 0.5, 0.6, 0.66, 0.75])
+predicton.loc[(predicton['hour_waw']==datetime.time(23,0,0)) & (predicton['pips_difference']>0)].shape[0]/predicton.loc[predicton['hour_waw']==datetime.time(21,0,0)].shape[0]
+
 #predicton.loc[predicton['hour_waw'].isin(t2h)].boxplot(column = 'pips_difference', by = 'hour_waw', figsize=(30,10))
 plt.title('Difference in price in pips between consecutive periods for {}'.format(config.currency))
 plt.xticks(rotation=90)

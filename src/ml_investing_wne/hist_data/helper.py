@@ -19,7 +19,10 @@ def import_hist_data_csv(currency, raw_data_path = data_path, names=['currency',
     for file in files:
         yield pd.read_csv(file, sep=';', names=['datetime_text', 'open', 'high', 'low', 'close', 'volume'], header=None)
 
-    df = pd.concat(import_hist_data_csv(data_path, config.currency))
+
+def get_hist_data(currency=config.currency):
+
+    df = pd.concat(import_hist_data_csv(currency))
 
     df['year'] = df['datetime_text'].str[:4].astype(int)
     df['month'] = df['datetime_text'].str[4:6].astype(int)
@@ -38,13 +41,20 @@ def import_hist_data_csv(currency, raw_data_path = data_path, names=['currency',
     df = df.sort_values(by=['datetime'], ascending=True)
     df = df.drop_duplicates()
     df['datetime'].nunique()
-    # df['datetime'] = df['datetime']  + pd.Timedelta(minutes=5)
+    # this is proxy for assessing if simple strategy can be profitable
+    # df['datetime'] = df['datetime'] - pd.Timedelta(minutes=15)
     df = df.set_index('datetime')
     df.drop(columns=['year', 'month', 'day', 'hour', 'minute', 'volume', 'datetime_text'], inplace=True)
-
-    df = df.resample(config.freq).agg({'open': 'first',
-                                       'high': 'max',
-                                       'low': 'min',
-                                       'close': 'last'
-                                       })
+    if config.freq == '1440min':
+        df = df.resample('D').agg({'open': 'first',
+                                           'high': 'max',
+                                           'low': 'min',
+                                           'close': 'last'
+                                           })
+    else:
+        df = df.resample(config.freq).agg({'open': 'first',
+                                           'high': 'max',
+                                           'low': 'min',
+                                           'close': 'last'
+                                           })
     return df

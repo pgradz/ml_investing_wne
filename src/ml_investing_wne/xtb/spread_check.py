@@ -22,7 +22,7 @@ logger.addHandler(stream_h)
 logger.addHandler(file_h)
 
 start = datetime.datetime(2021, 10, 1, 1, 0, 0, 0)
-symbol = 'USDCHF'
+symbol = 'EURCHF'
 
 client = APIClient()
 
@@ -57,7 +57,9 @@ while (True):
     with open('/Users/i0495036/Documents/sandbox/ml_investing_wne/ml_investing_wne/src/ml_investing_wne/models/spread_table_{}.csv'.format(symbol),'a') as fd:
         w = csv.DictWriter(fd, row.keys())
         w.writerow(row)
-    if datetime.datetime.now().hour not in [20, 21, 22, 23, 0, 1, 2]:
+    if datetime.datetime.now().hour not in [20, 21, 22, 23, 0, 1, 2, 11, 12, 13,
+                                            14, 15, 16, 17, 18, 19, 4, 5, 6,
+                                            7, 8, 9, 10]:
         break
     else:
         time.sleep(20)
