@@ -53,7 +53,6 @@ model = load_model(os.path.join(config.package_directory, 'models', 'production'
                                 '{}_hist_data_{}_{}_{}'.format(config.model, config.currency, config.freq,
                                                                config.steps_ahead)))
 
-
 y_pred = model.predict(X_test)
 
 if 'JPY' in config.currency:
@@ -86,7 +85,7 @@ naive_predictor = round(naive_forecast_group).to_dict()
 
 
 # naive_forecast.loc[abs(naive_forecast['pips_difference'])>20].shape[0]/naive_forecast.shape[0]
-# naive_forecast.hour_CET.value_counts()
+# naive_forecast.hour_london.value_counts()
 
 hours_to_include = [datetime.time(2,0,0),datetime.time(22,0,0),datetime.time(22,0,0), datetime.time(10,0,0),
                     datetime.time(14,0,0), datetime.time(18,0,0), datetime.time(6,0,0)]
@@ -95,8 +94,10 @@ hours_to_include = [datetime.time(5,0,0),datetime.time(17,0,0)]
 naive_forecast = naive_forecast.sort_values(by='hour_london')
 naive_forecast = naive_forecast.loc[naive_forecast['hour_london'].isin(hours_to_include)]
 #  px.box(naive_forecast.loc[(abs(naive_forecast['pips_difference'])<=100) ],
+
 fig = px.box(naive_forecast,
              x="hour_london", y="pips_difference",
+
              labels={
                  "pips_difference": "Difference in close price [pips] between consecutive hours",
                  "hour_london": "London Time"
@@ -107,13 +108,15 @@ fig.update_layout(
     yaxis=dict(
         range=[-40, 40]
     ),
-    title={
-        'text': "{} Training set - {} interval".format(config.currency,config.freq),
-        'y':0.95,
-        'x':0.5,
-        'xanchor': 'center',
-        'yanchor': 'top'})
-#fig.show()
+    font=dict(size=20)
+    # ,title={
+    #     'text': "{} Training set - {} interval".format(config.currency,config.freq),
+    #     'y':0.95,
+    #     'x':0.5,
+    #     'xanchor': 'center',
+    #     'yanchor': 'top'}
+    )
+fig.show()
 fig.write_image(os.path.join(config.package_directory, 'models','{}_{}_box_plot_training.png'.format(config.currency, config.freq)), width=1200, height=800)
 
 
@@ -126,6 +129,7 @@ fig = px.box(naive_forecast.loc[(df['datetime']>=datetime.datetime(2019,1,1)) & 
              )
 fig.update_layout(
     template='plotly_white',
+    font=dict(size=20),
     yaxis=dict(
         range=[-40, 40]
     ),
@@ -139,7 +143,7 @@ fig.update_layout(
 fig.write_image(os.path.join(config.package_directory, 'models','{}_{}_box_plot_training_2019.png'.format(config.currency, config.freq)), width=1200, height=800)
 
 
-prediction = check_hours(df, y_pred, start_date, end_date, lower_bound=0.5, upper_bound=0.5)
+prediction = check_hours(df, y_pred, start_date, end_date, lower_bound=0.45, upper_bound=0.55)
 #prediction = check_hours(df, y_pred, start_date, end_date, lower_bound=0.45, upper_bound=0.55)
 prediction.rename(columns={'hour_london':'London Time'}, inplace=True)
 prediction['naive_forecast'] = prediction['London Time'].map(naive_predictor)
@@ -161,17 +165,24 @@ df_to_plot = pd.concat([pred_accuracy, naive_accuracy])
 fig = px.bar(df_to_plot, x="London Time", y="correct_prediction", color='prediction_type',barmode='group',
              labels={
                  "correct_prediction": "Accuracy",
-                 "London Time": "London Time",
+                 "London Time": " ",
                  "prediction_type": "Prediction type"
              }
              )
 fig.update_layout(
-    title={
-        'text': "{} Test set- {} interval".format(config.currency, config.freq),
-        'y':0.95,
-        'x':0.5,
-        'xanchor': 'center',
-        'yanchor': 'top'},
+    # title={
+    #     'text': "{} Test set- {} interval".format(config.currency, config.freq),
+    #     'y':0.95,
+    #     'x':0.5,
+    #     'xanchor': 'center',
+    #     'yanchor': 'top'},
+    # font=dict(size=18),
+    legend=dict(
+        yanchor="top",
+        y=0.99,
+        xanchor="left",
+        x=0.01
+    ),
     template='plotly_white')
 fig.write_image(os.path.join(config.package_directory, 'models','{}_{}_naive_forecast.png'.format(config.currency, config.freq)), width=1200, height=800)
 
@@ -182,20 +193,22 @@ prediction = prediction.loc[prediction['London Time'].isin(hours_to_include)]
 fig = px.box(prediction, x="London Time", y="pips_difference",
              labels={
                  "pips_difference": "Difference in close price [pips] between consecutive hours",
-                 "London Time": "London Time"
+                 "London Time": " "
              }
              )
 fig.update_layout(
     template='plotly_white',
+    font=dict(size=18),
     yaxis=dict(
         range=[-40, 40]
-    ),
-    title={
-        'text':  "{} Test set - {} interval".format(config.currency,config.freq),
-        'y':0.95,
-        'x':0.5,
-        'xanchor': 'center',
-        'yanchor': 'top'})
+    )
+    # ,title={
+    #     'text':  "{} Test set - {} interval".format(config.currency,config.freq),
+    #     'y':0.95,
+    #     'x':0.5,
+    #     'xanchor': 'center',
+    #     'yanchor': 'top'}
+)
 #fig.show()
 fig.write_image(os.path.join(config.package_directory, 'models','EURCHF_{}_box_plot_testset.png'.format(config.freq)), width=1200, height=800)
 
@@ -313,13 +326,13 @@ fig.add_trace(go.Scatter(x=prediction_chart['datetime'], y=prediction_chart['clo
               secondary_y=True)
 fig.update_yaxes(title_text="Portfolio evolution - index", secondary_y=False)
 fig.update_yaxes(title_text=config.currency, secondary_y=True)
-fig.update_layout(
-    title={
-        'text': 'Model based on {} interval'.format(config.freq),
-        'y':0.95,
-        'x':0.5,
-        'xanchor': 'center',
-        'yanchor': 'top'})
+# fig.update_layout(
+#     title={
+#         'text': 'Model based on {} interval'.format(config.freq),
+#         'y':0.95,
+#         'x':0.5,
+#         'xanchor': 'center',
+#         'yanchor': 'top'})
 
 fig.write_image(os.path.join(config.package_directory, 'models','{}_{}_portfolio_5-5.png'.format(config.currency,config.freq)))
 

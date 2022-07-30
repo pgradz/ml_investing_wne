@@ -30,8 +30,8 @@ file_h.setFormatter(formatter)
 logger.addHandler(stream_h)
 logger.addHandler(file_h)
 
-# autlog ends run after keras.fit, hence all logging later will be added to another run. This is inconvenient, but
-# the alternative is to manually create run and replicate functionalities of autlog
+# autlog ends run after keras.fit, hence all logging later will be added to another run.
+# This is inconvenient, but the alternative is to manually create run and replicate functionalities of autlog
 mlflow.tensorflow.autolog()
 
 df = prepare_processed_dataset()

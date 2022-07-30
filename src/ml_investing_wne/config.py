@@ -4,9 +4,9 @@ import datetime
 currency = 'EURCHF'
 # leave empty if training from scratch
 load_model = ''
-freq = '60min'
+freq = '720min'
 input_dim = '1d'  # 2d or 1d
-model = 'resnet_lstm_2'
+model = 'transformer_lstm'
 
 COST = {
     'EURCHF': 2,
@@ -37,7 +37,7 @@ batch = 128
 patience = 5
 epochs = 100
 nb_classes = 2
-steps_ahead = 8
+steps_ahead = 1
 
 # configure directories
 package_directory = os.path.dirname(os.path.abspath(__file__))

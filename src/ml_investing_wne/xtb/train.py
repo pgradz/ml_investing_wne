@@ -20,7 +20,7 @@ logger.setLevel(logging.INFO)
 
 start = datetime.datetime(2019, 7, 1, 1, 0, 0, 0)
 
-symbol = 'W20'
+symbol = 'EURCHF'
 # config.train_end = datetime.datetime(2021, 9, 1, 0, 0, 0)
 # config.val_end = datetime.datetime(2021, 11, 1, 0, 0, 0)
 # config.test_end = datetime.datetime(2021, 12, 31, 15, 0, 0)
@@ -58,6 +58,7 @@ df['open'] = df['open']/100000
 # df['open'] = df['open']/10000
 
 df['datetime'] = df['datetime'].dt.tz_localize('GMT').dt.tz_convert('US/Eastern').dt.tz_localize(None)
+df['datetime'] = df['datetime'].dt.tz_localize('GMT').dt.tz_convert('Europe/Warsaw').dt.tz_localize(None)
 df = df.set_index('datetime')
 df.drop(columns=['ctm', 'ctmString', 'vol'], inplace=True)
 df = df[['open', 'high', 'low', 'close']]
@@ -67,6 +68,13 @@ df = df.resample(config.freq).agg({'open': 'first',
                                                'low': 'min',
                                                'close': 'last'
                                                })
+
+df.dropna(inplace=True)
+df['y_pred'] = df['close'].shift(-config.steps_ahead) / df['close']
+df['y_pred'] = [1 if y > 1 else 0 for y in df['y_pred']]
+df['datetime'] = df.index
+df['hour'] = df.datetime.dt.hour
+df.groupby('hour')['y_pred'].mean()
 
 df = prepare_processed_dataset(df=df)
 #X, y, X_val, y_val, X_test, y_test, y_cat, y_val_cat, y_test_cat, train = train_test_val_split(df, config.seq_len, sc_x)

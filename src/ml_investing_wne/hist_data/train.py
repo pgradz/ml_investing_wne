@@ -4,6 +4,7 @@ import logging
 import datetime
 import joblib
 import mlflow.keras
+import numpy as np
 from sklearn.metrics import roc_auc_score, f1_score
 from tensorflow.keras.models import load_model
 from keras.callbacks import ModelCheckpoint, EarlyStopping, CSVLogger
@@ -44,27 +45,32 @@ mlflow.tensorflow.autolog()
 df = get_hist_data(currency=config.currency)
 df = prepare_processed_dataset(df=df)
 
+# df = df[np.random.default_rng(seed=42).permutation(df.columns.values)]
+
 X, y, X_val, y_val, X_test, y_test, y_cat, y_val_cat, y_test_cat, train = train_test_val_split(df, config.seq_len)
 
 mlflow.set_experiment(experiment_name='hist_data' + '_' + config.model + '_' + str(config.nb_classes) + '_' + \
                                       config.freq +'_' + str(config.steps_ahead) + '_' + str(config.seq_len))
-early_stop = EarlyStopping(monitor='val_accuracy', patience=3, restore_best_weights=True)
+early_stop = EarlyStopping(monitor='val_accuracy', patience=4, restore_best_weights=True)
 model_path_final = os.path.join(config.package_directory, 'models',
                                '{}_{}_{}_{}_{}.h5'.format(config.model, 'hist_data', config.currency, config.freq, config.steps_ahead))
 model_checkpoint = ModelCheckpoint(filepath=model_path_final, monitor='val_accuracy', verbose=1, save_best_only=True)
 csv_logger = CSVLogger(os.path.join(config.package_directory, 'logs', 'keras_log.csv'), append=True, separator=';')
 callbacks = [early_stop, model_checkpoint, csv_logger]
-
+# model = load_model('/Users/i0495036/Documents/sandbox/ml_investing_wne/ml_investing_wne/src/ml_investing_wne/models/resnet_lstm_2_hist_data_EURUSD_480min_1.h5')
 # config.load_model = ''
 # continue training or start new model
 if len(config.load_model) > 1:
     # model = load_model(os.path.join(config.package_directory, 'models',
     #                                 '{}_{}_{}_{}.h5'.format(config.model, 'hist_data', config.load_model, config.freq)))
     model = load_model(os.path.join(config.package_directory, 'models', 'production',
-                                    '{}_hist_data_{}_{}_{}'.format(config.model, config.load_model, config.freq, config.steps_ahead)))
+                                    '{}_hist_data_{}_{}_{}_{}'.format(config.model, config.load_model, config.freq, config.steps_ahead,config.seq_len )))
 else:
     model = build_model(input_shape=(X.shape[1], X.shape[2]), nb_classes=config.nb_classes)
 
+# transformer
+model = build_model(input_shape=(96, 40), head_size=256, num_heads=4, ff_dim=32,
+                     num_transformer_blocks=2, mlp_units=[128], mlp_dropout=0.4, dropout=0.25)
 
 history = model.fit(X, y_cat, batch_size=64, epochs=config.epochs, verbose=2,
                     validation_data=(X_val, y_val_cat), callbacks=callbacks)
@@ -192,3 +198,12 @@ predicton.loc[predicton['hour_waw']==datetime.time(21,0,0)]['pips_difference'].d
 predicton.loc[predicton['hour_waw']==datetime.time(22,0,0)]['pips_difference'].describe(percentiles=[0.1,0.25,0.33,0.4,0.5,0.6,0.66,0.75,0.8,0.9])
 predicton.loc[predicton['hour_waw']==datetime.time(22,0,0)]['pips_difference'].mean()
 df.loc[df['hour_waw']==datetime.time(22,0,0)]['pips_difference'].mean()
+
+
+df_top_n = df_melted_index.sort_values('value',ascending = False).groupby('cluster_name')\
+    .head(n_features).copy()
+
+df_bottom_n = df_melted_index.sort_values('value',ascending = True).groupby('cluster_name').\
+    head(n_features).copy()
+
+
