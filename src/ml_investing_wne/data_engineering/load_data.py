@@ -7,7 +7,7 @@ import ml_investing_wne.config as config
 # logger is a child of a logger from main module that is calling this module
 logger = logging.getLogger(__name__)
 
-def import_truefx_csv(raw_data_path, currency, names=['currency', 'datetime', 'bid', 'ask'], **kwargs):
+def import_forex_csv(raw_data_path, currency, names=['currency', 'datetime', 'bid', 'ask'], **kwargs):
     '''
     read all csv files for currency pairs defined in config
     :param raw_data_path: str path to raw data folder
