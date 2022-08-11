@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 # prepare sequences
 def split_sequences(sequences_x, sequences_y, n_steps, datetime_series, steps_ahead, name):
     X, y = list(), list()
-    for i in range(len(sequences_x)):
+    for i in range(len(sequences_x)+1):
         # find the end of this pattern
         end_ix = i + n_steps
         # print('i ', i, datetime_series[i])
@@ -26,8 +26,8 @@ def split_sequences(sequences_x, sequences_y, n_steps, datetime_series, steps_ah
             joblib.dump(datetime_series[end_ix-1], os.path.join(config.package_directory, 'models',
                                            'first_sequence_ends_{}_{}_{}.save'.format(name, config.currency, config.freq)))
         # check if we are beyond the dataset
-        if end_ix  +  steps_ahead> len(sequences_x):
-            logger.info('last sequence begins: {}'.format(datetime_series[i-2]))
+        if end_ix + steps_ahead > len(sequences_x) + 1:
+            logger.info('last sequence begins: {}'.format(datetime_series[i-1]))
             logger.info('last sequence ends: {}'.format(datetime_series[end_ix-2]))
             joblib.dump(datetime_series[end_ix-2], os.path.join(config.package_directory, 'models',
                                            'last_sequence_ends_{}_{}_{}.save'.format(name, config.currency, config.freq)))
@@ -39,32 +39,39 @@ def split_sequences(sequences_x, sequences_y, n_steps, datetime_series, steps_ah
     return np.array(X), np.array(y)
 
 
-def train_test_val_split(df, seq_len, sc_x=None):
-    # classification ?
-    if config.nb_classes == 2:
+def train_test_val_split(df, sc_x=None, nb_classes=config.nb_classes, freq=config.freq,
+                         seq_len=config.seq_len, steps_ahead=config.steps_ahead,
+                         train_end=config.train_end, val_end=config.val_end,
+                         test_end=config.test_end):
+
+    minutes_offset = seq_len * int(re.findall("\d+", freq)[0])
+    # take care if more than two classes
+    if nb_classes == 2:
         df['y_pred'] = [1 if y > 1 else 0 for y in df['y_pred']]
     else:
-        df['y_pred'] = pd.qcut(df['y_pred'], config.nb_classes, labels=range(config.nb_classes))
+        df['y_pred'] = pd.qcut(df['y_pred'], nb_classes, labels=range(nb_classes))
 
     # split train val test
     df.reset_index(inplace=True)
-    train = df.loc[df.datetime < config.train_end]
+    train = df.loc[df.datetime < train_end]
     train_datetime = train['datetime']
     train_x = train.drop(columns=['y_pred', 'datetime'])
     train_y = train['y_pred']
-    #val = df.loc[(df.datetime >= config.train_end) & (df.datetime < config.val_end)]
-    val = df.loc[(df.datetime >= (config.train_end - datetime.timedelta(minutes=config.seq_len * int(re.findall("\d+", config.freq)[0]))))
-                 & (df.datetime < config.val_end)]
+    # validation
+    val = df.loc[(df.datetime > (train_end - datetime.timedelta(minutes=minutes_offset)))
+                 & (df.datetime < val_end)]
     val.reset_index(inplace=True)
     val_datetime = val['datetime']
     val_x = val.drop(columns=['y_pred', 'datetime', 'index'])
     val_y = val['y_pred']
-    test = df.loc[(df.datetime > (config.val_end - datetime.timedelta(minutes=config.seq_len * int(re.findall("\d+", config.freq)[0])))) &
-                   (df.datetime < config.test_end)]
+    # test
+    test = df.loc[(df.datetime > (val_end - datetime.timedelta(minutes=minutes_offset))) &
+                   (df.datetime < test_end)]
     test.reset_index(inplace=True)
     test_datetime = test['datetime']
     test_x = test.drop(columns=['y_pred', 'datetime', 'index'])
     test_y = test['y_pred']
+    # scaler has to be fit on train set, it's easier to do it here
     if not sc_x:
         sc_x = StandardScaler()
         train_x = sc_x.fit_transform(train_x)
@@ -73,11 +80,14 @@ def train_test_val_split(df, seq_len, sc_x=None):
     val_x = sc_x.transform(val_x)
     test_x = sc_x.transform(test_x)
     joblib.dump(sc_x, os.path.join(config.package_directory, 'models',
-                                   'sc_x_{}_{}.save'.format(config.currency, config.freq)))
+                                   'sc_x_{}_{}.save'.format(config.currency, freq)))
 
-    X, y = split_sequences(train_x, train_y, seq_len, train_datetime, steps_ahead=config.steps_ahead, name='train')
-    X_val, y_val = split_sequences(val_x, val_y, seq_len, val_datetime, steps_ahead=config.steps_ahead, name='val')
-    X_test, y_test = split_sequences(test_x, test_y, seq_len, test_datetime, steps_ahead=config.steps_ahead, name='test')
+    X, y = split_sequences(train_x, train_y, seq_len, train_datetime,
+                           steps_ahead=steps_ahead, name='train')
+    X_val, y_val = split_sequences(val_x, val_y, seq_len, val_datetime,
+                                   steps_ahead=steps_ahead, name='val')
+    X_test, y_test = split_sequences(test_x, test_y, seq_len, test_datetime,
+                                     steps_ahead=steps_ahead, name='test')
 
     # You always have to give a 4D array as input to the cnn when using conv2d
     # So input data has a shape of (batch_size, height, width, depth)
@@ -95,6 +105,13 @@ def train_test_val_split(df, seq_len, sc_x=None):
 
 
 def test_split(df, seq_len, sc_x):
+    '''
+    This is split used in xtb module
+    :param df:
+    :param seq_len:
+    :param sc_x:
+    :return:
+    '''
     # classification ?
     if config.nb_classes == 2:
         df['y_pred'] = [1 if y > 1 else 0 for y in df['y_pred']]
@@ -109,7 +126,8 @@ def test_split(df, seq_len, sc_x):
     test_y = test['y_pred']
     test_x = sc_x.transform(test_x)
     #test_x = test_x.to_numpy() - it was to check that last row is kept
-    X_test, y_test = split_sequences(test_x, test_y, seq_len, test_datetime, steps_ahead=config.steps_ahead, name='test_xtb')
+    X_test, y_test = split_sequences(test_x, test_y, seq_len, test_datetime,
+                                     steps_ahead=config.steps_ahead, name='test_xtb')
 
     # You always have to give a 4D array as input to the cnn when using conv2d
     # So input data has a shape of (batch_size, height, width, depth)

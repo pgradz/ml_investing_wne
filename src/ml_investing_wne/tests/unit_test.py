@@ -20,7 +20,7 @@ def y_pred_file():
     return y_pred_file
 
 @pytest.fixture
-def start_date():
+def seq_lenstart_date():
     return datetime.datetime(2021,7,1,15,0,0)
 
 @pytest.fixture

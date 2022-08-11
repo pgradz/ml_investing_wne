@@ -64,6 +64,8 @@ def compute_profitability_classes(df, y_pred, date_start, date_end, lower_bound,
     budget = 100
     transaction = None
     i = 0
+    # drop last row for which we don't have a label
+    prediction.drop(prediction.tail(1).index, inplace=True)
     while i < prediction.shape[0]:
         # for i in range(prediction.shape[0]):
         if prediction.loc[i, 'trade'] == config.nb_classes - 1:

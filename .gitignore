@@ -133,6 +133,8 @@ src/ml_investing_wne/data/raw/*
 src/ml_investing_wne/data/processed/*
 src/ml_investing_wne/logs/*
 src/ml_investing_wne/models/*
+src/ml_investing_wne/data/xtb/
+
 # mlfow folders
 mlruns/
 

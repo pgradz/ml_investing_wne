@@ -5,14 +5,23 @@ import logging
 import datetime
 import pandas_ta as ta
 import ml_investing_wne.config as config
-from ml_investing_wne.data_engineering.truefx import import_truefx_csv, aggregate_time_window, check_time_delta
+from ml_investing_wne.data_engineering.load_data import import_forex_csv, aggregate_time_window, \
+    check_time_delta
 
 logger = logging.getLogger(__name__)
 
 def prepare_processed_dataset(plot=False, df=None, allow_null=False, features=True):
+    '''
+
+    :param plot:  flag whether to plot price evolution
+    :param df: if no df passed, data will be loaded from folder passed in config
+    :param allow_null: drop rows with nulls, effect of computing TA indictors (first obs)
+    :param features: flag whether to add TA features
+    :return: pandas dataframe
+    '''
 
     if not isinstance(df, pd.DataFrame):
-        df = pd.concat(import_truefx_csv(config.raw_data_path, config.currency))
+        df = pd.concat(import_forex_csv(config.raw_data_path, config.currency))
         df = aggregate_time_window(df, config.freq)
         check_time_delta(df)
         # pick bid for technical indicators
@@ -61,8 +70,10 @@ def prepare_processed_dataset(plot=False, df=None, allow_null=False, features=Tr
         df['hour_sin'] = np.sin(2 * np.pi * df['hour'] / df['hour'].max())
         df['hour_cos'] = np.cos(2 * np.pi * df['hour'] / df['hour'].max())
         # I know there is an error but models were already trained with it
-        df['weekday_sin'] = np.sin(2 * np.pi * df['hour'] / df['weekday'].max())
-        df['weekday_cos'] = np.cos(2 * np.pi * df['hour'] / df['weekday'].max())
+        # df['weekday_sin'] = np.sin(2 * np.pi * df['hour'] / df['weekday'].max())
+        # df['weekday_cos'] = np.cos(2 * np.pi * df['hour'] / df['weekday'].max())
+        df['weekday_sin'] = np.sin(2 * np.pi * df['weekday'] / df['weekday'].max())
+        df['weekday_cos'] = np.cos(2 * np.pi * df['weekday'] / df['weekday'].max())
     # check of encoding
     # df.plot.scatter('hour_sin', 'hour_cos')
     # df.plot.scatter('weekday_sin', 'weekday_cos')

@@ -47,7 +47,7 @@ df = prepare_processed_dataset(df=df)
 
 # df = df[np.random.default_rng(seed=42).permutation(df.columns.values)]
 
-X, y, X_val, y_val, X_test, y_test, y_cat, y_val_cat, y_test_cat, train = train_test_val_split(df, config.seq_len)
+X, y, X_val, y_val, X_test, y_test, y_cat, y_val_cat, y_test_cat, train = train_test_val_split(df)
 
 mlflow.set_experiment(experiment_name='hist_data' + '_' + config.model + '_' + str(config.nb_classes) + '_' + \
                                       config.freq +'_' + str(config.steps_ahead) + '_' + str(config.seq_len))

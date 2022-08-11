@@ -4,6 +4,7 @@ from tensorflow.keras import layers
 from tensorflow.keras.utils import plot_model
 import ml_investing_wne.config as config
 
+# https://keras.io/examples/timeseries/timeseries_transformer_classification/
 
 def transformer_encoder(inputs, head_size, num_heads, ff_dim, dropout=0):
     # Normalization and Attention
@@ -51,10 +52,10 @@ def build_model(
 
     return model
 
-
-model = build_model(input_shape=(96, 40), head_size=256, num_heads=4, ff_dim=32,
-                    num_transformer_blocks=2, mlp_units=[128], mlp_dropout=0.4, dropout=0.25)
-model.summary()
-
-plot_model(model, to_file=os.path.join(config.package_directory, 'models', 'model_plot_transformer.png'), show_shapes=True,
-           show_layer_names=True)
+#
+# model = build_model(input_shape=(96, 40), head_size=256, num_heads=, ff_dim=32,
+#                     num_transformer_blocks=2, mlp_units=[128], mlp_dropout=0.4, dropout=0.25)
+# model.summary()
+#
+# plot_model(model, to_file=os.path.join(config.package_directory, 'models', 'model_plot_transformer.png'), show_shapes=True,
+#            show_layer_names=True)

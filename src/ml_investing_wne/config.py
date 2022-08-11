@@ -6,7 +6,7 @@ currency = 'EURCHF'
 load_model = ''
 freq = '720min'
 input_dim = '1d'  # 2d or 1d
-model = 'transformer_lstm'
+model = 'resnet_lstm_2'
 
 COST = {
     'EURCHF': 2,
@@ -41,7 +41,7 @@ steps_ahead = 1
 
 # configure directories
 package_directory = os.path.dirname(os.path.abspath(__file__))
-raw_data_path = os.path.join(package_directory, 'data', 'raw')
+raw_data_path = os.path.join(package_directory, 'data', 'raw', 'hist_data')
 raw_data_path_test = os.path.join(package_directory, 'data', 'test')
 processed_data_path = os.path.join(package_directory, 'data', 'processed')
 model_path = os.path.join(package_directory, 'models',
