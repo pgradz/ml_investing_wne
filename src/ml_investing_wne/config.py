@@ -6,7 +6,7 @@ currency = 'EURCHF'
 load_model = ''
 freq = '720min'
 input_dim = '1d'  # 2d or 1d
-model = 'resnet_lstm_2'
+model = 'transformer_learnable_encoding'
 
 COST = {
     'EURCHF': 2,
@@ -34,7 +34,7 @@ val_end = datetime.datetime(2020, 12, 31, 0, 0, 0)
 test_end = datetime.datetime(2021, 12, 31, 0, 0, 0)
 seq_len = 96
 batch = 128
-patience = 5
+patience = 15
 epochs = 100
 nb_classes = 2
 steps_ahead = 1

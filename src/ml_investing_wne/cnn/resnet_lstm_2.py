@@ -3,6 +3,11 @@ import tensorflow as tf
 import numpy as np
 
 
+import tensorflow.keras as keras
+import tensorflow as tf
+import numpy as np
+
+
 def build_model(input_shape, nb_classes):
     n_feature_maps = 32
 
@@ -63,5 +68,5 @@ def build_model(input_shape, nb_classes):
     return model
 
 
-model = build_model(input_shape=(96, 40), nb_classes=2)
-model.summary()
+# model = build_model(input_shape=(96, 40), nb_classes=2)
+# model.summary()
