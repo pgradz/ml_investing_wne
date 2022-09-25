@@ -10,7 +10,7 @@ DEBUG = True
 
 # default connection properites
 DEFAULT_XAPI_ADDRESS = 'xapi.xtb.com'
-DEFAULT_XAPI_PORT = 5124
+DEFAULT_XAPI_PORT = 5112 #5124
 DEFUALT_XAPI_STREAMING_PORT = 5125
 
 # wrapper name and version
