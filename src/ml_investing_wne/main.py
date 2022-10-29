@@ -22,7 +22,10 @@ seed = 12345
 random.seed(seed)
 np.random.seed(seed)
 tf.random.set_seed(seed)
+<<<<<<< HEAD
                    
+=======
+>>>>>>> aebd5e9 (local old changes)
 logger = get_logger()
 
 # load model dynamically
@@ -52,6 +55,7 @@ csv_logger = CSVLogger(os.path.join(config.package_directory, 'logs', 'keras_log
                        separator=';')
 callbacks = [early_stop, model_checkpoint, csv_logger]
 
+<<<<<<< HEAD
 
 # model = load_model(os.path.join(config.package_directory, 'models',
 #                                     '{}_hist_data_{}_{}_{}.h5'.format(config.model,
@@ -74,6 +78,26 @@ model = build_model(input_shape=(config.seq_len, 40), head_size=64, num_heads=4,
                     num_transformer_blocks=4, mlp_units=[128], mlp_dropout=0.25, dropout=0.25)
 # model = build_model(input_shape=(96, 40), head_size=64, num_heads=4, ff_dim=64, embedding_size=64,
 #                    num_transformer_blocks=4, mlp_units=[128], mlp_dropout=0.25, dropout=0.25)
+=======
+# continue training or start new model
+# if len(config.load_model) > 1:
+#     # models have to be moved to production folder in order to be used
+#     model = load_model(os.path.join(config.package_directory, 'models', 'production',
+#                                     '{}_hist_data_{}_{}_{}_{}'.format(config.model,
+#                                                                       config.load_model,
+#                                                                       config.freq,
+#                                                                       config.steps_ahead,
+#                                                                       config.seq_len)))
+# else:
+#     model = build_model(input_shape=(X.shape[1], X.shape[2]), nb_classes=config.nb_classes)
+#
+# model = build_model(input_shape=(96, 40), head_size=64, num_heads=4, ff_dim=32,
+#                     num_transformer_blocks=4, mlp_units=[128], mlp_dropout=0.4, dropout=0.25)
+
+model = build_model(input_shape=(96, 40), nb_classes=2, head_size=64, ff_dim=32,
+                    num_heads=4,embedding_size=64,  mlp_units=[128],
+                    num_transformer_blocks=4,  dropout=0.25)
+>>>>>>> aebd5e9 (local old changes)
 history = model.fit(X, y_cat, batch_size=64, epochs=config.epochs, verbose=2,
                     validation_data=(X_val, y_val_cat), callbacks=callbacks)
 
@@ -140,7 +164,7 @@ for lower_bound, upper_bound in zip(lower_bounds, upper_bounds):
 #     os.path.join(config.package_directory, 'models', 'cut_off_analysis_{}_{}_{}.csv'.
 #                  format(config.model, config.currency, config.nb_classes)))
 
-# mlflow ui --backend-store-uri /Users/i0495036/Documents/sandbox/ml_investing_wne/mlruns
+# gi
 #  ps -A | grep gunicorn
 # mlflow ui --port=5001 --backend-store-uri /Users/i0495036/Documents/sandbox/ml_investing_wne/ml_investing_wne/src/mlruns
 # print(model.summary())

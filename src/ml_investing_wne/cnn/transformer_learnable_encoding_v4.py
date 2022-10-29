@@ -26,7 +26,10 @@ def transformer_encoder(inputs, head_size, num_heads, ff_dim, dropout=0):
 class PositionEmbeddingLayer(layers.Layer):
     def __init__(self, sequence_length, output_dim, **kwargs):
         super(PositionEmbeddingLayer, self).__init__(**kwargs)
+<<<<<<< HEAD
         self.projection = layers.Dense(units=output_dim)
+=======
+>>>>>>> aebd5e9 (local old changes)
         self.position_embedding_layer = layers.Embedding(
             input_dim=sequence_length, output_dim=output_dim
         )
@@ -34,7 +37,11 @@ class PositionEmbeddingLayer(layers.Layer):
     def call(self, inputs):        
         position_indices = tf.range(inputs.shape[1])
         embedded_indices = self.position_embedding_layer(position_indices)
+<<<<<<< HEAD
         return self.projection(inputs) + embedded_indices
+=======
+        return inputs + embedded_indices
+>>>>>>> aebd5e9 (local old changes)
     
     def get_config(self):
         config = super().get_config().copy()
@@ -52,8 +59,13 @@ def build_model(
     nb_classes=2
 ):
     inputs = keras.Input(shape=input_shape)
+<<<<<<< HEAD
     # x = PositionEmbeddingLayer(input_shape[0], input_shape[1])(inputs)
     x = PositionEmbeddingLayer(input_shape[0], 64)(inputs)
+=======
+    x = PositionEmbeddingLayer(input_shape[0], input_shape[1])(inputs)
+    
+>>>>>>> aebd5e9 (local old changes)
     for _ in range(num_transformer_blocks):
         x = transformer_encoder(x, head_size, num_heads, ff_dim, dropout)
 
@@ -71,9 +83,15 @@ def build_model(
     return model
 
 #
+<<<<<<< HEAD
 # model = build_model(input_shape=(96, 40), head_size=256, num_heads=, ff_dim=32,
 #                     num_transformer_blocks=2, mlp_units=[128], mlp_dropout=0.4, dropout=0.25)
 # model.summary()
+=======
+model = build_model(input_shape=(96, 40), head_size=64, num_heads=4, ff_dim=32,
+                    num_transformer_blocks=4, mlp_units=[128], mlp_dropout=0.4, dropout=0.25)
+model.summary()
+>>>>>>> aebd5e9 (local old changes)
 #
 # plot_model(model, to_file=os.path.join(config.package_directory, 'models', 'model_plot_transformer.png'), show_shapes=True,
 #            show_layer_names=True)

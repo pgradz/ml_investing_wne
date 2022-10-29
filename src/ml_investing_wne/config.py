@@ -6,7 +6,11 @@ currency = 'EURCHF'
 load_model = ''
 freq = '720min'
 input_dim = '1d'  # 2d or 1d
+<<<<<<< HEAD
 model = 'transformer_learnable_encoding'
+=======
+model = 'transformer_learnable_encoding_v2'
+>>>>>>> aebd5e9 (local old changes)
 
 COST = {
     'EURCHF': 2,

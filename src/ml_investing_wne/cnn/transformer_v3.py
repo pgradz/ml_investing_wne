@@ -48,6 +48,7 @@ def build_model(
 
     model.compile(loss='categorical_crossentropy', optimizer=keras.optimizers.Adam(),
                   metrics=['accuracy'])
+<<<<<<< HEAD
  
     return model
 
@@ -55,6 +56,15 @@ def build_model(
 # model = build_model(input_shape=(96, 40), head_size=64, num_heads=4, ff_dim=32,
 #                     num_transformer_blocks=4, mlp_units=[128], mlp_dropout=0.4, dropout=0.25)
 # model.summary()
+=======
+
+    return model
+
+#
+model = build_model(input_shape=(96, 40), head_size=64, num_heads=4, ff_dim=32,
+                    num_transformer_blocks=4, mlp_units=[128], mlp_dropout=0.4, dropout=0.25)
+model.summary()
+>>>>>>> aebd5e9 (local old changes)
 #
 # plot_model(model, to_file=os.path.join(config.package_directory, 'models', 'model_plot_transformer.png'), show_shapes=True,
 #            show_layer_names=True)

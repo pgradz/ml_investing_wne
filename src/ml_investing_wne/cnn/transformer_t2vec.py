@@ -82,7 +82,11 @@ class Time2Vec(keras.layers.Layer):
 
     def call(self, inputs, **kwargs):
         bias = self.wb * inputs + self.bb
+<<<<<<< HEAD
         dp = keras.dot(inputs, self.wa) + self.ba
+=======
+        dp = K.dot(inputs, self.wa) + self.ba
+>>>>>>> aebd5e9 (local old changes)
         wgts = K.sin(dp)  # or K.cos(.)
 
         ret = K.concatenate([K.expand_dims(bias, -1), wgts], -1)
@@ -123,6 +127,8 @@ def build_model(
                   metrics=['accuracy'])
 
     return model
+<<<<<<< HEAD
+<<<<<<<< HEAD:src/ml_investing_wne/cnn/transformer_t2vec.py
 # 
 # model = build_model(input_shape=(96, 40), head_size=64, num_heads=4, ff_dim=32,
 #                     num_transformer_blocks=4, mlp_units=[128], mlp_dropout=0.4, dropout=0.25)
@@ -130,3 +136,21 @@ def build_model(
 # 
 # plot_model(model, to_file=os.path.join(config.package_directory, 'models', 'model_plot_transformer.png'), show_shapes=True,
 #            show_layer_names=True)
+========
+#
+# model = build_model(input_shape=(96, 40), head_size=64, num_heads=4, ff_dim=32,
+#                     num_transformer_blocks=4, mlp_units=[128], mlp_dropout=0.4, dropout=0.25)
+# model.summary()
+#
+# plot_model(model, to_file=os.path.join(config.package_directory, 'models', 'model_plot_transformer.png'), show_shapes=True,
+#            show_layer_names=True)
+>>>>>>>> aebd5e9 (local old changes):src/ml_investing_wne/cnn/transformer_modified.py
+=======
+# 
+model = build_model(input_shape=(96, 40), head_size=64, num_heads=4, ff_dim=32,
+                    num_transformer_blocks=4, mlp_units=[128], mlp_dropout=0.4, dropout=0.25)
+model.summary()
+# 
+# plot_model(model, to_file=os.path.join(config.package_directory, 'models', 'model_plot_transformer.png'), show_shapes=True,
+#            show_layer_names=True)
+>>>>>>> aebd5e9 (local old changes)
