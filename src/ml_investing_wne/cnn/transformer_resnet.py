@@ -133,11 +133,7 @@ def build_model(input_shape, head_size, num_heads, num_transformer_blocks,ff_dim
 
 # model = build_model(input_shape=(96, 40), head_size=64, num_heads=4, ff_dim=64,
 #                      num_transformer_blocks=4, mlp_units=[128], mlp_dropout=0.25, dropout=0.25)
-<<<<<<< HEAD
 # 
-=======
-#
->>>>>>> aebd5e9 (local old changes)
 # model.summary()
 # plot_model(model, to_file=os.path.join(config.package_directory, 'models', 'model_plot_transformer_resnet.png'), show_shapes=True,
 #            show_layer_names=True)

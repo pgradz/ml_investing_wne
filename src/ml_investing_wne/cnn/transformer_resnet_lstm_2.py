@@ -8,11 +8,7 @@ import numpy as np
 from tensorflow.keras import layers
 
 
-<<<<<<< HEAD
 def transformer_encoder(inputs, head_size, num_heads, ff_dim, dropout=0):
-=======
-def transformer_encoder(inputs, head_size, num_heads, dropout=0):
->>>>>>> aebd5e9 (local old changes)
     # Normalization and Attention
     x = layers.LayerNormalization(epsilon=1e-6)(inputs)
     x = layers.MultiHeadAttention(
@@ -24,7 +20,6 @@ def transformer_encoder(inputs, head_size, num_heads, dropout=0):
     # Feed Forward Part
     x = layers.LayerNormalization(epsilon=1e-6)(res)
     x = layers.Conv1D(filters=inputs.shape[-1], kernel_size=1, activation="relu")(x)
-<<<<<<< HEAD
     # x = layers.Dropout(dropout)(x)
     # x = layers.Conv1D(filters=inputs.shape[-1], kernel_size=1)(x)
     return x + res
@@ -32,13 +27,6 @@ def transformer_encoder(inputs, head_size, num_heads, dropout=0):
 
 def build_model(input_shape, head_size, num_heads, num_transformer_blocks,ff_dim, mlp_units, mlp_dropout, dropout=0, nb_classes=2):
     n_feature_maps = input_shape[1]
-=======
-    x = layers.Dropout(dropout)(x)
-    return x + res
-
-def build_model(input_shape, nb_classes,head_size, num_heads, num_transformer_blocks, dropout=0):
-    n_feature_maps = 40
->>>>>>> aebd5e9 (local old changes)
 
     input_layer = keras.layers.Input(input_shape)
 
@@ -87,11 +75,7 @@ def build_model(input_shape, nb_classes,head_size, num_heads, num_transformer_bl
     # TRANSFORMER
     x = input_layer
     for _ in range(num_transformer_blocks):
-<<<<<<< HEAD
         x = transformer_encoder(x, head_size, num_heads, ff_dim, dropout=dropout)
-=======
-        x = transformer_encoder(x, head_size, num_heads, dropout=dropout)
->>>>>>> aebd5e9 (local old changes)
 
     # FINAL
     transformer_resnet = keras.layers.add([output_block_2, x])
@@ -103,13 +87,4 @@ def build_model(input_shape, nb_classes,head_size, num_heads, num_transformer_bl
     model.compile(loss='categorical_crossentropy', optimizer=keras.optimizers.Adam(),
                   metrics=['accuracy'])
 
-<<<<<<< HEAD
     return model
-=======
-    return model
-
-
-# model = build_model(input_shape=(96, 40), nb_classes=2, head_size=64, num_heads=4,
-#                     num_transformer_blocks=4,  dropout=0.25)
-# model.summary()
->>>>>>> aebd5e9 (local old changes)

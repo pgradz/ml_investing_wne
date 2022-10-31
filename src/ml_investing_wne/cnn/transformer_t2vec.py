@@ -82,11 +82,7 @@ class Time2Vec(keras.layers.Layer):
 
     def call(self, inputs, **kwargs):
         bias = self.wb * inputs + self.bb
-<<<<<<< HEAD
         dp = keras.dot(inputs, self.wa) + self.ba
-=======
-        dp = K.dot(inputs, self.wa) + self.ba
->>>>>>> aebd5e9 (local old changes)
         wgts = K.sin(dp)  # or K.cos(.)
 
         ret = K.concatenate([K.expand_dims(bias, -1), wgts], -1)

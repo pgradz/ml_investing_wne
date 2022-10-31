@@ -1,6 +1,6 @@
+from collections import namedtuple
 import datetime
-
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix, roc_auc_score, f1_score
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -8,10 +8,49 @@ import logging
 import os
 import itertools
 import re
+import mlflow
+import joblib
+from keras.callbacks import ModelCheckpoint, EarlyStopping, CSVLogger
 import ml_investing_wne.config as config
+
+pd.options.mode.chained_assignment = None
 
 logger = logging.getLogger(__name__)
 
+
+def get_ml_flow_experiment_name():
+
+    ml_flow_experiment_name = f'''hist_data_{config.model}_{str(config.nb_classes)}_
+                                  {config.freq}_{str(config.steps_ahead)}_{str(config.seq_len)}'''
+    return ml_flow_experiment_name
+
+
+def get_training_model_path():
+
+    model_name = f'''{config.model}_hist_data_{config.currency}_{config.freq}_
+                     {config.steps_ahead}.h5'''
+    model_path_training = os.path.join(config.package_directory, 'models', model_name)
+
+    return model_path_training
+
+def get_final_model_path():
+
+    model_name = '''{config.model}_hist_data_{config.currency}_{config.freq}_
+                    {str(config.steps_ahead)}_{config.seq_len}'''
+    model_path_final = os.path.join(config.package_directory, 'models', 'production', model_name)
+    return model_path_final
+
+def get_callbacks():
+
+    early_stop = EarlyStopping(monitor='val_accuracy', patience=config.patience, 
+                restore_best_weights=True)
+    model_checkpoint = ModelCheckpoint(filepath=get_training_model_path(), monitor='val_accuracy',
+                        verbose=1, save_best_only=True)
+    csv_logger = CSVLogger(os.path.join(config.package_directory, 'logs', 'keras_log.csv'), 
+                            append=True, separator=';')
+    callbacks = [early_stop, model_checkpoint, csv_logger]
+
+    return callbacks
 
 def confusion_matrix_plot(y_pred, y_test):
     
@@ -35,30 +74,89 @@ def confusion_matrix_plot(y_pred, y_test):
                              format(config.model, config.currency, config.nb_classes)))
 
 
+def evaluate_model(model, df, X_test, y_test_cat, y, y_val, y_test):
+
+    test_loss, test_acc = model.evaluate(X_test, y_test_cat)
+    logger.info('Test accuracy : %.4f', test_acc)
+    logger.info('Test loss : %.4f', test_loss)
+    mlflow.log_metric("test_acc", test_acc)
+    mlflow.log_metric("test_loss", test_loss)
+    mlflow.log_metric("test_loss", test_loss)
+    mlflow.set_tag('currency', config.currency)
+    mlflow.set_tag('frequency', config.freq)
+    mlflow.set_tag('steps_ahead', config.steps_ahead)
+    mlflow.log_metric('y_distribution', y.mean())
+    mlflow.log_metric('y_val_distribution', y_val.mean())
+    mlflow.log_metric('y_test_distribution', y_test.mean())
+    mlflow.log_metric('cost', config.pips)
+    mlflow.log_metric('seq_len', config.seq_len)
+
+    y_pred = model.predict(X_test)
+    y_pred_class = y_pred.argmax(axis=-1)
+    roc_auc = roc_auc_score(y_test, y_pred_class)
+    f1 = f1_score(y_test, y_pred_class)
+    logger.info('roc_auc : %.4f',roc_auc)
+    logger.info('f1 : %.4f', f1)
+    mlflow.log_metric('roc_auc', roc_auc)
+    mlflow.log_metric('f1', f1)
+
+    df = add_cost(df)
+    start_date, end_date = load_test_dates()
+
+    lower_bounds = [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5]
+    upper_bounds = [1 - lower for lower in lower_bounds]
+
+    for lower_bound, upper_bound in zip(lower_bounds, upper_bounds):
+        portfolio_result, hit_ratio, time_active = compute_profitability_classes(df, y_pred, 
+                                                                                start_date,
+                                                                                end_date, 
+                                                                                lower_bound,
+                                                                                upper_bound)
+        mlflow.log_metric(f"portfolio_result_{lower_bound}_{upper_bound}", portfolio_result)
+        mlflow.log_metric(f"hit_ratio_{lower_bound}_{upper_bound}", hit_ratio)
+        mlflow.log_metric(f"time_active_{lower_bound}_{upper_bound}",time_active)
+        name = f'''portfolio_evolution_{config.model}_{config.currency}_{config.nb_classes}_
+                {lower_bound}_{upper_bound}.png'''
+        mlflow.log_artifact(os.path.join(config.package_directory, 'models', name))
+
+def load_test_dates():
+
+    name = f'test_{config.currency}_{config.freq}.save'
+
+    start_date = joblib.load(os.path.join(config.package_directory, 'models',
+                                        f'first_sequence_ends_{name}'))
+    end_date = joblib.load(os.path.join(config.package_directory, 'models',
+                                        f'last_sequence_ends_{name}'))
+
+    return start_date, end_date
+
+def add_cost(df):
+    if 'JPY' in config.currency:
+        df['cost'] = (config.pips / 100) / df['close']
+    else:
+        df['cost'] = (config.pips / 10000) / df['close']
+    return df
+
+
 # #
 # upper_bound = 0.5
 # lower_bound = 0.5
 # date_start = start_date
 # date_end = end_date
 
-import datetime
-
-from sklearn.metrics import confusion_matrix
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-
-def compute_profitability_classes(df, y_pred, date_start, date_end, lower_bound, upper_bound, hours_exclude=None):
+def compute_profitability_classes(df, y_pred, date_start, date_end, lower_bound, upper_bound,
+                                  hours_exclude=None):
     
+    # PREPARE DATASET
     prediction = df.copy()
     prediction.reset_index(inplace=True)
+    # recreate target as continous variable
     df['y_pred'] = df['close'].shift(-config.steps_ahead) / df['close'] - 1
     # new_start = config.val_end + config.seq_len * datetime.timedelta(minutes=int(''.join(filter(str.isdigit, config.freq))))
     prediction = df.loc[(df.datetime >= date_start) & (df.datetime <= date_end)]
     prediction['datetime_local'] = prediction['datetime'].dt.tz_localize('US/Eastern').dt.tz_convert(
         'Europe/London').dt.tz_localize(None)
     prediction['hour_local'] = prediction['datetime_local'].dt.time
-    # prediction['trade'] = y_pred.argmax(axis=1)
     prediction['prediction'] = y_pred[:, 1]
     conditions = [
         (prediction['prediction'] <= lower_bound),
@@ -70,14 +168,19 @@ def compute_profitability_classes(df, y_pred, date_start, date_end, lower_bound,
     if hours_exclude:
         prediction.loc[prediction['hour_local'].isin(hours_exclude), 'trade'] = 0.5
     prediction.reset_index(inplace=True)
+    # drop last row for which we don't have a label - this works only for one step ahead prediction
+    prediction.drop(prediction.tail(1).index, inplace=True)
+
+    # INITIALIZE PORTFOLIO
     budget = 100
     transaction = None
     i = 0
-    # drop last row for which we don't have a label
-    prediction.drop(prediction.tail(1).index, inplace=True)
+
+    # ITERATE OVER PREDICTIONS
+    # cost is added once as it represents spread
     while i < prediction.shape[0]:
-        # for i in range(prediction.shape[0]):
-        if prediction.loc[i, 'trade'] == config.nb_classes - 1:
+    
+        if prediction.loc[i, 'trade'] == 1:
             # add transaction cost if position changes
             if transaction != 'buy':
                 budget = budget * (1 - prediction.loc[i, 'cost'])
@@ -103,6 +206,7 @@ def compute_profitability_classes(df, y_pred, date_start, date_end, lower_bound,
             prediction.loc[i, 'transaction'] = transaction
             i = i + 1
 
+    # SUMMARIZE RESULTS
     hits = prediction.loc[((prediction['transaction'] == 'buy') & (prediction['y_pred'] > 0)) |
                           ((prediction['transaction'] == 'sell') & (prediction['y_pred'] < 0))].shape[0]
     transactions = prediction.loc[prediction['transaction'].isin(['buy', 'sell'])].shape[0]
@@ -112,20 +216,24 @@ def compute_profitability_classes(df, y_pred, date_start, date_end, lower_bound,
         hits_ratio = 0
     share_of_time_active = round(prediction.loc[prediction['transaction'].isin(['buy', 'sell'])].shape[0] * \
                                  config.steps_ahead / prediction.shape[0], 2)
-    logger.info('share_of_time_active for bounds {}-{} is {} and hit ratio is {}'.format(lower_bound, upper_bound,
-                                                                                         share_of_time_active,
-                                                                                         hits_ratio))
-    plt.figure(2)
-    plt.plot(prediction['datetime'], prediction['budget'])
-    plt.axhline(y=100, color='r', linestyle='-')
-    plt.savefig(os.path.join(config.package_directory, 'models', 'portfolio_evolution_{}_{}_{}_{}_{}.png'.
-                             format(config.model, config.currency, config.nb_classes, lower_bound, upper_bound)))
-    plt.close()
 
-    logger.info('Portfolio result:  {}'.format(budget))
+    logger.info('''share_of_time_active for bounds %.2f-%.2f is %.2f and hit ratio is %.4f''',
+                lower_bound, upper_bound, share_of_time_active, hits_ratio)
+    logger.info('Portfolio result:  %d', budget)
+
+    plot_portfolio(prediction, lower_bound, upper_bound)
     
     return budget, hits_ratio, share_of_time_active
 
+def plot_portfolio(prediction, lower_bound, upper_bound):
+
+    name = f'''portfolio_evolution_{config.model}_{config.currency}_{config.nb_classes}_
+                {lower_bound}_{upper_bound}.png'''
+    plt.figure(2)
+    plt.plot(prediction['datetime'], prediction['budget'])
+    plt.axhline(y=100, color='r', linestyle='-')
+    plt.savefig(os.path.join(config.package_directory, 'models', name))
+    plt.close()
 
 # time_waw_list = [datetime.time(20,0,0), datetime.time(22,0,0)]
 def check_hours(df, y_pred, date_start, date_end, lower_bound, upper_bound):

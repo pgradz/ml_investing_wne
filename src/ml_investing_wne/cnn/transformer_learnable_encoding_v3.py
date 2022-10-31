@@ -27,11 +27,7 @@ class PositionEmbeddingLayer(layers.Layer):
     def __init__(self, sequence_length, output_dim, **kwargs):
         super(PositionEmbeddingLayer, self).__init__(**kwargs)
         self.position_embedding_layer = layers.Embedding(
-<<<<<<< HEAD
             input_dim=sequence_length, output_dim=output_dim
-=======
-            input_dim=sequence_length, output_dim=output_dim, input_length=sequence_length
->>>>>>> aebd5e9 (local old changes)
         )
  
     def call(self, inputs):        
@@ -43,10 +39,6 @@ class PositionEmbeddingLayer(layers.Layer):
         config = super().get_config().copy()
         return config
 
-<<<<<<< HEAD
-=======
-
->>>>>>> aebd5e9 (local old changes)
 def build_model(
     input_shape,
     head_size,
@@ -60,17 +52,10 @@ def build_model(
 ):
     inputs = keras.Input(shape=input_shape)
     # x = PositionEmbeddingLayer(input_shape[0], input_shape[1])(inputs)
-<<<<<<< HEAD
     position_embedding_layer = layers.Embedding(input_shape[0], input_shape[1], trainable=true)
     position_indices = tf.range(input_shape[0])
     embedded_indices = position_embedding_layer(position_indices)
     x = inputs + embedded_indices
-=======
-    position_embedding_layer = layers.Embedding(input_shape[0], input_shape[1], trainable=True)
-    position_indices = tf.range(input_shape[0])
-    embedded_indices = position_embedding_layer(position_indices)
-    x = keras.layers.concatenate([inputs, embedded_indices])
->>>>>>> aebd5e9 (local old changes)
     for _ in range(num_transformer_blocks):
         x = transformer_encoder(x, head_size, num_heads, ff_dim, dropout)
 
@@ -88,44 +73,9 @@ def build_model(
     return model
 
 #
-<<<<<<< HEAD
 # model = build_model(input_shape=(96, 40), head_size=256, num_heads=, ff_dim=32,
 #                     num_transformer_blocks=2, mlp_units=[128], mlp_dropout=0.4, dropout=0.25)
 # model.summary()
 #
 # plot_model(model, to_file=os.path.join(config.package_directory, 'models', 'model_plot_transformer.png'), show_shapes=True,
 #            show_layer_names=True)
-=======
-model = build_model(input_shape=(96, 40), head_size=64, num_heads=4, ff_dim=32,
-                    num_transformer_blocks=2, mlp_units=[128], mlp_dropout=0.4, dropout=0.25)
-model.summary()
-#
-plot_model(model, to_file=os.path.join(config.package_directory, 'models', 'model_plot_transformer_v3.png'), show_shapes=True,
-           show_layer_names=True)
-
-inputs = keras.Input(shape=(96,40))
-x = PositionEmbeddingLayer(94, 40)(inputs)
-
-
-import numpy as np
-model = tf.keras.Sequential()
-model.add(tf.keras.layers.Embedding(96, 64, input_length=10))
-input_array = np.random.randint(96, size=(32, 10))
-model.compile('rmsprop', 'mse')
-model.summary()
-output_array = model.predict(input_array)
-print(output_array.shape)
-
-
-
-position_embedding_layer = layers.Embedding(96, 40)
-position_indices = tf.range(96)
-embedded_indices = position_embedding_layer(position_indices)
-print(embedded_indices)
-embedded_indices.shape
-
-sample = X[np.random.choice(range(X.shape[0]))]
-
-
-test = sample + embedded_indices
->>>>>>> aebd5e9 (local old changes)

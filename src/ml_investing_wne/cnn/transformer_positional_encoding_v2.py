@@ -73,19 +73,8 @@ def transformer_encoder(inputs, head_size, num_heads, ff_dim, dropout=0):
 
     # Feed Forward Part
     x = layers.LayerNormalization(epsilon=1e-6)(res)
-<<<<<<< HEAD
-<<<<<<< HEAD
     x = layers.Conv1D(filters=inputs.shape[-1], kernel_size=1, activation="relu")(x)
     x = layers.Dropout(dropout)(x)
-=======
-    x = layers.Conv1D(filters=ff_dim, kernel_size=1, activation="relu")(x)
-    x = layers.Dropout(dropout)(x)
-    x = layers.Conv1D(filters=inputs.shape[-1], kernel_size=1)(x)
->>>>>>> 56d7f66 (local old changes)
-=======
-    x = layers.Conv1D(filters=inputs.shape[-1], kernel_size=1, activation="relu")(x)
-    x = layers.Dropout(dropout)(x)
->>>>>>> aebd5e9 (local old changes)
     return x + res
 
 
@@ -120,9 +109,9 @@ def build_model(
     return model
 
 
-model = build_model(input_shape=(96, 40), head_size=64, num_heads=4, ff_dim=32,
-                    num_transformer_blocks=4, mlp_units=[128], mlp_dropout=0.4, dropout=0.25)
-model.summary()
-
-plot_model(model, to_file=os.path.join(config.package_directory, 'models', 'model_plot_transformer_positional_encoding.png'), show_shapes=True,
-           show_layer_names=True)
+# model = build_model(input_shape=(96, 40), head_size=256, num_heads=4, ff_dim=32,
+#                     num_transformer_blocks=2, mlp_units=[128], mlp_dropout=0.4, dropout=0.25)
+# model.summary()
+#
+# plot_model(model, to_file=os.path.join(config.package_directory, 'models', 'model_plot_transformer_positional_encoding.png'), show_shapes=True,
+#            show_layer_names=True)
