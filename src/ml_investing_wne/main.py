@@ -29,7 +29,7 @@ def main():
     mlflow.set_experiment(experiment_name=get_ml_flow_experiment_name())
     callbacks = get_callbacks()
     model = model_factory(X)
-    history = model.fit(X, y_cat, batch_size=64, epochs=config.epochs, verbose=2,
+    history = model.fit(X, y_cat, batch_size=config.batch, epochs=config.epochs, verbose=2,
                         validation_data=(X_val, y_val_cat), callbacks=callbacks)
     model.save(get_final_model_path())
     evaluate_model(model, df, X_test, y_test_cat, y, y_val, y_test)

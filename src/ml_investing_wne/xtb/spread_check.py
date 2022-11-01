@@ -8,8 +8,6 @@ import csv
 
 # logger settings
 logger = logging.getLogger()
-# You can set a different logging level for each logging handler but it seems you will have to set the
-# logger's level to the "lowest".
 logger.setLevel(logging.INFO)
 stream_h = logging.StreamHandler()
 file_h = logging.FileHandler(os.path.join(config.package_directory, 'logs', 'trading.log'))
@@ -26,7 +24,7 @@ symbol = 'EURCHF'
 
 client = APIClient()
 
-loginResponse = client.execute(loginCommand(userId=config.userId, password=config.password))
+loginResponse = client.execute(loginCommand(userId=config.USER_ID, password=config.PASSWORD))
 logger.info(str(loginResponse))
 
 # check if user logged in correctly
@@ -54,7 +52,7 @@ while (True):
         pass
 
 
-    with open('/Users/i0495036/Documents/sandbox/ml_investing_wne/ml_investing_wne/src/ml_investing_wne/models/spread_table_{}.csv'.format(symbol),'a') as fd:
+    with open(f'./spread_table_{symbol}.csv','a') as fd:
         w = csv.DictWriter(fd, row.keys())
         w.writerow(row)
     if datetime.datetime.now().hour not in [20, 21, 22, 23, 0, 1, 2, 11, 12, 13,

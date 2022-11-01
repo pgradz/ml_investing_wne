@@ -1,4 +1,3 @@
-
 import os
 from tensorflow import keras
 import tensorflow as tf
@@ -7,7 +6,6 @@ from tensorflow.keras.utils import plot_model
 import ml_investing_wne.config as config
 import numpy as np
 
-# https://keras.io/examples/timeseries/timeseries_transformer_classification/
 
 class PositionEmbeddingFixedWeights(layers.Layer):
     def __init__(self, sequence_length, output_dim, **kwargs):
@@ -59,8 +57,6 @@ class PositionEmbeddingFixedWeights(layers.Layer):
 #         denominator = np.power(n, 2 * i / d)
 #         P[k, 2 * i] = np.sin(k / denominator)
 #         P[k, 2 * i + 1] = np.cos(k / denominator)
-
-
 
 def transformer_encoder(inputs, head_size, num_heads, ff_dim, dropout=0):
     # Normalization and Attention

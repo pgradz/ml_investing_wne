@@ -11,9 +11,9 @@ from ml_investing_wne import config
 logger = logging.getLogger(__name__)
 
 # load model dynamically
-build_model = getattr(importlib.import_module(f'ml_investing_wne.cnn.{config.model}'),'build_model')
+build_model = getattr(importlib.import_module(f'ml_investing_wne.tf_models.{config.model}'),'build_model')
 
-def model_factory(data):
+def model_factory(data=None):
     """_summary_
 
     Args:

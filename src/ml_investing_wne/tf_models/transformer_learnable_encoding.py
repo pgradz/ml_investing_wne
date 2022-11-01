@@ -5,7 +5,7 @@ import tensorflow as tf
 from tensorflow.keras.utils import plot_model
 import ml_investing_wne.config as config
 
-# https://keras.io/examples/timeseries/timeseries_transformer_classification/
+# inspired by https://keras.io/examples/timeseries/timeseries_transformer_classification/
 
 def transformer_encoder(inputs, head_size, num_heads, ff_dim, dropout=0):
     # Normalization and Attention
@@ -33,7 +33,7 @@ class PositionEmbeddingLayer(layers.Layer):
     def call(self, inputs):        
         position_indices = tf.range(tf.shape(inputs)[1])
         embedded_indices = self.position_embedding_layer(position_indices)
-        return keras.layers.concatenate([inputs, embedded_indices])
+        return inputs + embedded_indices
     
     def get_config(self):
         config = super().get_config().copy()
@@ -51,11 +51,8 @@ def build_model(
     nb_classes=2
 ):
     inputs = keras.Input(shape=input_shape)
-    # x = PositionEmbeddingLayer(input_shape[0], input_shape[1])(inputs)
-    position_embedding_layer = layers.Embedding(input_shape[0], input_shape[1], trainable=true)
-    position_indices = tf.range(input_shape[0])
-    embedded_indices = position_embedding_layer(position_indices)
-    x = inputs + embedded_indices
+    x = PositionEmbeddingLayer(input_shape[0], input_shape[1])(inputs)
+    
     for _ in range(num_transformer_blocks):
         x = transformer_encoder(x, head_size, num_heads, ff_dim, dropout)
 

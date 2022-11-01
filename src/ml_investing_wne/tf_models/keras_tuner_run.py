@@ -1,13 +1,10 @@
-from keras_tuner.tuners import hyperband
-import datetime
 import os
-from keras.callbacks import ModelCheckpoint, EarlyStopping, CSVLogger
+from tensorflow import keras
+from tensorflow.keras import layers
+import tensorflow as tf
 from tensorflow.keras.utils import plot_model
-from tensorflow.keras.models import load_model
-import mlflow.keras
-import importlib
-import joblib
-from sklearn.metrics import roc_auc_score, f1_score
+from keras_tuner.tuners import hyperband
+import keras_tuner as kt
 
 import ml_investing_wne.config as config
 from ml_investing_wne.data_engineering.load_data import get_hist_data
@@ -23,15 +20,6 @@ df = prepare_processed_dataset(df=df, features=False)
 X, y, X_val, y_val, X_test, y_test, y_cat, y_val_cat, y_test_cat, train = train_test_val_split(df)
 
 
-import os
-from tensorflow import keras
-from tensorflow.keras import layers
-import tensorflow as tf
-from tensorflow.keras.utils import plot_model
-import ml_investing_wne.config as config
-import keras_tuner as kt
-
-# https://keras.io/examples/timeseries/timeseries_transformer_classification/
 
 def transformer_encoder(inputs, head_size, num_heads, dropout=0):
     # Normalization and Attention
@@ -104,6 +92,8 @@ tuner = hyperband(build_model,
 stop_early = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5)
 
 tuner.search(X, y_cat, epochs=50, validation_data=(X_val, y_val_cat), callbacks=[stop_early])
+
+best_hps=tuner.get_best_hyperparameters(num_trials=1)[0]
 
 print(f"""
 The hyperparameter search is complete. 

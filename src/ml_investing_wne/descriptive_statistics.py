@@ -2,8 +2,6 @@ import pandas as pd
 import datetime
 from ml_investing_wne.data_engineering.prepare_dataset import prepare_processed_dataset
 import ml_investing_wne.config as config
-from ml_investing_wne.train_test_val_split import train_test_val_split
-from ml_investing_wne.helper import confusion_matrix_plot, compute_profitability_classes, check_hours
 from ml_investing_wne.hist_data.helper import get_hist_data
 import matplotlib.pyplot as plt
 import plotly.figure_factory as ff
@@ -56,15 +54,3 @@ for a, b in zip(group_labels, inside_cost):
     group_labels_new.append(a +' - ' + b)
 fig = ff.create_distplot(hist_data, group_labels_new, show_hist=False, show_rug=False,)
 fig.show()
-
-
-
-
-spread = pd.read_csv('/Users/i0495036/Documents/sandbox/ml_investing_wne/ml_investing_wne/src/ml_investing_wne/models/spread_table_USDCHF.csv',
-                     names=['timestamp','spread','ask','bid'], header=None)
-spread['timestamp'] = pd.to_datetime(spread['timestamp'], unit='ms')
-spread['timestamp'] = spread['timestamp'].dt.tz_localize('GMT').dt.tz_convert('Europe/Warsaw').dt.tz_localize(None)
-spread['close_diff'] = (spread['ask'].shift(-1) - spread['ask']) * 10000
-
-
-

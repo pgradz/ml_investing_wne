@@ -1,4 +1,3 @@
-import os
 import datetime
 import pandas as pd
 import time
@@ -6,22 +5,9 @@ import logging
 from ml_investing_wne.data_engineering.prepare_dataset import prepare_processed_dataset
 import ml_investing_wne.config as config
 from ml_investing_wne.train_test_val_split import test_split
+from ml_investing_wne.xtb.xtb_utils import prepare_xtb_data
 
-
-# logger settings
-logger = logging.getLogger()
-# You can set a different logging level for each logging handler but it seems you will have to set the
-# logger's level to the "lowest".
-logger.setLevel(logging.INFO)
-stream_h = logging.StreamHandler()
-file_h = logging.FileHandler(os.path.join(config.package_directory, 'logs', 'trading.log'))
-stream_h.setLevel(logging.INFO)
-file_h.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(message)s')
-stream_h.setFormatter(formatter)
-file_h.setFormatter(formatter)
-logger.addHandler(stream_h)
-logger.addHandler(file_h)
+logger = logging.getLogger(__name__)
 
 class Trader():
     def __init__(self, client, symbol, volume, upper_bound, lower_bound, max_spread, start, model, sc_x, time_interval_in_min,
@@ -60,39 +46,22 @@ class Trader():
         df = pd.DataFrame(resp['returnData']['rateInfos'])
         last_timestamp = df.loc[df.index[-1], 'ctmString']
         self.last_price = df.loc[df.index[-1], 'open'] + df.loc[df.index[-1], 'close']
-        df['datetime'] = pd.to_datetime(df['ctm'], unit='ms')
-        df['close'] = (df['open'] + df['close']) / 100000
-        df['high'] = (df['open'] + df['high']) / 100000
-        df['low'] = (df['open'] + df['low']) / 100000
-        df['open'] = df['open'] / 100000
-
-        df['datetime'] = df['datetime'].dt.tz_localize('GMT').dt.tz_convert('US/Eastern').dt.tz_localize(None)
-        df = df.sort_values(by=['datetime'], ascending=True)
-        df = df.set_index('datetime')
-        # order in hist data - open, high, low, close
-        df = df[['open', 'high', 'low', 'close']]
-
-        df = df.resample(self.freq).agg({'open': 'first',
-                                           'high': 'max',
-                                           'low': 'min',
-                                           'close': 'last'
-                                           })
-
+        df = prepare_xtb_data(resp) 
         df = prepare_processed_dataset(df=df, allow_null=True)
         X_test, y_test, y_test_cat = test_split(df, config.seq_len, self.sc_x)
         y_pred = self.model.predict(X_test[-1:])
         self.y_pred = y_pred[0][1]
-        logger.info('Prediction for next hour as of {} is {} and last close price {}'.format(last_timestamp,
-                                                                                             self.y_pred,
-                                                                                             self.last_price))
+        logger.info('Prediction for next hour as of {} is {} and last close price {}'.format(
+            last_timestamp,self.y_pred, self.last_price))
         return last_timestamp
 
     def get_tick_prices(self):
-        self.tick = self.client.commandExecute('getTickPrices', {"level": 0,
-                                                                 "symbols": [self.symbol],
-                                                                 "timestamp": int(
-                                                                     datetime.datetime.now().timestamp() * 1000 - 100000)
-                                                                 }
+        self.tick = self.client.commandExecute('getTickPrices', 
+                                                {"level": 0,
+                                                 "symbols": [self.symbol],
+                                                "timestamp": int(
+                                                datetime.datetime.now().timestamp() * 1000 - 100000)
+                                                }
                                                )
         try:
             self.spread = self.tick['returnData']['quotations'][0]['spreadTable']
