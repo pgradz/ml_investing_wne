@@ -9,7 +9,7 @@ First, install dependencies
 ```
 then install the package itself
 ```
-    pip install ml_investing_wne
+    pip install ml_investing_wne -e .
 ```
 ## USAGE
 
