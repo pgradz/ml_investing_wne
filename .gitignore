@@ -139,3 +139,5 @@ src/ml_investing_wne/data/xtb/
 mlruns/
 
 .DS_store
+
+.vscode/
