@@ -4,10 +4,10 @@ import datetime
 currency = 'EURCHF'
 # leave empty if training from scratch, for transfer learning specify currency to be used as a base
 load_model = ''
-freq = '60min'
+freq = '720min'
 input_dim = '1d'  # 2d or 1d
 # has to be defined inside tf_models folder
-model = 'transformer_learnable_encoding'
+model = 'resnet'
 seed = 12345
 
 # Cost is expressed in pips
