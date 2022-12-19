@@ -16,14 +16,14 @@ pd.options.mode.chained_assignment = None
 logger = logging.getLogger(__name__)
 
 
-def get_ml_flow_experiment_name(provider='hist_data'):
+def get_ml_flow_experiment_name():
     """creates mlflow experiment name based on config parameters.
 
     Returns:
         str: mlflow experiment name
     """
 
-    ml_flow_experiment_name = (f"{provider}_{config.model}_{str(config.nb_classes)}"
+    ml_flow_experiment_name = (f"{config.provider}_{config.model}_{str(config.nb_classes)}"
                                 f"{config.freq}_{str(config.steps_ahead)}_{str(config.seq_len)}")
     return ml_flow_experiment_name
 
@@ -34,7 +34,7 @@ def get_training_model_path():
     Returns:
         _type_: _description_
     """
-    model_name = f"{config.model}_hist_data_{config.currency}_{config.freq}_{config.steps_ahead}.h5"
+    model_name = f"{config.model}_{config.provider}_{config.currency}_{config.freq}_{config.steps_ahead}.h5"
     model_path_training = os.path.join(config.package_directory, 'models', model_name)
 
     return model_path_training
@@ -50,16 +50,16 @@ def get_xtb_training_model_path():
 
     return model_path_training
 
-def get_final_model_path(provider='hist_data'):
+def get_final_model_path():
 
-    model_name = (f"{config.model}_{provider}_{config.currency}_{config.freq}_"
+    model_name = (f"{config.model}_{config.provider}_{config.currency}_{config.freq}_"
                     f"{str(config.steps_ahead)}_{config.seq_len}")
     model_path_final = os.path.join(config.package_directory, 'models', 'production', model_name)
     return model_path_final
 
-def get_callbacks(provider='hist_data'):
+def get_callbacks():
     
-    if provider == 'xtb':
+    if config.provider == 'xtb':
         training_model_path = get_xtb_training_model_path()
     else:
         training_model_path = get_training_model_path()
@@ -182,8 +182,12 @@ def compute_profitability_classes(df, y_pred, date_start, date_end, lower_bound,
     df['y_pred'] = df['close'].shift(-config.steps_ahead) / df['close'] - 1
     # new_start = config.val_end + config.seq_len * datetime.timedelta(minutes=int(''.join(filter(str.isdigit, config.freq))))
     prediction = df.loc[(df.datetime >= date_start) & (df.datetime <= date_end)]
-    prediction['datetime_local'] = prediction['datetime'].dt.tz_localize('US/Eastern').dt.tz_convert(
-        'Europe/London').dt.tz_localize(None)
+    if config.provider == 'hist_data':
+        prediction['datetime_local'] = prediction['datetime'].dt.tz_localize('US/Eastern').dt.tz_convert(
+            'Europe/London').dt.tz_localize(None)
+    else:
+        prediction['datetime_local'] = prediction['datetime']
+
     prediction['hour_local'] = prediction['datetime_local'].dt.time
     prediction['prediction'] = y_pred[:, 1]
     conditions = [

@@ -26,7 +26,7 @@ def model_factory(data=None):
         model = load_pretrained_model()
     elif config.model == 'transformer_learnable_encoding':
         model = transformer(data)
-    elif config.model in ['resnet', 'resnet_lstm', 'inception']:
+    elif config.model in ['resnet', 'resnet_lstm_regularized', 'inception']:
         model = cnn(data)
 
     return model

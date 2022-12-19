@@ -10,7 +10,7 @@ from ml_investing_wne.data_engineering.load_data import import_forex_csv, aggreg
 
 logger = logging.getLogger(__name__)
 
-def prepare_processed_dataset(plot=False, df=None, allow_null=False, features=True):
+def prepare_processed_dataset(plot=False, df=None, allow_null=False, features=True, add_target=True):
     '''
 
     :param plot:  flag whether to plot price evolution
@@ -36,7 +36,8 @@ def prepare_processed_dataset(plot=False, df=None, allow_null=False, features=Tr
 
     # eliminate weekends
     df = df.loc[df['close'].notna()].copy()
-    df['y_pred'] = df['close'].shift(-config.steps_ahead) / df['close']
+    if add_target:
+        df['y_pred'] = df['close'].shift(-config.steps_ahead) / df['close']
     #df.ta.indicators()
     if features:
         MA = [3, 5, 10, 13, 20]
