@@ -278,7 +278,7 @@ class CryptoFactory():
 
         return barriers
 
-    def run_3_barriers(self, t_final=10, upper_lower_multipliers = [2, 2]):
+    def run_3_barriers(self, t_final=10, upper_lower_multipliers = [2, 2], fixed_barrier = None):
         # t_final how many days we hold the stock which set the vertical barrier
         # upper_lower_multipliers the up and low boundary multipliers
         try:
@@ -290,6 +290,11 @@ class CryptoFactory():
             logging.error('Run time aggreagtion first')
 
         daily_volatility = self.get_daily_volatility(close)
+        # overwrite dynamic (volatility based) barrier with fixed percentage
+        if fixed_barrier:
+            daily_volatility = pd.Series(data=np.repeat(fixed_barrier, len(daily_volatility)),
+                                index=daily_volatility.index, name='close')
+            upper_lower_multipliers = [1, 1]
 
         close = close[daily_volatility.index]
         low = low[daily_volatility.index]
@@ -303,6 +308,8 @@ class CryptoFactory():
         self.df_3_barriers_additional_info = barriers[['prc_change', 'barrier_touched',
                                                         'barrier_touched_date', 'top_barrier', 
                                                         'bottom_barrier']]
+        barrier_touched_freq = self.df_3_barriers_additional_info['barrier_touched'].value_counts(normalize=True)
+        logging.info(f"frequency of barrier touched: {barrier_touched_freq}")                                                
         self.df_3_barriers_additional_info.reset_index(inplace=True)
         self.df_3_barriers_additional_info['time_step'] = None
 

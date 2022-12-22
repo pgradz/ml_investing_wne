@@ -175,9 +175,6 @@ def add_cost(df):
 def compute_profitability_classes(df, y_pred, date_start, date_end, lower_bound, upper_bound,
                                   hours_exclude=None):
     
-    # PREPARE DATASET
-    prediction = df.copy()
-    prediction.reset_index(inplace=True)
     # recreate target as continous variable
     df['y_pred'] = df['close'].shift(-config.steps_ahead) / df['close'] - 1
     # new_start = config.val_end + config.seq_len * datetime.timedelta(minutes=int(''.join(filter(str.isdigit, config.freq))))
@@ -189,6 +186,7 @@ def compute_profitability_classes(df, y_pred, date_start, date_end, lower_bound,
         prediction['datetime_local'] = prediction['datetime']
 
     prediction['hour_local'] = prediction['datetime_local'].dt.time
+    # TODO: here triple barriers fails
     prediction['prediction'] = y_pred[:, 1]
     conditions = [
         (prediction['prediction'] <= lower_bound),

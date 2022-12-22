@@ -52,6 +52,7 @@ def train_test_val_split(df, sc_x=None, nb_classes=config.nb_classes, freq=confi
                          train_end=config.train_end, val_end=config.val_end,
                          test_end=config.test_end, binarize_target=True, time_step=None):
 
+    colunns_to_drop = ['y_pred', 'datetime', 'index', 'level_0']
     minutes_offset = seq_len * int(re.findall("\d+", freq)[0])
     # take care if more than two classes
     if binarize_target:
@@ -64,7 +65,12 @@ def train_test_val_split(df, sc_x=None, nb_classes=config.nb_classes, freq=confi
     df.reset_index(inplace=True)
     train = df.loc[df.datetime < train_end]
     train_datetime = train['datetime']
-    train_x = train.drop(columns=['y_pred', 'datetime'])
+    train_x = train.copy()
+    for col in colunns_to_drop:
+        try:
+            train_x.drop(columns=[col], inplace=True)
+        except:
+            pass
     train_y = train['y_pred']
     if time_step:
         train_time_step = train['time_step']
@@ -75,7 +81,12 @@ def train_test_val_split(df, sc_x=None, nb_classes=config.nb_classes, freq=confi
                  & (df.datetime < val_end)]
     val.reset_index(inplace=True)
     val_datetime = val['datetime']
-    val_x = val.drop(columns=['y_pred', 'datetime', 'index'])
+    val_x = val.copy()
+    for col in colunns_to_drop:
+        try:
+            val_x.drop(columns=[col], inplace=True)
+        except:
+            pass
     val_y = val['y_pred']
     if time_step:
         val_time_step = val['time_step']
@@ -86,7 +97,12 @@ def train_test_val_split(df, sc_x=None, nb_classes=config.nb_classes, freq=confi
                    (df.datetime < test_end)]
     test.reset_index(inplace=True)
     test_datetime = test['datetime']
-    test_x = test.drop(columns=['y_pred', 'datetime', 'index'])
+    test_x = test.copy()
+    for col in colunns_to_drop:
+        try:
+            test_x.drop(columns=[col], inplace=True)
+        except:
+            pass
     test_y = test['y_pred']
     if time_step:
         test_time_step = test['time_step']

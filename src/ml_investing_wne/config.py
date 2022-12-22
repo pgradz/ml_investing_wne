@@ -3,19 +3,22 @@ import datetime
 
 
 RUN_TYPE = 'crypto' # forex or crypto
+RUN_SUBTYPE = 'volume_bars'
 provider = 'Bitstamp' # hist_data or Bitstamp
 
 currency = 'BTCUSD'
 # leave empty if training from scratch, for transfer learning specify currency to be used as a base
 load_model = ''
-freq = '5min'
+freq = '30min'
 input_dim = '1d'  # 2d or 1d
 # has to be defined inside tf_models folder
 model = 'resnet_lstm_regularized'
 seed = 12345
+# volume for volume bars
+volume = 2000
 
 # Cost is expressed in pips
-COST = {
+COST_FOREX = {
     'EURCHF': 2,
     'EURGBP': 2,
     'EURUSD': 1.5,
@@ -23,10 +26,19 @@ COST = {
     'USDJPY': 1.5,
     'EURPLN': 30
 }
+
+# Cost is expressed in percentages
+COST_CRYPTO = {
+    'BTCUSD': 0.0025,
+    'ETHUSD': 0.0025
+}
+
 try:
-    pips = COST[currency] # transactional costs
+    cost = COST_FOREX[currency] # transactional costs
 except KeyError:
-    pips = 0
+    cost = COST_CRYPTO[currency]
+except KeyError:
+    cost = 0
 
 # XTB AUTHENTICATION - OPTIONAL
 USER_ID = ""
@@ -46,7 +58,7 @@ test_end = datetime.datetime(2021, 11, 26, 0, 0, 0)
 seq_len = 48
 batch = 64
 patience = 20
-epochs = 100
+epochs = 1
 nb_classes = 2
 steps_ahead = 1
 
