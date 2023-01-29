@@ -3,19 +3,23 @@ import datetime
 
 
 RUN_TYPE = 'crypto' # forex or crypto
-RUN_SUBTYPE = 'volume_bars'
+RUN_SUBTYPE = 'triple_barrier_time_aggregated' #'triple_barrier_time_aggregated','time_aggregated'
 provider = 'Bitstamp' # hist_data or Bitstamp
 
 currency = 'BTCUSD'
 # leave empty if training from scratch, for transfer learning specify currency to be used as a base
 load_model = ''
-freq = '30min'
+freq = '10min'
 input_dim = '1d'  # 2d or 1d
 # has to be defined inside tf_models folder
 model = 'resnet_lstm_regularized'
 seed = 12345
 # volume for volume bars
-volume = 2000
+volume = 500
+
+# Tripple barrier method
+t_final=96
+fixed_barrier=0.01
 
 # Cost is expressed in pips
 COST_FOREX = {
@@ -55,10 +59,10 @@ val_end = datetime.datetime(2021, 7, 1, 0, 0, 0)
 test_end = datetime.datetime(2021, 11, 26, 0, 0, 0)
 
 # model hyperparameters
-seq_len = 48
+seq_len = 96
 batch = 64
-patience = 20
-epochs = 1
+patience = 15
+epochs = 100
 nb_classes = 2
 steps_ahead = 1
 

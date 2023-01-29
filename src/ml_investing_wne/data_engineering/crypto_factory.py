@@ -151,7 +151,15 @@ class CryptoFactory():
             volume = df['volume'].resample(freq).agg({'volume':'sum'})
 
         df = price.join(volume)
-            
+        logging.info(f"Forward filling the following nulls")
+        logging.info(f"{df.isnull().sum()}")
+        df.fillna(method="ffill", inplace=True)
+        # option to drop missing rows
+        # n_rows_before = df.shape[0]
+        # df.dropna(inplace=True)
+        # n_rows_after = df.shape[0]
+        # logging.info(f"""number of missing rows with this time aggregation is 
+        #             {n_rows_before-n_rows_after} out of {n_rows_before} all rows""")
         self.df_time_aggregated = df
         
     def plot_volumebars(self):
@@ -227,6 +235,7 @@ class CryptoFactory():
         ties = 0
 
         for i in range(len(barriers.index)-1):
+
             start = barriers.index[i]
             start_looking = barriers.index[i+1]
             end = barriers.vert_barrier[i]
@@ -269,9 +278,6 @@ class CryptoFactory():
                     barriers['y_pred'][i] = 1
                     barriers['prc_change'][i] = (top_barrier - price_initial)/price_initial
                     barriers['barrier_touched_date'][i] = top_barrier_date
-
-                # if barriers['y_pred'][i] is None:
-                #     print(barriers.loc[i])
                 
         share_of_ties = ties/barriers.shape[0]
         logging.info(f'number of ties: {ties}, share: {share_of_ties:.2}f')

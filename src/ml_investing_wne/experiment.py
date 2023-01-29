@@ -289,7 +289,7 @@ class Experiment():
         df.reset_index(inplace=True)
         start_date, end_date = self.load_test_dates()
 
-        lower_bounds = [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5]
+        lower_bounds = [0.25, 0.3, 0.35, 0.4, 0.45, 0.5]
         # lower_bounds = [0.5]
         upper_bounds = [1 - lower for lower in lower_bounds]
 
@@ -407,6 +407,8 @@ class Experiment():
                 prediction.loc[i, 'budget'] = budget
                 prediction.loc[i, 'transaction'] = transaction
                 i = i + 1
+            if budget is None:
+                print('is none')
 
         # SUMMARIZE RESULTS
         hits = prediction.loc[((prediction['transaction'] == 'buy') & (prediction['y_pred'] > 0)) |
