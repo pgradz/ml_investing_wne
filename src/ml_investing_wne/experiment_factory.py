@@ -48,42 +48,45 @@ class experiment_factory():
 
     def forex_hist_data(self):
 
-        df = get_hist_data(currency=config.currency)
-        df = prepare_processed_dataset(df=df, add_target=False)
-        self.asset.run_3_barriers()
-        df = self.asset.df_3_barriers
-        logger.info(f' df shape before merge wiith 3 barriers additional info is {df.shape}')
-        df = df.merge(self.asset.df_3_barriers_additional_info[['datetime', 'time_step']], on='datetime', how='inner')
-        logger.info(f' df shape after merge wiith 3 barriers additional info is {df.shape}')
-        #TODO: return experiment
-        return df
-
-    def crypto_time_aggregated(self):
-        
-        self.asset.time_aggregation(freq=config.freq)
-        df = self.asset.df_time_aggregated
-        df = prepare_processed_dataset(df=df, add_target=True)
-        experiment = Experiment(df)
-        return experiment
-
-    def crypto_volume_bars(self):
-
-        self.asset.generate_volumebars(frequency=config.volume)
-        df = self.asset.df_volume_bars
-        df = prepare_processed_dataset(df=df, add_target=True)
-        experiment = Experiment(df)
-        return experiment
-
-    def crypto_triple_barrier_time_aggregated(self):
-
-        self.asset.time_aggregation(freq=config.freq)
         self.asset.run_3_barriers(t_final=config.t_final, fixed_barrier=config.fixed_barrier)
         df = self.asset.df_3_barriers
         df = prepare_processed_dataset(df=df, add_target=False)
         logger.info(f' df shape before merge wiith 3 barriers additional info is {df.shape}')
         df = df.merge(self.asset.df_3_barriers_additional_info[['datetime', 'time_step']], on='datetime', how='inner')
         logger.info(f' df shape after merge wiith 3 barriers additional info is {df.shape}')
-        experiment = Experiment(df, time_step=True, binarize_target=False, asset_factory=self.asset)
+        experiment = Experiment(df, time_step=config.time_step, binarize_target=False, asset_factory=self.asset)
+        return experiment
+
+    def crypto_time_aggregated(self):
+        
+        if self.asset.df_time_aggregated is None:
+            self.asset.time_aggregation(freq=config.freq)
+        df = self.asset.df_time_aggregated
+        df = prepare_processed_dataset(df=df, add_target=True)
+        experiment = Experiment(df)
+        return experiment
+
+    def crypto_volume_bars(self):
+        
+        if self.asset.df_volume_bars is None:
+            self.asset.generate_volumebars(frequency=config.volume)
+        df = self.asset.df_volume_bars
+        df = prepare_processed_dataset(df=df, add_target=True)
+        experiment = Experiment(df)
+        return experiment
+    
+
+    def crypto_triple_barrier_time_aggregated(self):
+
+        if self.asset.df_time_aggregated is None:
+            self.asset.time_aggregation(freq=config.freq)
+        self.asset.run_3_barriers(t_final=config.t_final, fixed_barrier=config.fixed_barrier)
+        df = self.asset.df_3_barriers
+        df = prepare_processed_dataset(df=df, add_target=False)
+        logger.info(f' df shape before merge wiith 3 barriers additional info is {df.shape}')
+        df = df.merge(self.asset.df_3_barriers_additional_info[['datetime', 'time_step']], on='datetime', how='inner')
+        logger.info(f' df shape after merge wiith 3 barriers additional info is {df.shape}')
+        experiment = Experiment(df, time_step=config.time_step, binarize_target=False, asset_factory=self.asset)
         return experiment
 
 

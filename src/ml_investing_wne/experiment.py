@@ -65,7 +65,7 @@ class Experiment():
             y.append(seq_y)
             y_index.append(seq_y_index)
             if isinstance(time_step, pd.Series):
-                jump = time_step[i]
+                jump = time_step[end_ix - 1]
             else:
                 jump = 1
             i+=jump

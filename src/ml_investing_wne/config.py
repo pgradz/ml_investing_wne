@@ -2,24 +2,26 @@ import os
 import datetime
 
 
-RUN_TYPE = 'crypto' # forex or crypto
-RUN_SUBTYPE = 'triple_barrier_time_aggregated' #'triple_barrier_time_aggregated','time_aggregated'
-provider = 'Bitstamp' # hist_data or Bitstamp
+RUN_TYPE = 'forex' # forex or crypto
+RUN_SUBTYPE = 'time_aggregated' #'triple_barrier_time_aggregated','time_aggregated', 'volume_bars'
+provider = 'hist_data' # hist_data, Bitstamp, Binance
 
-currency = 'BTCUSD'
+currency = 'EURCHF'
 # leave empty if training from scratch, for transfer learning specify currency to be used as a base
 load_model = ''
-freq = '10min'
+freq = '720min'
 input_dim = '1d'  # 2d or 1d
 # has to be defined inside tf_models folder
-model = 'resnet_lstm_regularized'
+model = 'transformer_learnable_encoding' # resnet_lstm_regularized, transformer_learnable_encoding, lstm
 seed = 12345
 # volume for volume bars
-volume = 500
+volume = 50000
+
+
 
 # Tripple barrier method
-t_final=96
-fixed_barrier=0.01
+t_final=24
+fixed_barrier=0.001
 
 # Cost is expressed in pips
 COST_FOREX = {
@@ -34,7 +36,11 @@ COST_FOREX = {
 # Cost is expressed in percentages
 COST_CRYPTO = {
     'BTCUSD': 0.0025,
-    'ETHUSD': 0.0025
+    'ETHUSD': 0.0025,
+    'BTCUSDT': 0.0025,
+    'ETHUSDT': 0.0025,
+    'MATICUSDT': 0.0025,
+    'SOLUSDT': 0.0025
 }
 
 try:
@@ -51,12 +57,15 @@ PASSWORD = ""
 # Ending dates for training, validation and test. Remember that xtb offers much shorther periods, so
 # if using training from xtb folder adjust those dates. Otherwise, program will fail at
 # train, validation split
-# train_end = datetime.datetime(2019, 12, 31, 0, 0, 0)
-# val_end = datetime.datetime(2020, 12, 31, 0, 0, 0)
-# test_end = datetime.datetime(2021, 12, 31, 0, 0, 0)
-train_end = datetime.datetime(2021, 3, 31, 0, 0, 0)
-val_end = datetime.datetime(2021, 7, 1, 0, 0, 0)
-test_end = datetime.datetime(2021, 11, 26, 0, 0, 0)
+train_end = datetime.datetime(2019, 12, 31, 0, 0, 0)
+val_end = datetime.datetime(2020, 12, 31, 0, 0, 0)
+test_end = datetime.datetime(2021, 12, 31, 0, 0, 0)
+# train_end = datetime.datetime(2021, 12, 31, 0, 0, 0)
+# val_end = datetime.datetime(2022, 7, 1, 0, 0, 0)
+# test_end = datetime.datetime(2023, 1, 31, 0, 0, 0)
+
+# flag if for multi prediction period we should drop observations in between to avoid leaking target. Drawback is losing many obs
+time_step = False
 
 # model hyperparameters
 seq_len = 96

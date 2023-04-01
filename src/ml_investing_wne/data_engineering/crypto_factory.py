@@ -16,13 +16,13 @@ class CryptoFactory():
     def __init__(self, provider, currency, df=None) -> None:
         self.provider = provider
         self.currency = currency
+        self.df_time_aggregated = None
+        self.df_volume_bars = None
         if isinstance(df, pd.DataFrame):
             self.df_time_aggregated = df
         else:
             self.df = self.load_data(self.provider, self.currency)
-            self.df_time_aggregated = None
-        self.df_volume_bars = None
-        
+
 
     def load_data(self, exchange, currency):
         """ Loads csv files for corresponding exchange and  currency, and returns dataframe in 
@@ -37,8 +37,30 @@ class CryptoFactory():
         """
         if self.provider == 'Bitstamp':
             df = self.load_bitstamp(self.currency)
+        elif self.provider == 'Binance':
+            df = self.load_binance(self.currency)
         else:
             pass
+
+        return df
+    
+    def load_binance(self, currency):
+        '''
+        '''
+        if config.RUN_SUBTYPE == 'volume_bars':   
+            file_path = os.path.join(config.processed_data_path, f'binance_{currency}', f'volume_bars_{config.volume}.csv')
+            # volume bars are almost exactly the same, so don't bring any information
+        elif config.RUN_SUBTYPE in ['time_aggregated', 'triple_barrier_time_aggregated']:  
+            file_path = os.path.join(config.processed_data_path, f'binance_{currency}', f'time_aggregated_{config.freq}.csv')
+        df = pd.read_csv(file_path, parse_dates=['datetime'])
+        df.set_index('datetime', inplace=True)
+
+        if config.RUN_SUBTYPE in ['time_aggregated', 'triple_barrier_time_aggregated']:  
+            self.df_time_aggregated = df
+        if config.RUN_SUBTYPE == 'volume_bars':  
+            df.drop(columns=['volume'], inplace=True)
+            df = self.deal_with_duplicates(df)
+            self.df_volume_bars = df
 
         return df
 
@@ -195,11 +217,12 @@ class CryptoFactory():
         for day, vol in daily_volatility.iteritems():
             periods_passed = len(daily_volatility.loc \
                         [daily_volatility.index[0] : day])
-            #set the vertical barrier 
+
+            #set the vertical barrier, without - 1, vertical barrier was t_final + 1
             if (periods_passed + t_final < len(daily_volatility.index) \
                 and t_final != 0):
                 vert_barrier = daily_volatility.index[
-                                    periods_passed + t_final]
+                                    periods_passed + t_final - 1]
             else:
                 vert_barrier = np.nan
             #set the top barrier
@@ -260,7 +283,7 @@ class CryptoFactory():
                     
                 if bottom_barrier_date == top_barrier_date == datetime.datetime(9999,1,1):
                     barriers['barrier_touched'][i] = 'vertical'
-                    barriers['prc_change'][i] = (price_final - price_initial)/price_final
+                    barriers['prc_change'][i] = (price_final - price_initial)/price_initial
                     if barriers['prc_change'][i] > 0:
                         barriers['y_pred'][i] = 1
                     else:
@@ -326,14 +349,13 @@ class CryptoFactory():
             next_index = self.df_3_barriers_additional_info.loc[self.df_3_barriers_additional_info['datetime']==barrier_touched_date].index[0]
             self.df_3_barriers_additional_info['time_step'][i] = next_index - i
 
+        time_step_freq = self.df_3_barriers_additional_info['time_step'].value_counts(normalize=True)
+        logging.info(f"frequency of tripple barrier length: {time_step_freq}") 
+        rows_df_3_barriers_additional_info= self.df_3_barriers_additional_info.shape[1]
+        self.df_3_barriers_additional_info.dropna(inplace=True)
+        logging.info(f"Rows with Na dropped from df_3_barriers_additional_info: {self.df_3_barriers_additional_info.shape[1] - rows_df_3_barriers_additional_info}") 
+        self.df_3_barriers_additional_info = self.df_3_barriers_additional_info.astype({'prc_change':'float', 'barrier_touched_date':'datetime64[ns]', 
+                                                                                        'top_barrier': 'float', 'bottom_barrier': 'float', 'time_step': 'int64'})
+
         self.df_3_barriers = barriers[['open', 'close', 'high', 'low', 'y_pred']]
-
-
-
-
-
-
-
-
-
-
+        self.df_3_barriers.dropna(inplace=True)

@@ -4,7 +4,7 @@ import logging
 from sklearn.preprocessing import StandardScaler
 import joblib
 import numpy as np
-from tensorflow.keras.utils import to_categorical
+from keras.utils import to_categorical
 import ml_investing_wne.config as config
 import datetime
 import re
