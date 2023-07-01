@@ -40,7 +40,7 @@ def prepare_processed_dataset(plot=False, df=None, allow_null=False, features=Tr
         df['y_pred'] = df['close'].shift(-config.steps_ahead) / df['close']
     #df.ta.indicators()
     if features:
-        MA = [3, 5, 10, 13, 20]
+        MA = [5, 10, 15, 20, 50]
         for ma in MA:
             df.ta.sma(length=ma, append=True)
             df.ta.ema(length=ma, append=True)
@@ -61,7 +61,7 @@ def prepare_processed_dataset(plot=False, df=None, allow_null=False, features=Tr
         # df.ta.roc(length=12, append=True)
         # df.ta.roc(length=1, append=True)
         # df['y_pred'] = df['close'].shift(-config.steps_ahead) / df['close']
-        df['roc_1'] = df['close'].shift(-1) / df['close']
+        df['roc_1'] = df['close'].shift(-1) / df['close'] - 1
         df['roc_1'] = df['roc_1'].shift(1)
         # df['y_roc_12'] = df['close'].shift(-12) / df['close']
         # df['y_roc_12'] = df['y_roc_12'].shift(12)

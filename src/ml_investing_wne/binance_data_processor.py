@@ -9,10 +9,26 @@ from ml_investing_wne.utils import get_logger
 logger = get_logger()
 
 class BinanceDataProcessor():
+    """ 
+    Class for processing binance data
+    """
 
     FIRST_COLUMNS = ['datetime', 'price', 'volume']
 
-    def __init__(self, file=None, volume_frequency=500, freq='60min', strategy='volume_bars', files_path=None, output_path=None) -> None:
+    def __init__(self, file: str=None, volume_frequency: int=500, freq: str='60min', strategy:str ='volume_bars', files_path: str=None, output_path: str=None) -> None:
+        '''
+        it allows to process data in two ways:
+        1. volume_bars - it generates volume bars from raw data
+        2. time_aggregated - it aggregates data based on time
+        data can be processed from one file or from multiple files in a directory
+        Args:
+            file: path to file
+            volume_frequency: frequency of volume bars
+            freq: frequency of time aggregation
+            strategy: strategy to use, either volume_bars or time_aggregated
+            files_path: path to directory with files
+            output_path: path to save processed data
+        '''
         self.file = file
         self.volume_frequency = volume_frequency
         self.freq = freq
@@ -35,12 +51,18 @@ class BinanceDataProcessor():
         self.processed_df = None
         self.running_volume_sum = 0
 
-    def clean_binance(self, df):
+    def clean_binance(self, df: pd.DataFrame) -> pd.DataFrame:
+        '''
+        Cleans binance data. Converts time to datetime and drops unnecessary columns
+        '''
         df['datetime'] = pd.to_datetime(df['time'],unit='ms')
         df = df[BinanceDataProcessor.FIRST_COLUMNS]
         return df
     
-    def generate_volumebars(self, df):
+    def generate_volumebars(self, df: pd.DataFrame) -> pd.DataFrame:
+        '''
+        Generates volume bars from binance data
+        '''
         
         df_np = df.to_numpy()
         self.running_volume_sum += df_np[:,2].sum()
@@ -74,7 +96,10 @@ class BinanceDataProcessor():
                             columns = ['datetime','open','high', 'low','close', 'volume', 'seconds'])
         return df 
     
-    def time_aggregation(self, df):
+    def time_aggregation(self, df: pd.DataFrame) -> pd.DataFrame:
+        '''
+        Aggregates data based on time
+        '''
 
         if isinstance(self.remaining_df, pd.DataFrame):
             df = pd.concat([self.remaining_df, df], ignore_index=True)
@@ -113,6 +138,9 @@ class BinanceDataProcessor():
 
 
     def load_chunks(self, chunksize=1000000):
+        '''
+        Loads data in chunks and processes it
+        '''
 
         for file in self.files_path:
             logger.info(f'processing {file}')
