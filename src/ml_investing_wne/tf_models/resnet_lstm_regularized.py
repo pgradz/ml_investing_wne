@@ -1,8 +1,11 @@
 import os
+import tensorflow as tf
 import tensorflow.keras as keras
 from tensorflow.keras.utils import plot_model
 import ml_investing_wne.config as config
 
+# tf.keras.backend.set_image_data_format("channels_first")
+tf.keras.backend.set_image_data_format("channels_last")
 
 def build_model(input_shape, nb_classes):
     n_feature_maps = 32
@@ -71,11 +74,11 @@ def build_model(input_shape, nb_classes):
     output_block_3 = keras.layers.Activation('relu')(output_block_3)
     output_block_3 = keras.layers.Dropout(0.25)(output_block_3, training=True)
     # FINAL
-
+    
     lstm_layer = keras.layers.LSTM(64)(output_block_3)
-    output_layer = keras.layers.Dense(nb_classes, activation='softmax')(lstm_layer)
+    output_layer = keras.layers.Dense(1, activation='softmax')(lstm_layer)
     model = keras.models.Model(inputs=input_layer, outputs=output_layer)
-    model.compile(loss='categorical_crossentropy', optimizer=keras.optimizers.Adam(),
+    model.compile(loss='binary_crossentropy', optimizer=keras.optimizers.Adam(),
                   metrics=['accuracy'])
 
     return model

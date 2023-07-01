@@ -214,7 +214,7 @@ class CryptoFactory():
                 'close', 'high', 'low', 'vert_barrier', \
                 'top_barrier', 'bottom_barrier'], \
                 index = daily_volatility.index)
-        for day, vol in daily_volatility.iteritems():
+        for day, vol in daily_volatility.items():
             periods_passed = len(daily_volatility.loc \
                         [daily_volatility.index[0] : day])
 

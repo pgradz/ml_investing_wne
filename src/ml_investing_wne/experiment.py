@@ -96,6 +96,8 @@ class Experiment():
 
         # split train val test
         df.reset_index(inplace=True)
+        if df['datetime'].dtype == 'object':
+            df['datetime'] = pd.to_datetime(df['datetime'])
         train = df.loc[df.datetime < train_end]
         train_datetime = train['datetime']
         train_x = train.copy()

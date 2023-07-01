@@ -66,6 +66,8 @@ def prepare_processed_dataset(plot=False, df=None, allow_null=False, features=Tr
         # df['y_roc_12'] = df['close'].shift(-12) / df['close']
         # df['y_roc_12'] = df['y_roc_12'].shift(12)
         df['datetime'] = df.index
+        if df['datetime'].dtype == 'object':
+            df['datetime'] = pd.to_datetime(df['datetime'])
         df['hour'] = df.datetime.dt.hour
         df['weekday'] = df.datetime.dt.weekday
         df['hour_sin'] = np.sin(2 * np.pi * df['hour'] / df['hour'].max())
