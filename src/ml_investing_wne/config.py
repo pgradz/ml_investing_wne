@@ -9,7 +9,7 @@ provider = 'Binance' # hist_data, Bitstamp, Binance
 currency = 'ETHUSDT'
 # leave empty if training from scratch, for transfer learning specify currency to be used as a base
 load_model = ''
-freq = '5min'
+freq = '60min'
 input_dim = '1d'  # 2d or 1d
 # has to be defined inside tf_models folder
 model = 'resnet_lstm_regularized' # resnet_lstm_regularized, transformer_learnable_encoding, lstm
