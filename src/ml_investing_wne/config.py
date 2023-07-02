@@ -1,12 +1,16 @@
 import os
 import datetime
 
+# hide GPU from tensorflow
+os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+# suppress tensorflow warnings
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 RUN_TYPE = 'crypto' # forex or crypto
 RUN_SUBTYPE = 'time_aggregated' #'triple_barrier_time_aggregated','time_aggregated', 'volume_bars'
 provider = 'Binance' # hist_data, Bitstamp, Binance
 
-currency = 'ETHUSDT'
+currency = 'BTCUSDT'
 # leave empty if training from scratch, for transfer learning specify currency to be used as a base
 load_model = ''
 freq = '60min'
@@ -65,8 +69,8 @@ train_end = datetime.datetime(2021, 12, 31, 0, 0, 0)
 val_end = datetime.datetime(2022, 7, 1, 0, 0, 0)
 test_end = datetime.datetime(2023, 1, 31, 0, 0, 0)
 
-# flag if for multi prediction period we should drop observations in between to avoid leaking target. Drawback is losing many obs
-time_step = True
+# if we want to skip consequtive sequences, it is configured by seq_stride. If seq_stride = seq_len then there is 0 overlap at expense of many observations dropped
+seq_stride = 1
 
 # model hyperparameters
 seq_len = 96

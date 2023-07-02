@@ -8,6 +8,7 @@ import itertools
 import re
 import mlflow
 import joblib
+import tensorflow as tf
 from sklearn.metrics import confusion_matrix, roc_auc_score, f1_score
 from sklearn.preprocessing import StandardScaler
 from keras.callbacks import ModelCheckpoint, EarlyStopping, CSVLogger
@@ -34,6 +35,162 @@ class Experiment():
         self.train_test_val_split()
         self.train_model()
         self.evaluate_model()
+
+
+    def _train_test_val_split(self, df: pd.DataFrame,train_end, val_end,
+                         test_end, seq_len) -> (pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame):
+        ''' Objective of this function is to split the data into train, test and validation sets in a manner that
+        there is no overlap between the sets. It will remove some of the data at the end of train and val sets so
+        test set is exactly what is expected and is comparable between different configurations'.cs/
+        :param df: dataframe to split
+        :return: train, test and validation sets, train date index, val date index, test date index
+        '''
+        train = df.loc[df.datetime < train_end] 
+        # remove last seq_len rows from train
+        train = train.iloc[:-seq_len]
+        # update train_end
+        train_end = train.iloc[-1]['datetime']
+        # validation
+        val = df.loc[(df.datetime > train_end) & (df.datetime < val_end)]
+        val = val.iloc[:-seq_len]
+        # update val_end
+        val_end = val.iloc[-1]['datetime']
+        # test
+        test = df.loc[(df.datetime > val_end) & (df.datetime < test_end)]
+
+        # xxx_date_index is needed to later get back datetime index
+        train_date_index = train.reset_index()
+        train_date_index = train_date_index[['index', 'datetime']]
+
+        val_date_index = val.reset_index()
+        val_date_index = val_date_index[['index', 'datetime']]
+
+        test_date_index = test.reset_index()
+        test_date_index = test_date_index[['index', 'datetime']]
+
+        return train, val, test, train_date_index, val_date_index, test_date_index
+
+
+
+    def train_test_val_split(self, sc_x=None, nb_classes=config.nb_classes, freq=config.freq,
+                            seq_len=config.seq_len, seq_stride=config.seq_stride,
+                            train_end=config.train_end, val_end=config.val_end,
+                            test_end=config.test_end, batch_size=config.batch):
+        '''
+        args:
+            df: dataframe to split
+            sc_x: scaler to use, if None, StandardScaler will be used. Option of passing scaler is needed for making ad-hoc predictions
+            nb_classes: number of classes to predict
+            freq: frequency of the data
+            seq_len: length of the sequence
+            seq_stride: stride of the sequence
+            steps_ahead: how many steps ahead to predict
+            train_end: end of the train set
+            val_end: end of the validation set  
+            test_end: end of the test set
+        '''
+        # columns to be dropped from training. y_pred is the target and datetime was carried for technical purposes. index and level_0 are just in case.
+        COLUMNS_TO_DROP = ['y_pred', 'datetime', 'index', 'level_0']
+
+        df = self.df.copy()
+        # take care if more than two classes
+        if self.binarize_target:
+            if nb_classes == 2:
+                df['y_pred'] = [1 if y > 1 else 0 for y in df['y_pred']]
+            else:
+                df['y_pred'] = pd.qcut(df['y_pred'], nb_classes, labels=range(nb_classes))
+
+        # split train val test
+        # move datetime from index to column
+        df.reset_index(inplace=True)
+        train, val, test, train_date_index, val_date_index, test_date_index = self._train_test_val_split(df, train_end=train_end, val_end=val_end, test_end=test_end, seq_len=seq_len)
+        train_y = train['y_pred']
+        val_y = val['y_pred']
+        test_y = test['y_pred']
+        # drop columns
+        for col in COLUMNS_TO_DROP:
+            try:
+                train.drop(columns=[col], inplace=True)
+                val.drop(columns=[col], inplace=True)
+                test.drop(columns=[col], inplace=True)
+            except:
+                pass
+        # scaler, if not passed in the function, has to be fit on train set, it's easier to do it here
+        if not sc_x:
+            sc_x = StandardScaler()
+            train = sc_x.fit_transform(train)
+        else:
+            train = sc_x.transform(train)
+        self.sc_x = sc_x
+        val = sc_x.transform(val)
+        test = sc_x.transform(test)
+        joblib.dump(sc_x, os.path.join(config.package_directory, 'models',
+                                    'sc_x_{}_{}.save'.format(config.currency, freq)))
+
+        # store data shape
+        self.no_features = train.shape[1]
+        self.seq_len = seq_len
+
+        # create tensorflow datasets
+        self.train_dataset = tf.keras.utils.timeseries_dataset_from_array(data=train, targets=train_y.values[seq_len-1:],
+                                                                sequence_length=seq_len, sequence_stride=seq_stride, batch_size=batch_size)                                                            
+        train_date_index_dataset = tf.keras.utils.timeseries_dataset_from_array(data=train, targets=train_date_index.values[seq_len-1:, 0].astype(int),
+                                                                sequence_length=seq_len, sequence_stride=seq_stride, batch_size=batch_size)
+        self.val_dataset = tf.keras.utils.timeseries_dataset_from_array(data=val, targets=val_y.values[seq_len-1:], 
+                                                                sequence_length=seq_len, sequence_stride=seq_stride, batch_size=batch_size)
+        val_date_index_dataset = tf.keras.utils.timeseries_dataset_from_array(data=val, targets=val_date_index.values[seq_len-1:, 0].astype(int),
+                                                                sequence_length=seq_len, sequence_stride=seq_stride, batch_size=batch_size)
+        self.test_dataset = tf.keras.utils.timeseries_dataset_from_array(data=test, targets=test_y.values[seq_len-1:],
+                                                                sequence_length=seq_len, sequence_stride=seq_stride, batch_size=batch_size)
+        test_date_index_dataset = tf.keras.utils.timeseries_dataset_from_array(data=test, targets=test_date_index.values[seq_len-1:, 0].astype(int),
+                                                                sequence_length=seq_len, sequence_stride=seq_stride, batch_size=batch_size)
+
+        # get back date indices
+        self.train_date_index = self.get_datetime_indices(train_date_index_dataset, train_date_index)
+        self.val_date_index = self.get_datetime_indices(val_date_index_dataset, val_date_index)
+        self.test_date_index = self.get_datetime_indices(test_date_index_dataset, test_date_index)
+
+        return None
+
+    def set_y_true(self, dataset: tf.data.Dataset):
+        ''' This function is used to get true labels from the tensorflow dataset
+        args:
+            dataset: tensorflow dataset
+        return:
+            y_true: true labels
+        '''
+
+        y_true = np.array([])  # store true labels
+        # iterate over the dataset
+        for x, label_batch in dataset:  
+            # append true labels
+            y_true = np.concatenate((y_true, label_batch.numpy()), axis=0)
+
+        return y_true
+
+    
+    def get_datetime_indices(self, date_index_dataset: tf.data.Dataset, date_index: pd.DataFrame) -> pd.DataFrame:
+        '''
+        This function is used to get back datetime index from the dataset that has the same shape as original dataframes and 
+        can be concatenated with them
+
+        args:
+            date_index_dataset: dataset with date indices
+            date_index: original date index
+        return:
+            date_index: date index with the same shape as original (train, val, test) dataframe
+        '''
+        for i, batch in enumerate(date_index_dataset):
+            if i == 0:
+                indices = batch[1].numpy()
+            else:
+                indices =  np.concatenate((indices, batch[1].numpy()), axis=0)
+
+        date_index = date_index.loc[date_index['index'].isin(indices)]
+        date_index.reset_index(inplace=True, drop=True)
+
+        return date_index
+
 
     # prepare sequences
     def split_sequences(self, sequences_x, sequences_y, n_steps, datetime_series, steps_ahead, name, 
@@ -79,7 +236,7 @@ class Experiment():
         return np.array(X), np.array(y)
 
 
-    def train_test_val_split(self, sc_x=None, nb_classes=config.nb_classes, freq=config.freq,
+    def train_test_val_split_deprecated(self, sc_x=None, nb_classes=config.nb_classes, freq=config.freq,
                             seq_len=config.seq_len, steps_ahead=config.steps_ahead,
                             train_end=config.train_end, val_end=config.val_end,
                             test_end=config.test_end):
@@ -256,14 +413,14 @@ class Experiment():
         mlflow.tensorflow.autolog()
         mlflow.set_experiment(experiment_name=self.get_ml_flow_experiment_name())
         callbacks = self.get_callbacks()
-        self.model = model_factory(self.X)
-        self.history = self.model.fit(self.X, self.y_cat, batch_size=config.batch, epochs=config.epochs, verbose=2,
-                            validation_data=(self.X_val, self.y_val_cat), callbacks=callbacks)
+        self.model = model_factory(input_shape=(self.seq_len, self.no_features))
+        self.history = self.model.fit(self.train_dataset, batch_size=config.batch, epochs=config.epochs, verbose=2,
+                            validation_data=self.val_dataset, callbacks=callbacks)
         self.model.save(self.get_final_model_path())
 
     def evaluate_model(self):
 
-        test_loss, test_acc = self.model.evaluate(self.X_test, self.y_test_cat)
+        test_loss, test_acc = self.model.evaluate(self.test_dataset)
         logger.info('Test accuracy : %.4f', test_acc)
         logger.info('Test loss : %.4f', test_loss)
         mlflow.log_metric("test_acc", test_acc)
@@ -272,14 +429,14 @@ class Experiment():
         mlflow.set_tag('currency', config.currency)
         mlflow.set_tag('frequency', config.freq)
         mlflow.set_tag('steps_ahead', config.steps_ahead)
-        mlflow.log_metric('y_distribution', self.y.mean())
-        mlflow.log_metric('y_val_distribution', self.y_val.mean())
-        mlflow.log_metric('y_test_distribution', self.y_test.mean())
+        # mlflow.log_metric('y_distribution', self.y.mean())
+        # mlflow.log_metric('y_val_distribution', self.y_val.mean())
+        # mlflow.log_metric('y_test_distribution', self.y_test.mean())
         mlflow.log_metric('cost', config.cost)
         mlflow.log_metric('seq_len', config.seq_len)
-
-        y_pred = self.model.predict(self.X_test)
-        y_pred_class = y_pred.argmax(axis=-1)
+        self.y_test = self.set_y_true(self.test_dataset)
+        y_pred = self.model.predict(self.test_dataset)
+        y_pred_class = [1 if y > 0.5 else 0 for y in y_pred]
         roc_auc = roc_auc_score(self.y_test, y_pred_class)
         f1 = f1_score(self.y_test, y_pred_class)
         logger.info('roc_auc : %.4f',roc_auc)
@@ -294,7 +451,7 @@ class Experiment():
         lower_bounds = [0.25, 0.3, 0.35, 0.4, 0.45, 0.5]
         # lower_bounds = [0.5]
         upper_bounds = [1 - lower for lower in lower_bounds]
-
+        # TODO: add compute_profitability_classes won't work with new tf.Dataset framework
         for lower_bound, upper_bound in zip(lower_bounds, upper_bounds):
             portfolio_result, hit_ratio, time_active = self.compute_profitability_classes(df, y_pred, 
                                                                                     start_date,

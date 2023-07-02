@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 # load model dynamically
 build_model = getattr(importlib.import_module(f'ml_investing_wne.tf_models.{config.model}'),'build_model')
 
-def model_factory(data=None):
+def model_factory(input_shape=None):
     """_summary_
 
     Args:
@@ -25,13 +25,13 @@ def model_factory(data=None):
     if len(config.load_model) > 1:
         model = load_pretrained_model()
     elif config.model == 'transformer_learnable_encoding':
-        model = transformer(data)
+        model = transformer(input_shape)
     elif config.model in ['resnet', 'resnet_lstm_regularized', 'inception', 'lstm']:
-        model = cnn(data)
+        model = cnn(input_shape)
 
     return model
 
-def transformer(data):
+def transformer(input_shape):
     """
 
     Args:
@@ -40,12 +40,12 @@ def transformer(data):
     Returns:
         _type_: _description_
     """
-    model = build_model(input_shape=(data.shape[1], data.shape[2]), head_size=64, num_heads=4,
+    model = build_model(input_shape=(input_shape[0], input_shape[1]), head_size=64, num_heads=4,
                         ff_dim=64, num_transformer_blocks=4, mlp_units=[128], mlp_dropout=0.25,
                         dropout=0.25)
     return model
 
-def cnn(data):
+def cnn(input_shape):
     """_summary_
 
     Args:
@@ -54,7 +54,7 @@ def cnn(data):
     Returns:
         _type_: _description_
     """
-    model = build_model(input_shape=(data.shape[1], data.shape[2]), nb_classes=config.nb_classes)
+    model = build_model(input_shape=(input_shape[0], input_shape[1]), nb_classes=config.nb_classes)
     return model
 
 def load_pretrained_model():

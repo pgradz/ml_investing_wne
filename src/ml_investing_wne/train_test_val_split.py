@@ -3,6 +3,7 @@ import pandas as pd
 import logging
 from sklearn.preprocessing import StandardScaler
 import joblib
+import tensorflow as tf
 import numpy as np
 from keras.utils import to_categorical
 import ml_investing_wne.config as config
@@ -47,7 +48,138 @@ def split_sequences(sequences_x, sequences_y, n_steps, datetime_series, steps_ah
     return np.array(X), np.array(y)
 
 
+def _train_test_val_split(df: pd.DataFrame,train_end, val_end,
+                         test_end, seq_len) -> (pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame):
+    ''' Objective of this function is to split the data into train, test and validation sets in a manner that
+    there is no overlap between the sets. It will remove some of the data at the end of train and val sets so
+    test set is exactly what is expected and is comparable between different configurations'.cs/
+    :param df: dataframe to split
+    :return: train, test and validation sets, train date index, val date index, test date index
+    '''
+    train = df.loc[df.datetime < train_end] 
+    # remove last seq_len rows from train
+    train = train.iloc[:-seq_len]
+    # update train_end
+    train_end = train_date_index.iloc[-1]['datetime']
+    # validation
+    val = df.loc[(df.datetime > train_end) & (df.datetime < val_end)]
+    val = val.iloc[:-seq_len]
+    # update val_end
+    val_end = val.iloc[-1]['datetime']
+    # test
+    test = df.loc[(df.datetime > val_end) & (df.datetime < test_end)]
+
+    # xxx_date_index is needed to later get back datetime index
+    train_date_index = train.reset_index()
+    train_date_index = date_index[['index', 'datetime']]
+
+    val_date_index = val.reset_index()
+    val_date_index = date_index[['index', 'datetime']]
+
+    test_date_index = test.reset_index()
+    test_date_index = date_index[['index', 'datetime']]
+
+    return train, val, test, train_date_index, val_date_index, test_date_index
+
+
+
 def train_test_val_split(df, sc_x=None, nb_classes=config.nb_classes, freq=config.freq,
+                         seq_len=config.seq_len, seq_stride=config.seq_stride,
+                         train_end=config.train_end, val_end=config.val_end,
+                         test_end=config.test_end, binarize_target=True, batch_size=config.batch) -> (tf.data.Dataset, tf.data.Dataset, tf.data.Dataset, pd.DataFrame, pd.DataFrame, pd.DataFrame):
+    '''
+    args:
+        df: dataframe to split
+        sc_x: scaler to use, if None, StandardScaler will be used. Option of passing scaler is needed for making ad-hoc predictions
+        nb_classes: number of classes to predict
+        freq: frequency of the data
+        seq_len: length of the sequence
+        seq_stride: stride of the sequence
+        steps_ahead: how many steps ahead to predict
+        train_end: end of the train set
+        val_end: end of the validation set  
+        test_end: end of the test set
+        binarize_target: if True, target will be binarized
+    '''
+    # columns to be dropped from training. y_pred is the target and datetime was carried for technical purposes. index and level_0 are just in case.
+    COLUMNS_TO_DROP = ['y_pred', 'datetime', 'index', 'level_0']
+     # take care if more than two classes
+    if binarize_target:
+        if nb_classes == 2:
+            df['y_pred'] = [1 if y > 1 else 0 for y in df['y_pred']]
+        else:
+            df['y_pred'] = pd.qcut(df['y_pred'], nb_classes, labels=range(nb_classes))
+
+    # split train val test
+    # move datetime from index to column
+    df.reset_index(inplace=True)
+    train, val, test, train_date_index, val_date_index, test_date_index = _train_test_val_split(df, train_end=train_end, val_end=val_end, test_end=test_end, seq_len=seq_len)
+    train_y = train['y_pred']
+    val_y = val['y_pred']
+    test_y = test['y_pred']
+    # drop columns
+    for col in colunns_to_drop:
+        try:
+            train.drop(columns=[col], inplace=True)
+            val.drop(columns=[col], inplace=True)
+            test.drop(columns=[col], inplace=True)
+        except:
+            pass
+    # scaler, if not passed in the function, has to be fit on train set, it's easier to do it here
+    if not sc_x:
+        sc_x = StandardScaler()
+        train = sc_x.fit_transform(train)
+    else:
+        train = sc_x.transform(train)
+    val = sc_x.transform(val)
+    test = sc_x.transform(test)
+    joblib.dump(sc_x, os.path.join(config.package_directory, 'models',
+                                   'sc_x_{}_{}.save'.format(config.currency, freq)))
+    # create tensorflow datasets
+    train_dataset = tf.keras.utils.timeseries_dataset_from_array(data=train.values, targets=train_y.values[sequence_length-1:],
+                                                            sequence_length=seq_len, sequence_stride=seq_stride, batch_size=batch_size)                                                            
+    train_date_index_dataset = tf.keras.utils.timeseries_dataset_from_array(data=train.values, targets=train_date_index.values[sequence_length-1:, 0].astype(int),
+                                                            sequence_length=seq_len, sequence_stride=seq_stride, batch_size=batch_size)
+    val_dataset = tf.keras.utils.timeseries_dataset_from_array(data=val.values, targets=val_y.values[sequence_length-1:], 
+                                                            sequence_length=seq_len, sequence_stride=seq_stride, batch_size=batch_size)
+    val_date_index_dataset = tf.keras.utils.timeseries_dataset_from_array(data=val.values, targets=val_date_index.values[sequence_length-1:, 0].astype(int),
+                                                            sequence_length=seq_len, sequence_stride=seq_stride, batch_size=batch_size)
+    test_dataset = tf.keras.utils.timeseries_dataset_from_array(data=test.values, targets=test_y.values[sequence_length-1:],
+                                                            sequence_length=seq_len, sequence_stride=seq_stride, batch_size=batch_size)
+    test_date_index_dataset = tf.keras.utils.timeseries_dataset_from_array(data=test.values, targets=test_date_index.values[sequence_length-1:, 0].astype(int),
+                                                            sequence_length=seq_len, sequence_stride=seq_stride, batch_size=batch_size)
+
+    # get back date indices
+    train_date_index = get_datetime_indices(train_date_index_dataset, train_date_index)
+    val_date_index = get_datetime_indices(val_date_index_dataset, val_date_index)
+    test_date_index = get_datetime_indices(test_date_index_dataset, test_date_index)
+
+    return train_dataset, val_dataset, test_dataset, train_date_index, val_date_index, test_date_index
+
+    
+def get_datetime_indices(date_index_dataset: tf.data.Dataset, date_index: pd.DataFrame) -> pd.DataFrame:
+    '''
+    This function is used to get back datetime index from the dataset that has the same shape as original dataframes and 
+    can be concatenated with them
+
+    args:
+        date_index_dataset: dataset with date indices
+        date_index: original date index
+    return:
+        date_index: date index with the same shape as original (train, val, test) dataframe
+    '''
+    for i, batch in enumerate(date_index_dataset):
+        if i == 0:
+            indices = batch[1].numpy()
+        else:
+            indices =  np.concatenate((indices, batch[1].numpy()), axis=0)
+
+    date_index = date_index.iloc[indices].reset_index(drop=True)
+
+    return date_index
+
+
+def train_test_val_split_deprecated(df, sc_x=None, nb_classes=config.nb_classes, freq=config.freq,
                          seq_len=config.seq_len, steps_ahead=config.steps_ahead,
                          train_end=config.train_end, val_end=config.val_end,
                          test_end=config.test_end, binarize_target=True, time_step=None):
