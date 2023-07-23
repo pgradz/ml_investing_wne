@@ -434,36 +434,62 @@ class Experiment():
         # mlflow.log_metric('y_test_distribution', self.y_test.mean())
         mlflow.log_metric('cost', config.cost)
         mlflow.log_metric('seq_len', config.seq_len)
+
+        self.y_val = self.set_y_true(self.val_dataset)
+        y_pred_val = self.model.predict(self.val_dataset)
+        y_pred_class_val = [1 if y > 0.5 else 0 for y in y_pred_val]
+
         self.y_test = self.set_y_true(self.test_dataset)
-        y_pred = self.model.predict(self.test_dataset)
-        y_pred_class = [1 if y > 0.5 else 0 for y in y_pred]
-        roc_auc = roc_auc_score(self.y_test, y_pred_class)
-        f1 = f1_score(self.y_test, y_pred_class)
-        logger.info('roc_auc : %.4f',roc_auc)
-        logger.info('f1 : %.4f', f1)
-        mlflow.log_metric('roc_auc', roc_auc)
-        mlflow.log_metric('f1', f1)
+        y_pred_test = self.model.predict(self.test_dataset)
+        y_pred_class_test = [1 if y > 0.5 else 0 for y in y_pred_test]
 
-        df = self.add_cost(self.df)
-        df.reset_index(inplace=True)
-        start_date, end_date = self.load_test_dates()
+        # roc_auc = roc_auc_score(self.y_test, y_pred_class)
+        # f1 = f1_score(self.y_test, y_pred_class)
+        # logger.info('roc_auc : %.4f',roc_auc)
+        # logger.info('f1 : %.4f', f1)
+        # mlflow.log_metric('roc_auc', roc_auc)
+        # mlflow.log_metric('f1', f1)
 
-        lower_bounds = [0.25, 0.3, 0.35, 0.4, 0.45, 0.5]
-        # lower_bounds = [0.5]
-        upper_bounds = [1 - lower for lower in lower_bounds]
-        # TODO: add compute_profitability_classes won't work with new tf.Dataset framework
-        for lower_bound, upper_bound in zip(lower_bounds, upper_bounds):
-            portfolio_result, hit_ratio, time_active = self.compute_profitability_classes(df, y_pred, 
-                                                                                    start_date,
-                                                                                    end_date, 
-                                                                                    lower_bound,
-                                                                                    upper_bound)
-            mlflow.log_metric(f"portfolio_result_{lower_bound}_{upper_bound}", portfolio_result)
-            mlflow.log_metric(f"hit_ratio_{lower_bound}_{upper_bound}", hit_ratio)
-            mlflow.log_metric(f"time_active_{lower_bound}_{upper_bound}",time_active)
-            name = f'''portfolio_evolution_{config.model}_{config.currency}_{config.nb_classes}_
-                    {lower_bound}_{upper_bound}.png'''
-            mlflow.log_artifact(os.path.join(config.package_directory, 'models', name))
+        accuracy = (self.y_test == y_pred_class_test).mean()
+        logger.info('accuracy on test set : %.4f', accuracy)
+        mlflow.log_metric('accuracy', accuracy)
+        
+        accuracy_val = (self.y_val == y_pred_class_val).mean()
+        logger.info('accuracy on validation set : %.4f', accuracy_val)
+        mlflow.log_metric('accuracy_val', accuracy_val)
+
+        # validation and test data will be matched based on index
+        self.df = self.df.assign(index=range(len(self.df)))
+        self.train_date_index['train_val_test'] = 'train'
+        # prediction for train set won't be needed
+        self.train_date_index['prediction'] = -1
+        self.val_date_index['train_val_test'] = 'val'
+        self.val_date_index['prediction'] = y_pred_val
+        self.test_date_index['train_val_test'] = 'test'
+        self.test_date_index['prediction'] = y_pred_test
+        train_val_test = pd.concat([self.train_date_index, self.val_date_index, self.test_date_index], axis=0)
+        self.df = self.df.merge(train_val_test, on='index', how='left')
+        self.df = self.add_cost(self.df)
+        #TODO: df is ready for profitability analysis (backtesting) on validation and test set
+ 
+        # start_date, end_date = self.load_test_dates()
+
+        # lower_bounds = [0.25, 0.3, 0.35, 0.4, 0.45, 0.5]
+        # # lower_bounds = [0.5]
+        # upper_bounds = [1 - lower for lower in lower_bounds]
+        # # TODO: add compute_profitability_classes won't work with new tf.Dataset framework
+        # for lower_bound, upper_bound in zip(lower_bounds, upper_bounds):
+        #     portfolio_result, hit_ratio, time_active = self.compute_profitability_classes(df, y_pred, 
+        #                                                                             start_date,
+        #                                                                             end_date, 
+        #                                                                             lower_bound,
+        #                                                                             upper_bound)
+        #     mlflow.log_metric(f"portfolio_result_{lower_bound}_{upper_bound}", portfolio_result)
+        #     mlflow.log_metric(f"hit_ratio_{lower_bound}_{upper_bound}", hit_ratio)
+        #     mlflow.log_metric(f"time_active_{lower_bound}_{upper_bound}",time_active)
+        #     name = f'''portfolio_evolution_{config.model}_{config.currency}_{config.nb_classes}_
+        #             {lower_bound}_{upper_bound}.png'''
+        #     mlflow.log_artifact(os.path.join(config.package_directory, 'models', name))
 
     def load_test_dates(self):
 
@@ -495,6 +521,8 @@ class Experiment():
     # lower_bound = 0.5
     # date_start = start_date
     # date_end = end_date
+
+
 
     def compute_profitability_classes(self, df, y_pred, date_start, date_end, lower_bound, upper_bound,
                                     hours_exclude=None):

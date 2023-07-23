@@ -2,6 +2,8 @@ import os
 import pandas as pd
 import numpy as np
 import logging
+import boto3
+import io
 from ml_investing_wne.utils import get_logger
 
 
@@ -14,8 +16,9 @@ class BinanceDataProcessor():
     """
 
     FIRST_COLUMNS = ['datetime', 'price', 'volume']
+    EXCHANGE = 'binance'
 
-    def __init__(self, file: str=None, volume_frequency: int=500, freq: str='60min', strategy:str ='volume_bars', files_path: str=None, output_path: str=None) -> None:
+    def __init__(self, crypto :str=None, file: str=None, volume_frequency: int=500, freq: str='60min', strategy:str ='volume_bars', files_path: str=None, output_path: str=None, s3_path: str=None) -> None:
         '''
         it allows to process data in two ways:
         1. volume_bars - it generates volume bars from raw data
@@ -28,25 +31,40 @@ class BinanceDataProcessor():
             strategy: strategy to use, either volume_bars or time_aggregated
             files_path: path to directory with files
             output_path: path to save processed data
+            s3_path: path to s3 bucket
         '''
         self.file = file
         self.volume_frequency = volume_frequency
         self.freq = freq
         self.strategy = strategy
-        if files_path is None:
+        if file is not None:
             self.files_path = [file]
-        else:
+        if files_path is not None:
             self.files_path  = [os.path.join(files_path, file) for file in os.listdir(files_path)]
             self.files_path.sort()
+        if s3_path is not None:
+            self.s3_path = s3_path
+            s3 = boto3.resource('s3')
+            bucket = s3.Bucket(s3_path)
+            self.files_path = []
+            for obj in bucket.objects.all():
+                if obj.key.endswith('.csv') and obj.key.startswith((BinanceDataProcessor.EXCHANGE + '_' + crypto)):
+                    self.files_path.append(obj.key)
+            self.files_path.sort()
+            print(self.files_path)
+
         if output_path is not None:
+            output_path = os.path.join(output_path, (BinanceDataProcessor.EXCHANGE + '_' + crypto))
             if self.strategy == 'volume_bars':
                 self.output_path = os.path.join(output_path, f'volume_bars_{self.volume_frequency}.csv')
             elif self.strategy == 'time_aggregated':
                 self.output_path = os.path.join(output_path, f'time_aggregated_{self.freq}.csv')
             else:
                 pass
+            logger.info(f'output path is {self.output_path}')
         else:
-            self.output_path = output_path
+            logging.error(msg='output_path is required')
+
         self.remaining_df = None
         self.processed_df = None
         self.running_volume_sum = 0
@@ -169,7 +187,32 @@ class BinanceDataProcessor():
             volume_check_ratio = (self.processed_df['volume'].sum()+self.remaining_df['volume'].sum())/self.running_volume_sum * 100
 
         logger.info(f'volume check, processed to raw files ratio: {volume_check_ratio} %')
+    
+    def load_from_s3(self, chunksize=1000000):
 
+        s3 = boto3.resource('s3')
+        for file in self.files_path:
+
+            logger.info(f'processing {file}')
+            obj = s3.Object(self.s3_path, file)
+            for df in pd.read_csv(f"s3://{self.s3_path}/{file}", names=['trade_id', 'price', 'volume','quoteQty', 'time', 'is_buyer_maker','is_best_match'], chunksize=chunksize):
+ 
+                # df = pd.read_csv( f"s3://{self.s3_path}/{file}", names=['trade_id', 'price', 'volume','quoteQty', 'time', 'is_buyer_maker','is_best_match'])
+                df = self.clean_binance(df)
+                if self.strategy == 'volume_bars':
+                    df = self.generate_volumebars(df)
+                elif self.strategy == 'time_aggregated':
+                    df = self.time_aggregation(df)
+                else:
+                    logging.info("flow not implemented")
+                if isinstance(self.processed_df, pd.DataFrame):
+                    self.processed_df = pd.concat([self.processed_df, df], ignore_index=True)
+                else:
+                    self.processed_df = df
+            # save work in progress        
+            self.processed_df.to_csv(self.output_path, index=False)
+
+    
 #binance_processor = BinanceDataProcessor(file='/Users/i0495036/Downloads/BTCUSDT-trades-2023-01.csv')
 # binance_processor = BinanceDataProcessor(volume_frequency=50000, 
 #                                          files_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/raw/crypto/binance_ETHUSDT',
@@ -193,10 +236,16 @@ class BinanceDataProcessor():
 #                                          output_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_SOLUSDT',
 #                                          strategy='time_aggregated'
 
+# binance_processor = BinanceDataProcessor(freq='60min', 
+#                                          files_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/raw/crypto/binance_ETHBTC',
+#                                          output_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_ETHBTC',
+#                                          strategy='time_aggregated'
+#                                          )
 binance_processor = BinanceDataProcessor(freq='60min', 
-                                         files_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/raw/crypto/binance_ETHBTC',
-                                         output_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_ETHBTC',
+                                         crypto = 'BTCUSDT',
+                                         s3_path='crypto-data-uw',
+                                         output_path='/home/ec2-user/SageMaker/ml_investing_wne/src/ml_investing_wne/data/processed',
                                          strategy='time_aggregated'
                                          )
                                          
-binance_processor.load_chunks()
+binance_processor.load_from_s3()
