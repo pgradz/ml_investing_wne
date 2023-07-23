@@ -76,9 +76,14 @@ def build_model(input_shape, nb_classes):
     # FINAL
     
     lstm_layer = keras.layers.LSTM(64)(output_block_3)
-    output_layer = keras.layers.Dense(1, activation='softmax')(lstm_layer)
+    # output_layer = keras.layers.Dense(1, activation='softmax')(lstm_layer)
+    # model = keras.models.Model(inputs=input_layer, outputs=output_layer)
+    # model.compile(loss='binary_crossentropy', optimizer=keras.optimizers.Adam(),
+    #               metrics=['accuracy'])
+    
+    output_layer = keras.layers.Dense(nb_classes, activation='softmax')(lstm_layer)
     model = keras.models.Model(inputs=input_layer, outputs=output_layer)
-    model.compile(loss='binary_crossentropy', optimizer=keras.optimizers.Adam(),
+    model.compile(loss='categorical_crossentropy', optimizer=keras.optimizers.Adam(),
                   metrics=['accuracy'])
 
     return model

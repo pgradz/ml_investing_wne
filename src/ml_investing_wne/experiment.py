@@ -132,15 +132,15 @@ class Experiment():
         self.seq_len = seq_len
 
         # create tensorflow datasets
-        self.train_dataset = tf.keras.utils.timeseries_dataset_from_array(data=train, targets=train_y.values[seq_len-1:],
+        self.train_dataset = tf.keras.utils.timeseries_dataset_from_array(data=train, targets=to_categorical(train_y.values[seq_len-1:]),
                                                                 sequence_length=seq_len, sequence_stride=seq_stride, batch_size=batch_size)                                                            
         train_date_index_dataset = tf.keras.utils.timeseries_dataset_from_array(data=train, targets=train_date_index.values[seq_len-1:, 0].astype(int),
                                                                 sequence_length=seq_len, sequence_stride=seq_stride, batch_size=batch_size)
-        self.val_dataset = tf.keras.utils.timeseries_dataset_from_array(data=val, targets=val_y.values[seq_len-1:], 
+        self.val_dataset = tf.keras.utils.timeseries_dataset_from_array(data=val, targets=to_categorical(val_y.values[seq_len-1:]), 
                                                                 sequence_length=seq_len, sequence_stride=seq_stride, batch_size=batch_size)
         val_date_index_dataset = tf.keras.utils.timeseries_dataset_from_array(data=val, targets=val_date_index.values[seq_len-1:, 0].astype(int),
                                                                 sequence_length=seq_len, sequence_stride=seq_stride, batch_size=batch_size)
-        self.test_dataset = tf.keras.utils.timeseries_dataset_from_array(data=test, targets=test_y.values[seq_len-1:],
+        self.test_dataset = tf.keras.utils.timeseries_dataset_from_array(data=test, targets=to_categorical(test_y.values[seq_len-1:]),
                                                                 sequence_length=seq_len, sequence_stride=seq_stride, batch_size=batch_size)
         test_date_index_dataset = tf.keras.utils.timeseries_dataset_from_array(data=test, targets=test_date_index.values[seq_len-1:, 0].astype(int),
                                                                 sequence_length=seq_len, sequence_stride=seq_stride, batch_size=batch_size)
