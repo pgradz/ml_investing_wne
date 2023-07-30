@@ -72,9 +72,6 @@ def prepare_processed_dataset(plot=False, df=None, allow_null=False, features=Tr
         df['weekday'] = df.datetime.dt.weekday
         df['hour_sin'] = np.sin(2 * np.pi * df['hour'] / df['hour'].max())
         df['hour_cos'] = np.cos(2 * np.pi * df['hour'] / df['hour'].max())
-        # I know there is an error but models were already trained with it
-        # df['weekday_sin'] = np.sin(2 * np.pi * df['hour'] / df['weekday'].max())
-        # df['weekday_cos'] = np.cos(2 * np.pi * df['hour'] / df['weekday'].max())
         df['weekday_sin'] = np.sin(2 * np.pi * df['weekday'] / df['weekday'].max())
         df['weekday_cos'] = np.cos(2 * np.pi * df['weekday'] / df['weekday'].max())
     # check of encoding

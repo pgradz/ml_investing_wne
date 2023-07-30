@@ -199,6 +199,12 @@ class CryptoFactory():
 
 
     def get_daily_volatility(self,close,span0=20):
+        '''
+        this function calculates daily volatility given close price
+        args:
+            close: close price
+            span0: the span of EWM. EWM means exponential weighted means
+        '''
         # simple percentage returns
         df0=close.pct_change()
         # 20 days, a month EWM's std as boundary
@@ -209,6 +215,17 @@ class CryptoFactory():
 
     def get_3_barriers(self, _open, close, high, low, daily_volatility, t_final, 
                         upper_lower_multipliers):
+        '''
+        this function creates 3 barriers
+        args:
+            _open: open price
+            close: close price
+            high: high price
+            low: low price
+            daily_volatility: daily volatility
+            t_final: how many days we can hold the stock which set the vertical barrier
+            upper_lower_multipliers: the up and low boundary multipliers
+        '''
     #create a container
         barriers = pd.DataFrame(columns=['periods_passed', 'open',
                 'close', 'high', 'low', 'vert_barrier', \
@@ -254,6 +271,11 @@ class CryptoFactory():
 
 
     def get_3_barriers_labels(self, barriers):
+        '''
+        this function labels the barriers
+        args:
+            barriers: dataframe with 3 barriers
+        '''
 
         ties = 0
 
@@ -308,6 +330,12 @@ class CryptoFactory():
         return barriers
 
     def run_3_barriers(self, t_final=10, upper_lower_multipliers = [2, 2], fixed_barrier = None):
+        '''
+        args:
+            t_final: how many days we can hold the stock which set the vertical barrier 
+            upper_lower_multipliers: the up and low boundary multipliers
+            fixed_barrier: overwrite dynamic (volatility based) barrier with fixed percentage
+        '''
         # t_final how many days we hold the stock which set the vertical barrier
         # upper_lower_multipliers the up and low boundary multipliers
         try:
@@ -356,6 +384,7 @@ class CryptoFactory():
         logging.info(f"Rows with Na dropped from df_3_barriers_additional_info: {self.df_3_barriers_additional_info.shape[1] - rows_df_3_barriers_additional_info}") 
         self.df_3_barriers_additional_info = self.df_3_barriers_additional_info.astype({'prc_change':'float', 'barrier_touched_date':'datetime64[ns]', 
                                                                                         'top_barrier': 'float', 'bottom_barrier': 'float', 'time_step': 'int64'})
-
-        self.df_3_barriers = barriers[['open', 'close', 'high', 'low', 'y_pred']]
+        # attach volume back
+        barriers = barriers.merge(self.df_time_aggregated[['volume']], left_index=True, right_index=True, how='inner')
+        self.df_3_barriers = barriers[['open', 'close', 'high', 'low', 'volume', 'y_pred']]
         self.df_3_barriers.dropna(inplace=True)

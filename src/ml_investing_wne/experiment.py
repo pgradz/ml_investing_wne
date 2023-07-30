@@ -25,10 +25,9 @@ logger = logging.getLogger(__name__)
 # logger = get_logger()
 
 class Experiment():
-    def __init__(self, df, binarize_target=True, time_step=None, asset_factory=None) -> None:
+    def __init__(self, df, binarize_target=True, asset_factory=None) -> None:
         self.df = df
         self.binarize_target=binarize_target 
-        self.time_step=time_step
         self.asset_factory = asset_factory
 
     def run(self):
