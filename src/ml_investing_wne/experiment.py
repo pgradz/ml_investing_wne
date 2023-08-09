@@ -149,6 +149,9 @@ class Experiment():
         self.val_date_index = self.get_datetime_indices(val_date_index_dataset, val_date_index)
         self.test_date_index = self.get_datetime_indices(test_date_index_dataset, test_date_index)
 
+        # shuffle training data set
+        self.train_dataset.train_dataset = self.train_dataset.shuffle(buffer_size=train.shape[0], reshuffle_each_iteration=True)
+
         return None
 
     def set_y_true(self, dataset: tf.data.Dataset):
@@ -159,13 +162,13 @@ class Experiment():
             y_true: true labels
         '''
 
-        y_true = np.array([])  # store true labels
+        y_true = np.empty((0, 2)) # store true labels
         # iterate over the dataset
         for x, label_batch in dataset:  
             # append true labels
             y_true = np.concatenate((y_true, label_batch.numpy()), axis=0)
 
-        return y_true
+        return y_true[:, 1]
 
     
     def get_datetime_indices(self, date_index_dataset: tf.data.Dataset, date_index: pd.DataFrame) -> pd.DataFrame:
@@ -436,11 +439,11 @@ class Experiment():
 
         self.y_val = self.set_y_true(self.val_dataset)
         y_pred_val = self.model.predict(self.val_dataset)
-        y_pred_class_val = [1 if y > 0.5 else 0 for y in y_pred_val]
+        y_pred_class_val = [1 if y > 0.5 else 0 for y in y_pred_val[:,1]]
 
         self.y_test = self.set_y_true(self.test_dataset)
         y_pred_test = self.model.predict(self.test_dataset)
-        y_pred_class_test = [1 if y > 0.5 else 0 for y in y_pred_test]
+        y_pred_class_test = [1 if y > 0.5 else 0 for y in y_pred_test[:,1]]
 
         # roc_auc = roc_auc_score(self.y_test, y_pred_class)
         # f1 = f1_score(self.y_test, y_pred_class)
@@ -463,9 +466,9 @@ class Experiment():
         # prediction for train set won't be needed
         self.train_date_index['prediction'] = -1
         self.val_date_index['train_val_test'] = 'val'
-        self.val_date_index['prediction'] = y_pred_val
+        self.val_date_index['prediction'] = y_pred_val[:, 1]
         self.test_date_index['train_val_test'] = 'test'
-        self.test_date_index['prediction'] = y_pred_test
+        self.test_date_index['prediction'] = y_pred_test[:,1]
         train_val_test = pd.concat([self.train_date_index, self.val_date_index, self.test_date_index], axis=0)
         self.df = self.df.merge(train_val_test, on='index', how='left')
         self.df = self.add_cost(self.df)
