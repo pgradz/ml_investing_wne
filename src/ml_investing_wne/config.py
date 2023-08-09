@@ -2,9 +2,9 @@ import os
 import datetime
 
 # hide GPU from tensorflow
-os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
-# suppress tensorflow warnings
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+# # suppress tensorflow warnings
+# os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 RUN_TYPE = 'crypto' # forex or crypto
 RUN_SUBTYPE = 'triple_barrier_time_aggregated' #'triple_barrier_time_aggregated','time_aggregated', 'volume_bars'
@@ -16,7 +16,7 @@ load_model = ''
 freq = '60min'
 input_dim = '1d'  # 2d or 1d
 # has to be defined inside tf_models folder
-model = 'resnet_lstm_regularized' # resnet_lstm_regularized, transformer_learnable_encoding, lstm
+model = 'resnet_lstm_regularized_tunned_small' # resnet_lstm_regularized, transformer_learnable_encoding, lstm
 seed = 12345
 # volume for volume bars
 volume = 5000
@@ -25,7 +25,7 @@ volume = 5000
 
 # Tripple barrier method
 t_final=24
-fixed_barrier=0.01
+fixed_barrier=0.02
 
 # Cost is expressed in pips
 COST_FOREX = {
@@ -45,7 +45,8 @@ COST_CRYPTO = {
     'ETHUSDT': 0.0025,
     'MATICUSDT': 0.0025,
     'SOLUSDT': 0.0025,
-    'ETHBTC': 0.0025
+    'ETHBTC': 0.0025,
+    'LTCUSDT': 0.0025
 }
 
 try:
@@ -65,17 +66,17 @@ PASSWORD = ""
 # train_end = datetime.datetime(2019, 12, 31, 0, 0, 0)
 # val_end = datetime.datetime(2020, 12, 31, 0, 0, 0)
 # test_end = datetime.datetime(2021, 12, 31, 0, 0, 0)
-train_end = datetime.datetime(2021, 12, 31, 0, 0, 0)
-val_end = datetime.datetime(2022, 7, 1, 0, 0, 0)
-test_end = datetime.datetime(2023, 1, 31, 0, 0, 0)
+train_end = datetime.datetime(2022, 7, 1, 0, 0, 0)
+val_end = datetime.datetime(2023, 1, 1, 0, 0, 0)
+test_end = datetime.datetime(2023, 7, 1, 0, 0, 0)
 
 # if we want to skip consequtive sequences, it is configured by seq_stride. If seq_stride = seq_len then there is 0 overlap at expense of many observations dropped
-seq_stride = 1
+seq_stride = 4
 
 # model hyperparameters
 seq_len = 96
 batch = 64
-patience = 15
+patience = 5
 epochs = 100
 nb_classes = 2
 steps_ahead = 1

@@ -26,7 +26,7 @@ def model_factory(input_shape=None):
         model = load_pretrained_model()
     elif config.model == 'transformer_learnable_encoding':
         model = transformer(input_shape)
-    elif config.model in ['resnet', 'resnet_lstm_regularized', 'inception', 'lstm']:
+    elif config.model in ['resnet', 'resnet_lstm_regularized', 'inception', 'lstm', 'resnet_lstm_regularized_tunned', 'resnet_lstm_regularized_tunned_small']:
         model = cnn(input_shape)
 
     return model

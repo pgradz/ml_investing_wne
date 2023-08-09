@@ -149,6 +149,9 @@ class Experiment():
         self.val_date_index = self.get_datetime_indices(val_date_index_dataset, val_date_index)
         self.test_date_index = self.get_datetime_indices(test_date_index_dataset, test_date_index)
 
+        # shuffle training data set
+        self.train_dataset.train_dataset = self.train_dataset.shuffle(buffer_size=train.shape[0], reshuffle_each_iteration=True)
+
         return None
 
     def set_y_true(self, dataset: tf.data.Dataset):
