@@ -7,7 +7,7 @@ import datetime
 # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 RUN_TYPE = 'crypto' # forex or crypto
-RUN_SUBTYPE = 'time_aggregated' #'triple_barrier_time_aggregated','time_aggregated', 'volume_bars'
+RUN_SUBTYPE = 'triple_barrier_time_aggregated' #'triple_barrier_time_aggregated','time_aggregated', 'volume_bars'
 provider = 'Binance' # hist_data, Bitstamp, Binance
 
 currency = 'BTCUSDT'

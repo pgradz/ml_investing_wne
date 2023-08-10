@@ -89,7 +89,7 @@ class Experiment():
             test_end: end of the test set
         '''
         # columns to be dropped from training. y_pred is the target and datetime was carried for technical purposes. index and level_0 are just in case.
-        COLUMNS_TO_DROP = ['y_pred', 'datetime', 'index', 'level_0']
+        COLUMNS_TO_DROP = ['y_pred', 'datetime', 'index', 'level_0', 'to_keep']
 
         df = self.df.copy()
         # take care if more than two classes
@@ -102,10 +102,23 @@ class Experiment():
         # split train val test
         # move datetime from index to column
         df.reset_index(inplace=True)
+
+        # move to_keep column to the beginning, so it is easier to drop columns later
+        # if 'to_keep' in df.columns:
+        #     to_keep_index = df.columns.get_loc('to_keep')
+        #     temp_cols=df.columns.tolist()
+        #     new_cols=temp_cols[to_keep_index:to_keep_index+1] + temp_cols[0:to_keep_index] + temp_cols[to_keep_index+1:]
+        #     df=df[new_cols]
+ 
         train, val, test, train_date_index, val_date_index, test_date_index = self._train_test_val_split(df, train_end=train_end, val_end=val_end, test_end=test_end, seq_len=seq_len)
         train_y = train['y_pred']
         val_y = val['y_pred']
         test_y = test['y_pred']
+        if 'to_keep' in df.columns:
+            train_keep = train['to_keep'].values.reshape(-1, 1)
+            val_keep = val['to_keep'].values.reshape(-1, 1)
+            test_keep = test['to_keep'].values.reshape(-1, 1)
+
         # drop columns
         for col in COLUMNS_TO_DROP:
             try:
@@ -114,6 +127,11 @@ class Experiment():
                 test.drop(columns=[col], inplace=True)
             except:
                 pass
+       
+        # needed to pass later to the model as dim of the input
+        self.seq_len = seq_len
+        self.no_features = train.shape[1]
+
         # scaler, if not passed in the function, has to be fit on train set, it's easier to do it here
         if not sc_x:
             sc_x = StandardScaler()
@@ -125,24 +143,54 @@ class Experiment():
         test = sc_x.transform(test)
         joblib.dump(sc_x, os.path.join(config.package_directory, 'models',
                                     'sc_x_{}_{}.save'.format(config.currency, freq)))
-
-        # store data shape
-        self.no_features = train.shape[1]
-        self.seq_len = seq_len
-
+        if 'to_keep' in df.columns:
+            train = np.hstack((train_keep, train))
+            val = np.hstack((val_keep, val))
+            test = np.hstack((test_keep, test))
+        
         # create tensorflow datasets
-        self.train_dataset = tf.keras.utils.timeseries_dataset_from_array(data=train, targets=to_categorical(train_y.values[seq_len-1:]),
-                                                                sequence_length=seq_len, sequence_stride=seq_stride, batch_size=batch_size)                                                            
+        # train
+        train_dataset = tf.keras.utils.timeseries_dataset_from_array(data=train, targets=to_categorical(train_y.values[seq_len-1:]),
+                                                                sequence_length=seq_len, sequence_stride=seq_stride, batch_size=None)
+        self.train_dataset = self.filter_tf_dataset(train_dataset, batch_size, seq_len, filter_rows=True)
+
         train_date_index_dataset = tf.keras.utils.timeseries_dataset_from_array(data=train, targets=train_date_index.values[seq_len-1:, 0].astype(int),
-                                                                sequence_length=seq_len, sequence_stride=seq_stride, batch_size=batch_size)
-        self.val_dataset = tf.keras.utils.timeseries_dataset_from_array(data=val, targets=to_categorical(val_y.values[seq_len-1:]), 
-                                                                sequence_length=seq_len, sequence_stride=1, batch_size=batch_size)
+                                                                sequence_length=seq_len, sequence_stride=seq_stride, batch_size=None)
+        train_date_index_dataset = self.filter_tf_dataset(train_date_index_dataset, batch_size, seq_len, filter_rows=True)
+
+
+        # val
+        val_dataset = tf.keras.utils.timeseries_dataset_from_array(data=val, targets=to_categorical(val_y.values[seq_len-1:]), 
+                                                                sequence_length=seq_len, sequence_stride=1, batch_size=None)
+        self.val_dataset = self.filter_tf_dataset(val_dataset, batch_size, seq_len, filter_rows=False)
+    
         val_date_index_dataset = tf.keras.utils.timeseries_dataset_from_array(data=val, targets=val_date_index.values[seq_len-1:, 0].astype(int),
-                                                                sequence_length=seq_len, sequence_stride=1, batch_size=batch_size)
-        self.test_dataset = tf.keras.utils.timeseries_dataset_from_array(data=test, targets=to_categorical(test_y.values[seq_len-1:]),
-                                                                sequence_length=seq_len, sequence_stride=1, batch_size=batch_size)
+                                                                sequence_length=seq_len, sequence_stride=1, batch_size=None)
+        val_date_index_dataset = self.filter_tf_dataset(val_date_index_dataset, batch_size, seq_len, filter_rows=False)
+
+        # test
+        test_dataset = tf.keras.utils.timeseries_dataset_from_array(data=test, targets=to_categorical(test_y.values[seq_len-1:]),
+                                                                sequence_length=seq_len, sequence_stride=1, batch_size=None)
+        self.test_dataset = self.filter_tf_dataset(test_dataset, batch_size, seq_len, filter_rows=False)
+
         test_date_index_dataset = tf.keras.utils.timeseries_dataset_from_array(data=test, targets=test_date_index.values[seq_len-1:, 0].astype(int),
-                                                                sequence_length=seq_len, sequence_stride=1, batch_size=batch_size)
+                                                                sequence_length=seq_len, sequence_stride=1, batch_size=None)
+        test_date_index_dataset = self.filter_tf_dataset(test_date_index_dataset, batch_size, seq_len, filter_rows=False)
+
+
+        # # create tensorflow datasets
+        # self.train_dataset = tf.keras.utils.timeseries_dataset_from_array(data=train, targets=to_categorical(train_y.values[seq_len-1:]),
+        #                                                         sequence_length=seq_len, sequence_stride=seq_stride, batch_size=batch_size)                                                            
+        # train_date_index_dataset = tf.keras.utils.timeseries_dataset_from_array(data=train, targets=train_date_index.values[seq_len-1:, 0].astype(int),
+        #                                                         sequence_length=seq_len, sequence_stride=seq_stride, batch_size=batch_size)
+        # self.val_dataset = tf.keras.utils.timeseries_dataset_from_array(data=val, targets=to_categorical(val_y.values[seq_len-1:]), 
+        #                                                         sequence_length=seq_len, sequence_stride=1, batch_size=batch_size)
+        # val_date_index_dataset = tf.keras.utils.timeseries_dataset_from_array(data=val, targets=val_date_index.values[seq_len-1:, 0].astype(int),
+        #                                                         sequence_length=seq_len, sequence_stride=1, batch_size=batch_size)
+        # self.test_dataset = tf.keras.utils.timeseries_dataset_from_array(data=test, targets=to_categorical(test_y.values[seq_len-1:]),
+        #                                                         sequence_length=seq_len, sequence_stride=1, batch_size=batch_size)
+        # test_date_index_dataset = tf.keras.utils.timeseries_dataset_from_array(data=test, targets=test_date_index.values[seq_len-1:, 0].astype(int),
+        #                                                         sequence_length=seq_len, sequence_stride=1, batch_size=batch_size)
 
         # get back date indices
         self.train_date_index = self.get_datetime_indices(train_date_index_dataset, train_date_index)
@@ -153,6 +201,39 @@ class Experiment():
         self.train_dataset.train_dataset = self.train_dataset.shuffle(buffer_size=train.shape[0], reshuffle_each_iteration=True)
 
         return None
+    
+    def filter_tf_dataset(self, tf_dataset, batch_size, seq_len, filter_rows=True):
+        ''' This function is used to filter the tensorflow dataset
+        args:
+            tf_dataset: tensorflow dataset, unbatched. First column contains info for filtering
+            batch_size: batch size
+            seq_len: sequence length
+            to_keep_index: index of the column to keep
+            filter_rows: whether to filter rows or not
+        return:
+            tf_dataset: filtered tensorflow dataset
+        '''
+        tf_dataset_size = self.tf_dataset_size(tf_dataset)
+        logger.info('tf dataset size: {}'.format(tf_dataset_size))
+        # if the last obs in the array (the latest row) is not 1, then remove the sequence
+        if filter_rows:
+            tf_dataset = tf_dataset.filter(lambda x, _: x[seq_len-1,0] == 1)
+        # remove the first column
+        tf_dataset = tf_dataset.map(lambda x,y : (x[:, 1: ], y))
+        tf_dataset_size = self.tf_dataset_size(tf_dataset)
+        logger.info('tf dataset size after filtering: {}'.format(tf_dataset_size))
+        tf_dataset = tf_dataset.batch(batch_size)
+        return tf_dataset
+    
+    @staticmethod
+    def tf_dataset_size(tf_dataset: tf.data.Dataset):
+        ''' This function is used to get the size of the tensorflow dataset
+        args:
+            tf_dataset: tensorflow dataset
+        return:
+            size: size of the dataset
+        '''
+        return len(list(tf_dataset.as_numpy_iterator()))
 
     def set_y_true(self, dataset: tf.data.Dataset):
         ''' This function is used to get true labels from the tensorflow dataset

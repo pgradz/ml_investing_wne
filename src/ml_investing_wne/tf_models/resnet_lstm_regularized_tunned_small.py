@@ -14,28 +14,28 @@ def build_model(input_shape, nb_classes):
 
     # BLOCK 1
 
-    conv_x = keras.layers.Conv1D(filters=56, kernel_size=3, padding='same')(input_layer)
+    conv_x = keras.layers.Conv1D(filters=120, kernel_size=2, padding='same')(input_layer)
     conv_x = keras.layers.BatchNormalization()(conv_x)
     conv_x = keras.layers.Activation('relu')(conv_x)
 
-    conv_y = keras.layers.Conv1D(filters=56, kernel_size=4, padding='same')(conv_x)
+    conv_y = keras.layers.Conv1D(filters=120, kernel_size=5, padding='same')(conv_x)
     conv_y = keras.layers.BatchNormalization()(conv_y)
     conv_y = keras.layers.Activation('relu')(conv_y)
 
-    conv_z = keras.layers.Conv1D(filters=56, kernel_size=1, padding='same')(conv_y)
+    conv_z = keras.layers.Conv1D(filters=120, kernel_size=10, padding='same')(conv_y)
     conv_z = keras.layers.BatchNormalization()(conv_z)
 
     # expand channels for the sumgi
-    shortcut_y = keras.layers.Conv1D(filters=56, kernel_size=1, padding='same')(input_layer)
+    shortcut_y = keras.layers.Conv1D(filters=120, kernel_size=1, padding='same')(input_layer)
     shortcut_y = keras.layers.BatchNormalization()(shortcut_y)
 
     output_block_1 = keras.layers.add([shortcut_y, conv_z])
     output_block_1 = keras.layers.Activation('relu')(output_block_1)
-    output_block_1 = keras.layers.Dropout(0.25)(output_block_1, training=True)
+    output_block_1 = keras.layers.Dropout(0.15)(output_block_1, training=True)
 
     # FINAL
     
-    lstm_layer = keras.layers.LSTM(104)(output_block_1)
+    lstm_layer = keras.layers.LSTM(32)(output_block_1)
     # output_layer = keras.layers.Dense(1, activation='softmax')(lstm_layer)
     # model = keras.models.Model(inputs=input_layer, outputs=output_layer)
     # model.compile(loss='binary_crossentropy', optimizer=keras.optimizers.Adam(),

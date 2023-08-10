@@ -384,15 +384,20 @@ class CryptoFactory():
         logging.info(f"Rows with Na dropped from df_3_barriers_additional_info: {self.df_3_barriers_additional_info.shape[1] - rows_df_3_barriers_additional_info}") 
         self.df_3_barriers_additional_info = self.df_3_barriers_additional_info.astype({'prc_change':'float', 'barrier_touched_date':'datetime64[ns]', 
                                                                                         'top_barrier': 'float', 'bottom_barrier': 'float', 'time_step': 'int64'})
-        
-        # drop obs with the same consecutive barrier only for training period - this is INCORRECT as will filter obs that are needed for sequencing
-        # self.df_3_barriers_additional_info['barrier_touched_date_lag'] = self.df_3_barriers_additional_info['barrier_touched_date'].shift(1)
-        # training_periods_to_exclude = self.df_3_barriers_additional_info.loc[(self.df_3_barriers_additional_info['datetime'] < config.train_end) & 
-        #                                                                      (self.df_3_barriers_additional_info['barrier_touched_date']==self.df_3_barriers_additional_info['barrier_touched_date_lag'])
-        #                                                                      ]['datetime'].tolist()
-        # self.df_3_barriers_additional_info = self.df_3_barriers_additional_info.loc[~self.df_3_barriers_additional_info['datetime'].isin(training_periods_to_exclude)]
-        # barriers = barriers.loc[~barriers.index.isin(training_periods_to_exclude)]
         # attach volume back
         barriers = barriers.merge(self.df_time_aggregated[['volume']], left_index=True, right_index=True, how='inner')
-        self.df_3_barriers = barriers[['open', 'close', 'high', 'low', 'volume', 'y_pred']]
+        
+
+        # drop obs with the same consecutive barrier only for training period - this is INCORRECT as will filter obs that are needed for sequencing
+        # instead, create column to_keep which will be used in tensorflow dataset to create sequences
+        self.df_3_barriers_additional_info['barrier_touched_date_lag'] = self.df_3_barriers_additional_info['barrier_touched_date'].shift(1)
+        training_periods_to_exclude = self.df_3_barriers_additional_info.loc[(self.df_3_barriers_additional_info['datetime'] < config.train_end) & 
+                                                                             (self.df_3_barriers_additional_info['barrier_touched_date']==self.df_3_barriers_additional_info['barrier_touched_date_lag'])
+                                                                             ]['datetime'].tolist()
+        self.df_3_barriers_additional_info['to_keep'] = 1
+        self.df_3_barriers_additional_info.loc[self.df_3_barriers_additional_info['datetime'].isin(training_periods_to_exclude), 'to_keep'] = 0
+        barriers['to_keep'] = 1
+        barriers.loc[barriers.index.isin(training_periods_to_exclude), 'to_keep'] = 0
+
+        self.df_3_barriers = barriers[['open', 'close', 'high', 'low', 'volume', 'y_pred','to_keep']]
         self.df_3_barriers.dropna(inplace=True)

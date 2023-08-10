@@ -112,7 +112,7 @@ tuner = kt.Hyperband(build_model,
                      max_epochs=10,
                      factor=3,
                      directory='my_dir',
-                     project_name=f'{config.currency}_{config.seq_len}_{config.RUN_SUBTYPE}_{config.seq_stride}_1cnns')
+                     project_name=f'{config.currency}_{config.seq_len}_{config.RUN_SUBTYPE}_{config.seq_stride}_1cnns_filtered')
 
 # tuner = kt.RandomSearch(
 #     hypermodel=build_model,
