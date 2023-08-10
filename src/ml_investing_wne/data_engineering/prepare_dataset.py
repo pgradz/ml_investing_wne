@@ -38,6 +38,9 @@ def prepare_processed_dataset(plot=False, df=None, allow_null=False, features=Tr
     df = df.loc[df['close'].notna()].copy()
     if add_target:
         df['y_pred'] = df['close'].shift(-config.steps_ahead) / df['close']
+
+    # lag of target - depending on the setup, it can leak information from the future
+    # df['y_pred_lag'] = df['y_pred'].shift(1)
     #df.ta.indicators()
     if features:
         MA = [5, 10, 15, 20, 50]

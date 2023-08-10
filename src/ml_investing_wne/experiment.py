@@ -136,13 +136,13 @@ class Experiment():
         train_date_index_dataset = tf.keras.utils.timeseries_dataset_from_array(data=train, targets=train_date_index.values[seq_len-1:, 0].astype(int),
                                                                 sequence_length=seq_len, sequence_stride=seq_stride, batch_size=batch_size)
         self.val_dataset = tf.keras.utils.timeseries_dataset_from_array(data=val, targets=to_categorical(val_y.values[seq_len-1:]), 
-                                                                sequence_length=seq_len, sequence_stride=seq_stride, batch_size=batch_size)
+                                                                sequence_length=seq_len, sequence_stride=1, batch_size=batch_size)
         val_date_index_dataset = tf.keras.utils.timeseries_dataset_from_array(data=val, targets=val_date_index.values[seq_len-1:, 0].astype(int),
-                                                                sequence_length=seq_len, sequence_stride=seq_stride, batch_size=batch_size)
+                                                                sequence_length=seq_len, sequence_stride=1, batch_size=batch_size)
         self.test_dataset = tf.keras.utils.timeseries_dataset_from_array(data=test, targets=to_categorical(test_y.values[seq_len-1:]),
-                                                                sequence_length=seq_len, sequence_stride=seq_stride, batch_size=batch_size)
+                                                                sequence_length=seq_len, sequence_stride=1, batch_size=batch_size)
         test_date_index_dataset = tf.keras.utils.timeseries_dataset_from_array(data=test, targets=test_date_index.values[seq_len-1:, 0].astype(int),
-                                                                sequence_length=seq_len, sequence_stride=seq_stride, batch_size=batch_size)
+                                                                sequence_length=seq_len, sequence_stride=1, batch_size=batch_size)
 
         # get back date indices
         self.train_date_index = self.get_datetime_indices(train_date_index_dataset, train_date_index)
@@ -472,6 +472,17 @@ class Experiment():
         train_val_test = pd.concat([self.train_date_index, self.val_date_index, self.test_date_index], axis=0)
         self.df = self.df.merge(train_val_test, on='index', how='left')
         self.df = self.add_cost(self.df)
+
+        lower_bounds = [0.25, 0.3, 0.35, 0.4, 0.45, 0.5]
+        upper_bounds = [1 - lower for lower in lower_bounds]
+        logger.info('Prediction accuracy for validation set')
+        for lower_bound, upper_bound in zip(lower_bounds, upper_bounds):
+            self.accuracy_by_threshold(y_pred_val, self.y_val, lower_bound, upper_bound)
+        logger.info('Prediction accuracy for test set')
+        for lower_bound, upper_bound in zip(lower_bounds, upper_bounds):
+            self.accuracy_by_threshold(y_pred_test, self.y_test, lower_bound, upper_bound)
+
+
         #TODO: df is ready for profitability analysis (backtesting) on validation and test set
  
         # start_date, end_date = self.load_test_dates()
@@ -492,6 +503,21 @@ class Experiment():
         #     name = f'''portfolio_evolution_{config.model}_{config.currency}_{config.nb_classes}_
         #             {lower_bound}_{upper_bound}.png'''
         #     mlflow.log_artifact(os.path.join(config.package_directory, 'models', name))
+
+    def accuracy_by_threshold(self, y_pred, actual, lower_bound, upper_bound):
+        '''calculate accuracy for a given upper and lowe threshold
+        y_pred: array of predictions [2d array]
+        actual: array of actual values [1d array]
+        lower_bound: lower bound of threshold
+        upper_bound: upper bound of threshold'''
+
+        y_pred_class = [1 if y > 0.5 else 0 for y in y_pred[:,1]]
+        df = pd.DataFrame({'prediction': y_pred[:,1], 'y_true': actual, 'y_pred': y_pred_class})
+        predictions_above_threshold = df.loc[(df['prediction'] < lower_bound) | (df['prediction'] > upper_bound)]
+        accuracy = (predictions_above_threshold['y_true'] == predictions_above_threshold['y_pred']).mean()
+        logger.info('accuracy for threshold between %.2f and %.2f : %.4f, based on %.1f observations', lower_bound, upper_bound, accuracy, predictions_above_threshold.shape[0]/df.shape[0])
+
+        return None
 
     def load_test_dates(self):
 
@@ -516,14 +542,6 @@ class Experiment():
             logger.info('Did not find cost information, assuming 0 costs')
             df['cost'] = 0
         return df
-
-
-    # #
-    # upper_bound = 0.5
-    # lower_bound = 0.5
-    # date_start = start_date
-    # date_end = end_date
-
 
 
     def compute_profitability_classes(self, df, y_pred, date_start, date_end, lower_bound, upper_bound,

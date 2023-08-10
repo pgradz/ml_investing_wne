@@ -17,6 +17,10 @@ asset = create_asset()
 experiment= experiment_factory(asset).get_experiment()
 experiment.train_test_val_split()
 
+print(config.currency)
+print(config.RUN_SUBTYPE)
+print(config.seq_stride)
+
 
 def build_model(hp, input_shape=(96,41), nb_classes=2):
 
@@ -108,7 +112,7 @@ tuner = kt.Hyperband(build_model,
                      max_epochs=10,
                      factor=3,
                      directory='my_dir',
-                     project_name='one_resnet_block_refreshed_dates_stride_4')
+                     project_name=f'{config.currency}_{config.seq_len}_{config.RUN_SUBTYPE}_{config.seq_stride}_1cnns')
 
 # tuner = kt.RandomSearch(
 #     hypermodel=build_model,
@@ -136,6 +140,18 @@ best_hps=tuner.get_best_hyperparameters(num_trials=1)[0]
 # The optimal kernel_size_2 is {best_hps.get('kernel_size_2')}
 # The optimal kernel_size_3 is {best_hps.get('kernel_size_3')}
 
+# The optimal lstm_neurons is {best_hps.get('lstm_neurons')}
+# and the optimal learning rate for the optimizer
+# is {best_hps.get('learning_rate')}.
+# """)
+
+# print(f"""
+# The hyperparameter search is complete. 
+# The optimal dropout is {best_hps.get('dropout')} 
+# The optimal n_feature_maps is {best_hps.get('n_feature_maps')}
+# The optimal kernel_size_1 is {best_hps.get('kernel_size_1')}
+# The optimal kernel_size_2 is {best_hps.get('kernel_size_2')}
+# The optimal kernel_size_3 is {best_hps.get('kernel_size_3')}
 # The optimal lstm_neurons is {best_hps.get('lstm_neurons')}
 # and the optimal learning rate for the optimizer
 # is {best_hps.get('learning_rate')}.

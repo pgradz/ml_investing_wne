@@ -7,7 +7,7 @@ import datetime
 # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 RUN_TYPE = 'crypto' # forex or crypto
-RUN_SUBTYPE = 'triple_barrier_time_aggregated' #'triple_barrier_time_aggregated','time_aggregated', 'volume_bars'
+RUN_SUBTYPE = 'time_aggregated' #'triple_barrier_time_aggregated','time_aggregated', 'volume_bars'
 provider = 'Binance' # hist_data, Bitstamp, Binance
 
 currency = 'BTCUSDT'
@@ -22,10 +22,11 @@ seed = 12345
 volume = 5000
 
 
-
 # Tripple barrier method
 t_final=24
 fixed_barrier=0.02
+# if we want to skip consequtive sequences, it is configured by seq_stride. If seq_stride = seq_len then there is 0 overlap at expense of many observations dropped
+seq_stride = 1
 
 # Cost is expressed in pips
 COST_FOREX = {
@@ -63,20 +64,21 @@ PASSWORD = ""
 # Ending dates for training, validation and test. Remember that xtb offers much shorther periods, so
 # if using training from xtb folder adjust those dates. Otherwise, program will fail at
 # train, validation split
-# train_end = datetime.datetime(2019, 12, 31, 0, 0, 0)
-# val_end = datetime.datetime(2020, 12, 31, 0, 0, 0)
+# train_end = datetime.datetime(2021, 1, 1, 0, 0, 0)
+# val_end = datetime.datetime(2021, 7, 1, 0, 0, 0)
 # test_end = datetime.datetime(2021, 12, 31, 0, 0, 0)
+# train_end = datetime.datetime(2022, 1, 1, 0, 0, 0)
+# val_end = datetime.datetime(2022, 7, 1, 0, 0, 0)
+# test_end = datetime.datetime(2023, 1, 1, 0, 0, 0)
 train_end = datetime.datetime(2022, 7, 1, 0, 0, 0)
 val_end = datetime.datetime(2023, 1, 1, 0, 0, 0)
 test_end = datetime.datetime(2023, 7, 1, 0, 0, 0)
 
-# if we want to skip consequtive sequences, it is configured by seq_stride. If seq_stride = seq_len then there is 0 overlap at expense of many observations dropped
-seq_stride = 4
 
 # model hyperparameters
 seq_len = 96
-batch = 64
-patience = 5
+batch = 128
+patience = 20
 epochs = 100
 nb_classes = 2
 steps_ahead = 1
