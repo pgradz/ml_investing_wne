@@ -52,6 +52,9 @@ class CryptoFactory():
             # volume bars are almost exactly the same, so don't bring any information
         elif config.RUN_SUBTYPE in ['time_aggregated', 'triple_barrier_time_aggregated']:  
             file_path = os.path.join(config.processed_data_path, f'binance_{currency}', f'time_aggregated_{config.freq}.csv')
+        elif config.RUN_SUBTYPE in ['cumsum', 'cumsum_triple_barrier']:
+            file_path = os.path.join(config.processed_data_path, f'binance_{currency}', f'cumsum_{config.cumsum_threshold}.csv')
+
         df = pd.read_csv(file_path, parse_dates=['datetime'])
         df.set_index('datetime', inplace=True)
 
@@ -339,10 +342,10 @@ class CryptoFactory():
         # t_final how many days we hold the stock which set the vertical barrier
         # upper_lower_multipliers the up and low boundary multipliers
         try:
-            close = self.df_time_aggregated['close']
-            low = self.df_time_aggregated['low']
-            high = self.df_time_aggregated['high']
-            _open = self.df_time_aggregated['open']
+            close = self.df['close']
+            low = self.df['low']
+            high = self.df['high']
+            _open = self.df['open']
         except:
             logging.error('Run time aggreagtion first')
 
@@ -385,7 +388,7 @@ class CryptoFactory():
         self.df_3_barriers_additional_info = self.df_3_barriers_additional_info.astype({'prc_change':'float', 'barrier_touched_date':'datetime64[ns]', 
                                                                                         'top_barrier': 'float', 'bottom_barrier': 'float', 'time_step': 'int64'})
         # attach volume back
-        barriers = barriers.merge(self.df_time_aggregated[['volume']], left_index=True, right_index=True, how='inner')
+        barriers = barriers.merge(self.df[['volume']], left_index=True, right_index=True, how='inner')
         
 
         # drop obs with the same consecutive barrier only for training period - this is INCORRECT as will filter obs that are needed for sequencing

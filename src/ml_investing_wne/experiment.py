@@ -114,6 +114,9 @@ class Experiment():
         train_y = train['y_pred']
         val_y = val['y_pred']
         test_y = test['y_pred']
+        logger.info(f'balance of train set: {train_y.mean()}')
+        logger.info(f'balance of val set: {val_y.mean()}')
+        logger.info(f'balance of test set: {test_y.mean()}')
         if 'to_keep' in df.columns:
             train_keep = train['to_keep'].values.reshape(-1, 1)
             val_keep = val['to_keep'].values.reshape(-1, 1)
@@ -152,30 +155,41 @@ class Experiment():
         # train
         train_dataset = tf.keras.utils.timeseries_dataset_from_array(data=train, targets=to_categorical(train_y.values[seq_len-1:]),
                                                                 sequence_length=seq_len, sequence_stride=seq_stride, batch_size=None)
-        self.train_dataset = self.filter_tf_dataset(train_dataset, batch_size, seq_len, filter_rows=True)
-
+        if 'to_keep' in df.columns:
+            train_dataset = self.filter_tf_dataset(train_dataset, batch_size, seq_len, filter_rows=True)
+        self.train_dataset = train_dataset.batch(batch_size)
+        
         train_date_index_dataset = tf.keras.utils.timeseries_dataset_from_array(data=train, targets=train_date_index.values[seq_len-1:, 0].astype(int),
                                                                 sequence_length=seq_len, sequence_stride=seq_stride, batch_size=None)
-        train_date_index_dataset = self.filter_tf_dataset(train_date_index_dataset, batch_size, seq_len, filter_rows=True)
-
+        if 'to_keep' in df.columns:
+            train_date_index_dataset = self.filter_tf_dataset(train_date_index_dataset, batch_size, seq_len, filter_rows=True)
+        train_date_index_dataset = train_date_index_dataset.batch(batch_size)
 
         # val
         val_dataset = tf.keras.utils.timeseries_dataset_from_array(data=val, targets=to_categorical(val_y.values[seq_len-1:]), 
                                                                 sequence_length=seq_len, sequence_stride=1, batch_size=None)
-        self.val_dataset = self.filter_tf_dataset(val_dataset, batch_size, seq_len, filter_rows=False)
+        if 'to_keep' in df.columns:
+            val_dataset = self.filter_tf_dataset(val_dataset, batch_size, seq_len, filter_rows=False)
+        self.val_dataset = val_dataset.batch(batch_size)
     
         val_date_index_dataset = tf.keras.utils.timeseries_dataset_from_array(data=val, targets=val_date_index.values[seq_len-1:, 0].astype(int),
                                                                 sequence_length=seq_len, sequence_stride=1, batch_size=None)
-        val_date_index_dataset = self.filter_tf_dataset(val_date_index_dataset, batch_size, seq_len, filter_rows=False)
+        if 'to_keep' in df.columns:
+            val_date_index_dataset = self.filter_tf_dataset(val_date_index_dataset, batch_size, seq_len, filter_rows=False)
+        val_date_index_dataset = val_date_index_dataset.batch(batch_size)
 
         # test
         test_dataset = tf.keras.utils.timeseries_dataset_from_array(data=test, targets=to_categorical(test_y.values[seq_len-1:]),
                                                                 sequence_length=seq_len, sequence_stride=1, batch_size=None)
-        self.test_dataset = self.filter_tf_dataset(test_dataset, batch_size, seq_len, filter_rows=False)
+        if 'to_keep' in df.columns:
+            test_dataset = self.filter_tf_dataset(test_dataset, batch_size, seq_len, filter_rows=False)
+        self.test_dataset = test_dataset.batch(batch_size)
 
         test_date_index_dataset = tf.keras.utils.timeseries_dataset_from_array(data=test, targets=test_date_index.values[seq_len-1:, 0].astype(int),
                                                                 sequence_length=seq_len, sequence_stride=1, batch_size=None)
-        test_date_index_dataset = self.filter_tf_dataset(test_date_index_dataset, batch_size, seq_len, filter_rows=False)
+        if 'to_keep' in df.columns:
+            test_date_index_dataset = self.filter_tf_dataset(test_date_index_dataset, batch_size, seq_len, filter_rows=False)
+        test_date_index_dataset = test_date_index_dataset.batch(batch_size)
 
 
         # # create tensorflow datasets
@@ -222,7 +236,6 @@ class Experiment():
         tf_dataset = tf_dataset.map(lambda x,y : (x[:, 1: ], y))
         tf_dataset_size = self.tf_dataset_size(tf_dataset)
         logger.info('tf dataset size after filtering: {}'.format(tf_dataset_size))
-        tf_dataset = tf_dataset.batch(batch_size)
         return tf_dataset
     
     @staticmethod

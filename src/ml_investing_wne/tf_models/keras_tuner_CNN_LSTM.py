@@ -1,4 +1,6 @@
 import os
+import random
+import numpy as np
 from tensorflow import keras
 from tensorflow.keras import layers
 import tensorflow as tf
@@ -9,6 +11,10 @@ import keras_tuner as kt
 from ml_investing_wne import config
 from ml_investing_wne.utils import get_logger
 from ml_investing_wne.experiment_factory import create_asset, experiment_factory
+
+random.seed(config.seed)
+np.random.seed(config.seed)
+tf.random.set_seed(config.seed)
 
 tf.keras.backend.set_image_data_format("channels_last")
 logger = get_logger()
@@ -24,7 +30,7 @@ print(config.seq_stride)
 
 def build_model(hp, input_shape=(96,41), nb_classes=2):
 
-    n_feature_maps = hp.Int('n_feature_maps', min_value=8, max_value=128, step=8)
+    n_feature_maps = hp.Int('n_feature_maps', min_value=8, max_value=64, step=4)
     input_layer = keras.layers.Input(input_shape)
 
     # BLOCK 1
@@ -92,7 +98,7 @@ def build_model(hp, input_shape=(96,41), nb_classes=2):
     # output_block_3 = keras.layers.Activation('relu')(output_block_2)
     # output_block_3 = keras.layers.Dropout(0.25)(output_block_3, training=True)
     # FINAL
-    lstm_neurons = hp.Int('lstm_neurons', min_value=8, max_value=128, step=8)
+    lstm_neurons = hp.Int('lstm_neurons', min_value=8, max_value=64, step=4)
     lstm_layer = keras.layers.LSTM(lstm_neurons)(output_block_1)
     # output_layer = keras.layers.Dense(1, activation='softmax')(lstm_layer)
     # model = keras.models.Model(inputs=input_layer, outputs=output_layer)
@@ -112,7 +118,7 @@ tuner = kt.Hyperband(build_model,
                      max_epochs=10,
                      factor=3,
                      directory='my_dir',
-                     project_name=f'{config.currency}_{config.seq_len}_{config.RUN_SUBTYPE}_{config.seq_stride}_1cnns_filtered')
+                     project_name=f'{config.currency}_{config.seq_len}_{config.RUN_SUBTYPE}_{config.seq_stride}_1cnns_cumsum')
 
 # tuner = kt.RandomSearch(
 #     hypermodel=build_model,

@@ -7,24 +7,32 @@ import datetime
 # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 RUN_TYPE = 'crypto' # forex or crypto
-RUN_SUBTYPE = 'triple_barrier_time_aggregated' #'triple_barrier_time_aggregated','time_aggregated', 'volume_bars'
+RUN_SUBTYPE = 'cumsum_triple_barrier' #'triple_barrier_time_aggregated','time_aggregated', 'volume_bars', 'cumsum', cumsum_triple_barrier'
 provider = 'Binance' # hist_data, Bitstamp, Binance
+currency = 'ETHUSDT'
 
-currency = 'BTCUSDT'
-# leave empty if training from scratch, for transfer learning specify currency to be used as a base
-load_model = ''
-freq = '60min'
+# model parameters
 input_dim = '1d'  # 2d or 1d
 # has to be defined inside tf_models folder
 model = 'resnet_lstm_regularized_tunned_small' # resnet_lstm_regularized, transformer_learnable_encoding, lstm
 seed = 12345
+# leave empty if training from scratch, for transfer learning specify currency to be used as a base
+load_model = ''
+
+# time bars
+freq = '1min'
+
 # volume for volume bars
 volume = 5000
 
-
-# Tripple barrier method
+# Tripple barrier params
 t_final=24
-fixed_barrier=0.02
+fixed_barrier=0.05
+
+# cumsum params
+cumsum_threshold = 0.02
+
+
 # if we want to skip consequtive sequences, it is configured by seq_stride. If seq_stride = seq_len then there is 0 overlap at expense of many observations dropped
 seq_stride = 1
 
@@ -64,21 +72,20 @@ PASSWORD = ""
 # Ending dates for training, validation and test. Remember that xtb offers much shorther periods, so
 # if using training from xtb folder adjust those dates. Otherwise, program will fail at
 # train, validation split
-# train_end = datetime.datetime(2021, 1, 1, 0, 0, 0)
-# val_end = datetime.datetime(2021, 7, 1, 0, 0, 0)
-# test_end = datetime.datetime(2021, 12, 31, 0, 0, 0)
+train_end = datetime.datetime(2021, 1, 1, 0, 0, 0)
+val_end = datetime.datetime(2021, 7, 1, 0, 0, 0)
+test_end = datetime.datetime(2021, 12, 31, 0, 0, 0)
 # train_end = datetime.datetime(2022, 1, 1, 0, 0, 0)
 # val_end = datetime.datetime(2022, 7, 1, 0, 0, 0)
 # test_end = datetime.datetime(2023, 1, 1, 0, 0, 0)
-train_end = datetime.datetime(2022, 7, 1, 0, 0, 0)
-val_end = datetime.datetime(2023, 1, 1, 0, 0, 0)
-test_end = datetime.datetime(2023, 7, 1, 0, 0, 0)
-
+# train_end = datetime.datetime(2022, 7, 1, 0, 0, 0)
+# val_end = datetime.datetime(2023, 1, 1, 0, 0, 0)
+# test_end = datetime.datetime(2023, 7, 1, 0, 0, 0)
 
 # model hyperparameters
 seq_len = 96
 batch = 128
-patience = 20
+patience = 15
 epochs = 100
 nb_classes = 2
 steps_ahead = 1
