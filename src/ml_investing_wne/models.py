@@ -11,7 +11,10 @@ from ml_investing_wne import config
 logger = logging.getLogger(__name__)
 
 # load model dynamically
-build_model = getattr(importlib.import_module(f'ml_investing_wne.tf_models.{config.model}'),'build_model')
+try:
+    build_model = getattr(importlib.import_module(f'ml_investing_wne.tf_models.{config.model}'),'build_model')
+except:
+    logger.error(f'build_model for {config.model} not implemented!')
 
 def model_factory(input_shape=None):
     """_summary_
@@ -26,7 +29,7 @@ def model_factory(input_shape=None):
         model = load_pretrained_model()
     elif config.model == 'transformer_learnable_encoding':
         model = transformer(input_shape)
-    elif config.model in ['resnet', 'resnet_lstm_regularized', 'inception', 'lstm', 'resnet_lstm_regularized_tunned', 'resnet_lstm_regularized_tunned_small']:
+    elif config.model in ['resnet', 'resnet_lstm_regularized', 'inception', 'lstm', 'resnet_lstm_regularized_tunned', 'resnet_lstm_regularized_tunned_small', 'keras_tuner_CNN_LSTM']:
         model = cnn(input_shape)
 
     return model

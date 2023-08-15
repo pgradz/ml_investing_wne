@@ -11,18 +11,72 @@ import logging
 
 from ml_investing_wne import config
 from ml_investing_wne.utils import get_logger
-# from ml_investing_wne.experiment_factory import create_asset, experiment_factory
+from ml_investing_wne.experiment_factory import create_asset, experiment_factory
 
-# random.seed(config.seed)
-# np.random.seed(config.seed)
-# tf.random.set_seed(config.seed)
+random.seed(config.seed)
+np.random.seed(config.seed)
+tf.random.set_seed(config.seed)
 
 tf.keras.backend.set_image_data_format("channels_last")
 logger = logging.getLogger(__name__)
 
-# asset = create_asset()
-# experiment= experiment_factory(asset).get_experiment()
-# experiment.train_test_val_split()
+asset = create_asset()
+experiment= experiment_factory(asset).get_experiment()
+experiment.train_test_val_split()
+
+def my_custom_metric(y_true, y_pred):
+    """This function calculates the average of the validation and training loss."""
+    # Get the validation loss
+    validation_loss = tf.keras.metrics.Mean(name='val_loss')
+    validation_loss.update_state(y_true, y_pred)
+
+    # Get the training loss
+    training_loss = tf.keras.metrics.Mean(name='train_loss')
+    training_loss.update_state(y_true, y_pred)
+
+    # Calculate the average of the validation and training loss
+    average_loss = (validation_loss + training_loss) / 2
+
+    return average_loss
+
+# def build_model(input_shape, n_feature_maps, kernel_size_1, kernel_size_2, kernel_size_3, dropout,lstm_neurons, learning_rate, nb_classes=2):
+
+#         input_layer = keras.layers.Input(input_shape)
+
+#         # BLOCK 1
+#         conv_x = keras.layers.Conv1D(filters=n_feature_maps, kernel_size=kernel_size_1, padding='same')(input_layer)
+#         conv_x = keras.layers.BatchNormalization()(conv_x)
+#         conv_x = keras.layers.Activation('relu')(conv_x)
+
+#         conv_y = keras.layers.Conv1D(filters=n_feature_maps, kernel_size=kernel_size_2, padding='same')(conv_x)
+#         conv_y = keras.layers.BatchNormalization()(conv_y)
+#         conv_y = keras.layers.Activation('relu')(conv_y)
+
+#         conv_z = keras.layers.Conv1D(filters=n_feature_maps, kernel_size=kernel_size_3, padding='same')(conv_y)
+#         conv_z = keras.layers.BatchNormalization()(conv_z)
+
+#         # expand channels for the sum
+#         shortcut_y = keras.layers.Conv1D(filters=n_feature_maps, kernel_size=1, padding='same')(input_layer)
+#         shortcut_y = keras.layers.BatchNormalization()(shortcut_y)
+
+#         output_block_1 = keras.layers.add([shortcut_y, conv_z])
+#         output_block_1 = keras.layers.Activation('relu')(output_block_1)
+#         output_block_1 = keras.layers.Dropout(dropout)(output_block_1, training=True)
+
+#         # FINAL
+#         lstm_layer = keras.layers.LSTM(lstm_neurons)(output_block_1)
+
+#         output_layer = keras.layers.Dense(nb_classes, activation='softmax')(lstm_layer)
+#         model = keras.models.Model(inputs=input_layer, outputs=output_layer)
+#         model.compile(loss='categorical_crossentropy', optimizer=keras.optimizers.Adam(learning_rate=learning_rate ) ,
+#                     metrics=['accuracy'])
+#         return model
+
+# model = build_model(input_shape=(96,41),n_feature_maps= 24, kernel_size_1= 4,kernel_size_2= 4, kernel_size_3= 1,dropout= 0.2, lstm_neurons= 20, learning_rate= 0.0001)
+# experiment.set_model(model)
+# experiment.model.summary()
+# experiment.train_model()
+experiment.hyperparameter_tunning()
 
 # print(config.currency)
 # print(config.RUN_SUBTYPE)
@@ -47,7 +101,7 @@ class MyHyperModel():
 
     def build_model_for_tunning(self, hp, nb_classes=2):
 
-        n_feature_maps = hp.Int('n_feature_maps', min_value=8, max_value=48, step=4)
+        n_feature_maps = hp.Int('n_feature_maps', min_value=8, max_value=64, step=4)
         input_layer = keras.layers.Input(self.input_shape)
 
         # BLOCK 1
@@ -82,59 +136,24 @@ class MyHyperModel():
         model = keras.models.Model(inputs=input_layer, outputs=output_layer)
         hp_learning_rate = hp.Choice('learning_rate', values=[1e-2, 1e-3, 1e-4])
         model.compile(loss='categorical_crossentropy', optimizer=keras.optimizers.Adam(learning_rate=hp_learning_rate ) ,
-                    metrics=['accuracy'])
+                    metrics=[ my_custom_metric])
         return model
-
-
-
-    # def reconstruct_model(self, n_feature_maps, kernel_size_1, kernel_size_2, kernel_size_3, dropout,lstm_neurons, hp_learning_rate, nb_classes=2):
-
-    #     input_layer = keras.layers.Input(self.input_shape)
-
-    #     # BLOCK 1
-    #     conv_x = keras.layers.Conv1D(filters=n_feature_maps, kernel_size=kernel_size_1, padding='same')(input_layer)
-    #     conv_x = keras.layers.BatchNormalization()(conv_x)
-    #     conv_x = keras.layers.Activation('relu')(conv_x)
-
-    #     conv_y = keras.layers.Conv1D(filters=n_feature_maps, kernel_size=kernel_size_2, padding='same')(conv_x)
-    #     conv_y = keras.layers.BatchNormalization()(conv_y)
-    #     conv_y = keras.layers.Activation('relu')(conv_y)
-
-    #     conv_z = keras.layers.Conv1D(filters=n_feature_maps, kernel_size=kernel_size_3, padding='same')(conv_y)
-    #     conv_z = keras.layers.BatchNormalization()(conv_z)
-
-    #     # expand channels for the sum
-    #     shortcut_y = keras.layers.Conv1D(filters=n_feature_maps, kernel_size=1, padding='same')(input_layer)
-    #     shortcut_y = keras.layers.BatchNormalization()(shortcut_y)
-
-    #     output_block_1 = keras.layers.add([shortcut_y, conv_z])
-    #     output_block_1 = keras.layers.Activation('relu')(output_block_1)
-    #     output_block_1 = keras.layers.Dropout(dropout)(output_block_1, training=True)
-
-    #     # FINAL
-    #     lstm_layer = keras.layers.LSTM(lstm_neurons)(output_block_1)
-
-    #     output_layer = keras.layers.Dense(nb_classes, activation='softmax')(lstm_layer)
-    #     model = keras.models.Model(inputs=input_layer, outputs=output_layer)
-    #     model.compile(loss='categorical_crossentropy', optimizer=keras.optimizers.Adam(learning_rate=hp_learning_rate ) ,
-    #                 metrics=['accuracy'])
-    #     return model
 
 
     def run_tuner(self):
 
         self.tuner = kt.Hyperband(self.build_model_for_tunning,
-                            objective='val_accuracy',
-                            max_epochs=20,
-                            hyperband_iterations=3, 
+                            objective=my_custom_metric,
+                            max_epochs=10,
+                            hyperband_iterations=1, 
                             factor=3,
                             directory='keras_tuner',
                             project_name=f'{self.currency}_{self.seq_len}_{self.RUN_SUBTYPE}_{self.model}')
 
 
-        stop_early = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=10)
+        stop_early = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5)
 
-        self.tuner.search(self.train_dataset, epochs=20,validation_data=self.val_dataset, callbacks=[stop_early])
+        self.tuner.search(self.train_dataset, epochs=10,validation_data=self.val_dataset, callbacks=[stop_early])
 
         self.best_hps=self.tuner.get_best_hyperparameters(num_trials=1)[0]
 
@@ -159,6 +178,8 @@ class MyHyperModel():
         #                                self.best_hps.get('learning_rate'))
 
         return model
+
+
 
   
 

@@ -7,14 +7,14 @@ import datetime
 # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 RUN_TYPE = 'crypto' # forex or crypto
-RUN_SUBTYPE = 'cumsum_triple_barrier' #'triple_barrier_time_aggregated','time_aggregated', 'volume_bars', 'cumsum', cumsum_triple_barrier'
+RUN_SUBTYPE = 'cumsum_triple_barrier' #'triple_barrier_time_aggregated','time_aggregated', 'volume_bars', 'cumsum', cumsum_triple_barrier', 'volume_bars_triple_barrier'
 provider = 'Binance' # hist_data, Bitstamp, Binance
 currency = 'ETHUSDT'
 
 # model parameters
 input_dim = '1d'  # 2d or 1d
 # has to be defined inside tf_models folder
-model = 'resnet_lstm_regularized_tunned_small' # resnet_lstm_regularized, transformer_learnable_encoding, lstm
+model = 'keras_tuner_CNN_LSTM' # resnet_lstm_regularized, transformer_learnable_encoding, lstm, keras_tunner_CNN_LSTM
 seed = 12345
 # leave empty if training from scratch, for transfer learning specify currency to be used as a base
 load_model = ''
@@ -72,20 +72,23 @@ PASSWORD = ""
 # Ending dates for training, validation and test. Remember that xtb offers much shorther periods, so
 # if using training from xtb folder adjust those dates. Otherwise, program will fail at
 # train, validation split
-train_end = datetime.datetime(2021, 1, 1, 0, 0, 0)
-val_end = datetime.datetime(2021, 7, 1, 0, 0, 0)
-test_end = datetime.datetime(2021, 12, 31, 0, 0, 0)
+# train_end = datetime.datetime(2021, 6, 1, 0, 0, 0)
+# val_end = datetime.datetime(2021, 9, 1, 0, 0, 0)
+# test_end = datetime.datetime(2021, 12, 1, 0, 0, 0)
 # train_end = datetime.datetime(2022, 1, 1, 0, 0, 0)
 # val_end = datetime.datetime(2022, 7, 1, 0, 0, 0)
 # test_end = datetime.datetime(2023, 1, 1, 0, 0, 0)
+train_end = datetime.datetime(2022, 1, 1, 0, 0, 0)
+val_end = datetime.datetime(2022, 4, 1, 0, 0, 0)
+test_end = datetime.datetime(2022, 7, 1, 0, 0, 0)
 # train_end = datetime.datetime(2022, 7, 1, 0, 0, 0)
 # val_end = datetime.datetime(2023, 1, 1, 0, 0, 0)
 # test_end = datetime.datetime(2023, 7, 1, 0, 0, 0)
 
 # model hyperparameters
-seq_len = 96
+seq_len = 64
 batch = 128
-patience = 15
+patience = 10
 epochs = 100
 nb_classes = 2
 steps_ahead = 1

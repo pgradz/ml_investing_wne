@@ -47,7 +47,7 @@ class CryptoFactory():
     def load_binance(self, currency):
         '''
         '''
-        if config.RUN_SUBTYPE == 'volume_bars':   
+        if config.RUN_SUBTYPE in ['volume_bars', 'volume_bars_triple_barrier']:   
             file_path = os.path.join(config.processed_data_path, f'binance_{currency}', f'volume_bars_{config.volume}.csv')
             # volume bars are almost exactly the same, so don't bring any information
         elif config.RUN_SUBTYPE in ['time_aggregated', 'triple_barrier_time_aggregated']:  
@@ -60,8 +60,8 @@ class CryptoFactory():
 
         if config.RUN_SUBTYPE in ['time_aggregated', 'triple_barrier_time_aggregated']:  
             self.df_time_aggregated = df
-        if config.RUN_SUBTYPE == 'volume_bars':  
-            df.drop(columns=['volume'], inplace=True)
+        if config.RUN_SUBTYPE in ['volume_bars','volume_bars_triple_barrier']:  
+            # df.drop(columns=['volume'], inplace=True)
             df = self.deal_with_duplicates(df)
             self.df_volume_bars = df
 
@@ -151,7 +151,8 @@ class CryptoFactory():
         df = df.groupby('datetime').agg({'open': 'first',
                                     'high': 'max',
                                     'low': 'min',
-                                    'close': 'last'})
+                                    'close': 'last',
+                                    'volume': 'sum'})
         return df
 
 
@@ -400,7 +401,7 @@ class CryptoFactory():
         self.df_3_barriers_additional_info['to_keep'] = 1
         self.df_3_barriers_additional_info.loc[self.df_3_barriers_additional_info['datetime'].isin(training_periods_to_exclude), 'to_keep'] = 0
         barriers['to_keep'] = 1
-        barriers.loc[barriers.index.isin(training_periods_to_exclude), 'to_keep'] = 0
+       # barriers.loc[barriers.index.isin(training_periods_to_exclude), 'to_keep'] = 0
 
         self.df_3_barriers = barriers[['open', 'close', 'high', 'low', 'volume', 'y_pred','to_keep']]
         self.df_3_barriers.dropna(inplace=True)

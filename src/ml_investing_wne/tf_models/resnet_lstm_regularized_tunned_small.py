@@ -14,19 +14,19 @@ def build_model(input_shape, nb_classes):
 
     # BLOCK 1
 
-    conv_x = keras.layers.Conv1D(filters=28, kernel_size=3, padding='same')(input_layer)
+    conv_x = keras.layers.Conv1D(filters=24, kernel_size=12, padding='same')(input_layer)
     conv_x = keras.layers.BatchNormalization()(conv_x)
     conv_x = keras.layers.Activation('relu')(conv_x)
 
-    conv_y = keras.layers.Conv1D(filters=28, kernel_size=3, padding='same')(conv_x)
+    conv_y = keras.layers.Conv1D(filters=24, kernel_size=8, padding='same')(conv_x)
     conv_y = keras.layers.BatchNormalization()(conv_y)
     conv_y = keras.layers.Activation('relu')(conv_y)
 
-    conv_z = keras.layers.Conv1D(filters=28, kernel_size=1, padding='same')(conv_y)
+    conv_z = keras.layers.Conv1D(filters=24, kernel_size=1, padding='same')(conv_y)
     conv_z = keras.layers.BatchNormalization()(conv_z)
 
     # expand channels for the sumgi
-    shortcut_y = keras.layers.Conv1D(filters=28, kernel_size=1, padding='same')(input_layer)
+    shortcut_y = keras.layers.Conv1D(filters=24, kernel_size=1, padding='same')(input_layer)
     shortcut_y = keras.layers.BatchNormalization()(shortcut_y)
 
     output_block_1 = keras.layers.add([shortcut_y, conv_z])
@@ -35,7 +35,7 @@ def build_model(input_shape, nb_classes):
 
     # FINAL
     
-    lstm_layer = keras.layers.LSTM(20)(output_block_1)
+    lstm_layer = keras.layers.LSTM(44)(output_block_1)
     # output_layer = keras.layers.Dense(1, activation='softmax')(lstm_layer)
     # model = keras.models.Model(inputs=input_layer, outputs=output_layer)
     # model.compile(loss='binary_crossentropy', optimizer=keras.optimizers.Adam(),
@@ -43,7 +43,7 @@ def build_model(input_shape, nb_classes):
     
     output_layer = keras.layers.Dense(nb_classes, activation='softmax')(lstm_layer)
     model = keras.models.Model(inputs=input_layer, outputs=output_layer)
-    model.compile(loss='categorical_crossentropy', optimizer=keras.optimizers.Adam(learning_rate=0.01),
+    model.compile(loss='categorical_crossentropy', optimizer=keras.optimizers.Adam(learning_rate=0.001),
                   metrics=['accuracy'])
 
     return model
