@@ -290,13 +290,13 @@ class Experiment():
 
         return date_index
     
-    def hyperparameter_tunning(self):
+    def hyperparameter_tunning(self, model_index=0):
         # load model tunner dynamically
         MyHyperModel = getattr(importlib.import_module(f'ml_investing_wne.tf_models.{config.model}'),'MyHyperModel')
         my_hyper_model = MyHyperModel(input_shape=(self.seq_len, self.no_features), train_dataset=self.train_dataset, val_dataset=self.val_dataset,
                                       seed=self.seed)
         my_hyper_model.run_tuner()
-        self.model = my_hyper_model.get_best_model()
+        self.model = my_hyper_model.get_best_model(model_index)
 
     def set_budget(self, budget):
         self.budget = budget
@@ -454,9 +454,12 @@ class Experiment():
             self.accuracy_by_threshold(y_pred_test, self.y_test, lower_bound, upper_bound)
         df_eval = self.df.merge(self.df_3_barriers_additional_info, on='datetime', how='outer')
 
-        df_eval_test = df_eval.loc[df_eval.train_val_test == 'test']
+        self.df_eval_test = df_eval.loc[df_eval.train_val_test == 'test']
 
-        self.budget, self.hit_counter, self.trades_counter = self.backtest(df_eval_test, 0.4, 0.6)
+        self.budget, self.hit_counter, self.trades_counter = self.backtest(self.df_eval_test, 0.4, 0.6)
+
+    def evaluate_model_short(self):
+        self.budget, self.hit_counter, self.trades_counter = self.backtest(self.df_eval_test, 0.4, 0.6)
 
 
     def backtest(self, df, lower_bound, upper_bound):
@@ -528,7 +531,7 @@ class Experiment():
             hits_ratio = 0
 
         logger.info('Portfolio result:  %.2f', budget)
-        logger.info('Hit ratio:  %.2f', hits_ratio)
+        logger.info('Hit ratio:  %.2f on %.0f trades', hits_ratio, transactions)
 
         self.plot_portfolio(df, lower_bound, upper_bound)
 

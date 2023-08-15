@@ -58,16 +58,21 @@ def prepare_processed_dataset(plot=False, df=None, allow_null=False, features=Tr
         df.ta.stoch(append=True) # adds 2 columns
         df.ta.willr(append=True) # adds 1 column
         df.ta.bbands(append=True) # adds 5 columns
-        df.ta.xsignals(append=True) # does nothing
-        # ta.roc doesn't work as expected
-        # df.ta.roc(append=True)
-        # df.ta.roc(length=12, append=True)
-        # df.ta.roc(length=1, append=True)
-        # df['y_pred'] = df['close'].shift(-config.steps_ahead) / df['close']
+        # df.ta.atr(append=True) # adds 1 column
+        # df.ta.obv(append=True) # adds 1 column
         df['roc_1'] = df['close'].shift(-1) / df['close'] - 1
         df['roc_1'] = df['roc_1'].shift(1)
-        # df['y_roc_12'] = df['close'].shift(-12) / df['close']
-        # df['y_roc_12'] = df['y_roc_12'].shift(12)
+        # df['roc_2'] = df['close'].shift(-2) / df['close'] - 1
+        # df['roc_2'] = df['roc_2'].shift(2)
+        # df['roc_3'] = df['close'].shift(-3) / df['close'] - 1
+        # df['roc_3'] = df['roc_3'].shift(3)
+        # df['roc_4'] = df['close'].shift(-4) / df['close'] - 1
+        # df['roc_4'] = df['roc_4'].shift(4)
+        # df['roc_5'] = df['close'].shift(-5) / df['close'] - 1
+        # df['roc_5'] = df['roc_5'].shift(5)
+        # df['roc_10'] = df['close'].shift(-10) / df['close'] - 1
+        # df['roc_10'] = df['roc_10'].shift(10)
+
         df['datetime'] = df.index
         if df['datetime'].dtype == 'object':
             df['datetime'] = pd.to_datetime(df['datetime'])
@@ -84,6 +89,11 @@ def prepare_processed_dataset(plot=False, df=None, allow_null=False, features=Tr
 
     if not allow_null:
         df.dropna(inplace=True)
+
+    # Convert all object columns to float
+    for column in df.select_dtypes(include='object'):
+        df[column] = df[column].astype('float')
+
     output_directory = os.path.join(config.processed_data_path, config.currency)
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)

@@ -86,7 +86,7 @@ test_end = datetime.datetime(2022, 7, 1, 0, 0, 0)
 # test_end = datetime.datetime(2023, 7, 1, 0, 0, 0)
 
 # model hyperparameters
-seq_len = 64
+seq_len = 96
 batch = 128
 patience = 10
 epochs = 100

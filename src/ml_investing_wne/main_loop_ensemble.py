@@ -53,29 +53,46 @@ def main():
         hit_counter = 0
         trades = 0
         for train, val, test in zip(train_end, val_end, test_end):
+            
+            # ensemble of 3 best models
+            for m in range(3):
             # just in case set seed once again, it used to reset after each experiment
-            set_seed(seed)
-            config.train_end = train
-            config.val_end = val
-            config.test_end = test
-            config.seed = seed
-            mlflow.tensorflow.autolog()
-            asset = create_asset()
-            experiment = experiment_factory(asset).get_experiment(train_end=config.train_end, 
-                                                        val_end=config.val_end,
-                                                        test_end=config.test_end, seed=config.seed)
-            experiment.train_test_val_split()
-            experiment.hyperparameter_tunning()
-            model = experiment.get_model()
-            # once again
-            set_seed(seed)
-            experiment.set_budget(trading_result)
-            experiment.set_model(model)
-            # if i == 0:
-                # experiment.model.summary()
-            experiment.train_model()
-            logger.info(f'Analyzing result for test period corresponding to {config.val_end.strftime("%Y%m%d")} - {config.test_end.strftime("%Y%m%d")}')
-            experiment.evaluate_model()
+                set_seed(seed)
+                config.train_end = train
+                config.val_end = val
+                config.test_end = test
+                config.seed = seed
+                mlflow.tensorflow.autolog()
+                asset = create_asset()
+                experiment = experiment_factory(asset).get_experiment(train_end=config.train_end, 
+                                                            val_end=config.val_end,
+                                                            test_end=config.test_end, seed=config.seed)
+                experiment.train_test_val_split()
+                experiment.hyperparameter_tunning(m)
+                model = experiment.get_model()
+                # once again
+                set_seed(seed)
+                experiment.set_budget(trading_result)
+                experiment.set_model(model)
+                experiment.model.summary()
+                experiment.train_model()
+                logger.info(f'Analyzing result for test period corresponding to {config.val_end.strftime("%Y%m%d")} - {config.test_end.strftime("%Y%m%d")}')
+                experiment.evaluate_model()
+                if m == 0:
+                    predictions = experiment.df_eval_test
+                    predictions.rename(columns={'prediction': f'prediction_{m}'}, inplace=True)
+                    df_predictions = predictions
+                else:  
+                    predictions = experiment.df_eval_test[['prediction']]
+                    predictions.rename(columns={'prediction': f'prediction_{m}'}, inplace=True)
+                    df_predictions = df_predictions.join(predictions)
+                if m == 2:
+                    df_predictions['prediction'] = df_predictions[['prediction_0','prediction_1', 'prediction_2']].mean(axis=1)
+                    experiment.df_eval_test = df_predictions
+                    experiment.set_budget(trading_result)
+                    logger.info(f'Ensemble evaluation:')  
+                    experiment.evaluate_model_short()
+
             trading_result = experiment.get_budget()
             hit_counter += experiment.get_hit_counter()
             trades += experiment.get_trades_counter()

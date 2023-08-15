@@ -47,7 +47,7 @@ class MyHyperModel():
 
     def build_model_for_tunning(self, hp, nb_classes=2):
 
-        n_feature_maps = hp.Int('n_feature_maps', min_value=8, max_value=48, step=4)
+        n_feature_maps = hp.Int('n_feature_maps', min_value=8, max_value=64, step=4)
         input_layer = keras.layers.Input(self.input_shape)
 
         # BLOCK 1
@@ -126,7 +126,7 @@ class MyHyperModel():
         self.tuner = kt.Hyperband(self.build_model_for_tunning,
                             objective='val_accuracy',
                             max_epochs=20,
-                            hyperband_iterations=3, 
+                            hyperband_iterations=1, 
                             factor=3,
                             directory='keras_tuner',
                             project_name=f'{self.currency}_{self.seq_len}_{self.RUN_SUBTYPE}_{self.model}')
@@ -136,7 +136,10 @@ class MyHyperModel():
 
         self.tuner.search(self.train_dataset, epochs=20,validation_data=self.val_dataset, callbacks=[stop_early])
 
-        self.best_hps=self.tuner.get_best_hyperparameters(num_trials=1)[0]
+
+    def get_best_model(self, model_index=0):
+
+        self.best_hps=self.tuner.get_best_hyperparameters(num_trials=3)[model_index]
 
         logger.info(f"""
         The hyperparameter search is complete. 
@@ -150,8 +153,6 @@ class MyHyperModel():
         is {self.best_hps.get('learning_rate')}.
         """)
 
-
-    def get_best_model(self):
 
         model = self.tuner.hypermodel.build(self.best_hps)
         # model = self.reconstruct_model(self.best_hps.get('n_feature_maps'), self.best_hps.get('kernel_size_1'), self.best_hps.get('kernel_size_2'), 
