@@ -29,7 +29,8 @@ test_end = [datetime.datetime(2022, 7, 1, 0, 0, 0), datetime.datetime(2022, 10, 
 #             ]
 
 
-seeds = [12345, 123456, 1234567]
+# seeds = [12345, 123456, 1234567]
+seeds = [12345]
 def set_seed(seed):
     random.seed(seed)
     np.random.seed(seed)
@@ -52,11 +53,14 @@ def main():
         trading_result = 100
         hit_counter = 0
         trades = 0
+        # this is a placeholder to deal with situation when triple barrier method ends in next quarter
+        test_start_date_next_interval = val_end[0]
+
         for train, val, test in zip(train_end, val_end, test_end):
             # just in case set seed once again, it used to reset after each experiment
             set_seed(seed)
             config.train_end = train
-            config.val_end = val
+            config.val_end = max(val, test_start_date_next_interval)
             config.test_end = test
             config.seed = seed
             mlflow.tensorflow.autolog()
@@ -79,7 +83,11 @@ def main():
             trading_result = experiment.get_budget()
             hit_counter += experiment.get_hit_counter()
             trades += experiment.get_trades_counter()
-            logger.info(f'Running hit ratio: {hit_counter/trades}')   
+            try:
+                logger.info(f'Running hit ratio: {hit_counter/trades}')   
+            except ZeroDivisionError:
+                logger.info(f'Running hit ratio: no trades yet')
+            test_start_date_next_interval = experiment.test_start_date_next_interval
 
         logger.info(f'Final budget: {trading_result}')
         logger.info(f'Final hit ratio: {hit_counter/trades}')    

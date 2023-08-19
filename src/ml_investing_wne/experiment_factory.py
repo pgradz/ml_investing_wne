@@ -14,9 +14,9 @@ def create_asset():
     if config.RUN_TYPE == 'forex':
         # TODO: something is worng with the order
         df = get_hist_data(currency=config.currency)
-        asset = CryptoFactory(config.provider, config.currency, df=df)
+        asset = CryptoFactory(config.provider, config.currency, config.RUN_SUBTYPE, df=df)
     else:
-        asset = CryptoFactory(config.provider, config.currency)
+        asset = CryptoFactory(config.provider, config.currency, config.RUN_SUBTYPE)
 
     return asset
 
@@ -35,15 +35,15 @@ class experiment_factory():
                 logger.info('Flow not implemented!')
         elif config.RUN_TYPE == 'crypto':
             if config.RUN_SUBTYPE == 'time_aggregated':
-                experiment = self.crypto_time_aggregated()
+                experiment = self.crypto_time_aggregated(**kwargs)
             elif config.RUN_SUBTYPE == 'volume_bars':
-                experiment = self.crypto_volume_bars()
+                experiment = self.crypto_volume_bars(**kwargs)
             elif config.RUN_SUBTYPE == 'triple_barrier_time_aggregated':
-                experiment = self.crypto_triple_barrier_time_aggregated()
+                experiment = self.crypto_triple_barrier_time_aggregated(**kwargs)
             elif config.RUN_SUBTYPE == 'volume_bars_triple_barrier':
-                experiment = self.crypto_triple_barrier_volume_bars()
+                experiment = self.crypto_triple_barrier_volume_bars(**kwargs)
             elif config.RUN_SUBTYPE == 'cumsum':
-                experiment = self.crypto_cumsum()
+                experiment = self.crypto_cumsum(**kwargs)
             elif config.RUN_SUBTYPE == 'cumsum_triple_barrier':
                 experiment = self.crypto_cumsum_triple_barrier(**kwargs)
             else:
@@ -52,7 +52,7 @@ class experiment_factory():
             logger.info('Flow not implemented!')
         return experiment
 
-    def forex_hist_data(self):
+    def forex_hist_data(self, **kwargs):
 
         self.asset.run_3_barriers(t_final=config.t_final, fixed_barrier=config.fixed_barrier)
         df = self.asset.df_3_barriers
@@ -60,29 +60,29 @@ class experiment_factory():
         logger.info(f' df shape before merge wiith 3 barriers additional info is {df.shape}')
         df = df.merge(self.asset.df_3_barriers_additional_info[['datetime', 'time_step']], on='datetime', how='inner')
         logger.info(f' df shape after merge wiith 3 barriers additional info is {df.shape}')
-        experiment = Experiment(df, time_step=config.time_step, binarize_target=False, asset_factory=self.asset)
+        experiment = Experiment(df, time_step=config.time_step, binarize_target=False, **kwargs)
         return experiment
 
-    def crypto_time_aggregated(self):
+    def crypto_time_aggregated(self, **kwargs):
         
         if self.asset.df_time_aggregated is None:
             self.asset.time_aggregation(freq=config.freq)
         df = self.asset.df_time_aggregated
         df = prepare_processed_dataset(df=df, add_target=True)
-        experiment = Experiment(df)
+        experiment = Experiment(df, **kwargs)
         return experiment
 
-    def crypto_volume_bars(self):
+    def crypto_volume_bars(self, **kwargs):
         
         if self.asset.df_volume_bars is None:
             self.asset.generate_volumebars(frequency=config.volume)
         df = self.asset.df_volume_bars
         df = prepare_processed_dataset(df=df, add_target=True)
-        experiment = Experiment(df)
+        experiment = Experiment(df, **kwargs)
         return experiment
     
 
-    def crypto_triple_barrier_time_aggregated(self):
+    def crypto_triple_barrier_time_aggregated(self, **kwargs):
 
         # if self.asset.df_time_aggregated is None:
         #     self.asset.time_aggregation(freq=config.freq)
@@ -92,11 +92,11 @@ class experiment_factory():
         logger.info(f' df shape before merge wiith 3 barriers additional info is {df.shape}')
         # df = df.merge(self.asset.df_3_barriers_additional_info[['datetime', 'time_step']], on='datetime', how='inner')
         logger.info(f' df shape after merge wiith 3 barriers additional info is {df.shape}')
-        experiment = Experiment(df, binarize_target=False, asset_factory=self.asset)
+        experiment = Experiment(df, binarize_target=False, **kwargs)
         experiment.df_3_barriers_additional_info = self.asset.df_3_barriers_additional_info
         return experiment
     
-    def crypto_triple_barrier_volume_bars(self):
+    def crypto_triple_barrier_volume_bars(self, **kwargs):
             
         self.asset.run_3_barriers(t_final=config.t_final, fixed_barrier=config.fixed_barrier)
         df = self.asset.df_3_barriers
@@ -104,13 +104,13 @@ class experiment_factory():
         logger.info(f' df shape before merge wiith 3 barriers additional info is {df.shape}')
         # df = df.merge(self.asset.df_3_barriers_additional_info[['datetime', 'time_step']], on='datetime', how='inner')
         logger.info(f' df shape after merge wiith 3 barriers additional info is {df.shape}')
-        experiment = Experiment(df, binarize_target=False, asset_factory=self.asset)
+        experiment = Experiment(df, binarize_target=False, **kwargs)
         experiment.df_3_barriers_additional_info = self.asset.df_3_barriers_additional_info
         return experiment
 
-    def crypto_cumsum(self):
+    def crypto_cumsum(self, **kwargs):
         df = prepare_processed_dataset(df=self.asset.df, add_target=True)
-        experiment = Experiment(df)
+        experiment = Experiment(df, **kwargs)
         return experiment
     
     def crypto_cumsum_triple_barrier(self, **kwargs):
@@ -121,7 +121,7 @@ class experiment_factory():
         logger.info(f' df shape before merge wiith 3 barriers additional info is {df.shape}')
         # df = df.merge(self.asset.df_3_barriers_additional_info[['datetime', 'time_step']], on='datetime', how='inner')
         logger.info(f' df shape after merge wiith 3 barriers additional info is {df.shape}')
-        experiment = Experiment(df, binarize_target=False, asset_factory=self.asset, **kwargs)
+        experiment = Experiment(df, binarize_target=False, **kwargs)
         experiment.df_3_barriers_additional_info = self.asset.df_3_barriers_additional_info
         return experiment
 

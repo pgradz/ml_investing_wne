@@ -14,7 +14,7 @@ tf.random.set_seed(config.seed)
 
 logger = get_logger()
 EXCHANGE = 'binance'
-threshold = 0.02
+threshold = 0.03
 output_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed'
 output_path = os.path.join(output_path, f'{EXCHANGE}_{config.currency}', f'cumsum_{threshold}.csv')
 
@@ -42,8 +42,15 @@ def cumsum_filter(df,h):
             s_pos,s_neg = 0,0
         if i in [prc_10, prc25, prc50, prc75]:
             logger.info(f'Progress: {i/df_size}')
+
+    df_agg = df.groupby('group_id').agg({ 'datetime': 'last',
+                                    'open': 'first',
+                                    'high': 'max',
+                                    'low': 'min',
+                                    'close': 'last',
+                                    'volume': 'sum'})
        
-    return df
+    return df_agg
 
 
 if __name__ == "__main__":
@@ -53,10 +60,4 @@ if __name__ == "__main__":
     experiment = experiment_factory(asset).get_experiment()
     df = experiment.df[['open', 'high', 'low', 'close', 'volume']]
     df2 = cumsum_filter(df, threshold)
-    df3 = df2.groupby('group_id').agg({ 'datetime': 'last',
-                                    'open': 'first',
-                                    'high': 'max',
-                                    'low': 'min',
-                                    'close': 'last',
-                                    'volume': 'sum'})
-    df3.to_csv(output_path, index=False)
+    df2.to_csv(output_path, index=False)

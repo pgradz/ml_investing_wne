@@ -27,15 +27,14 @@ logger = logging.getLogger(__name__)
 # logger = get_logger()
 
 class Experiment():
-    def __init__(self, df, binarize_target=True, asset_factory=None, 
+    def __init__(self, df, binarize_target=True, 
                  nb_classes=config.nb_classes, freq=config.freq, 
                  seq_len=config.seq_len, seq_stride=config.seq_stride,
                  train_end=config.train_end, val_end=config.val_end,
                  test_end=config.test_end, batch_size=config.batch,
-                 seed=config.seed,budget=None) -> None:
+                 seed=config.seed, run_subtype=config.RUN_SUBTYPE, budget=None) -> None:
         self.df = df
         self.binarize_target=binarize_target 
-        self.asset_factory = asset_factory
         self.nb_classes=nb_classes
         self.freq=freq
         self.seq_len=seq_len
@@ -45,11 +44,14 @@ class Experiment():
         self.test_end=test_end
         self.batch_size=batch_size
         self.seed=seed
+        self.run_subtype=run_subtype
         # budget for performance evaluation
         if budget:
             self.budget = budget
         else:
             self.budget = 100
+        # placeholder for model    
+        self.model = None
 
     def run(self):
         self.train_test_val_split()
@@ -65,13 +67,13 @@ class Experiment():
         :param df: dataframe to split
         :return: train, test and validation sets, train date index, val date index, test date index
         '''
-        train = df.loc[df.datetime < train_end] 
+        train = df.loc[df.datetime <= train_end] 
         # remove last seq_len rows from train
         train = train.iloc[:-seq_len]
         # update train_end
         train_end = train.iloc[-1]['datetime']
         # validation
-        val = df.loc[(df.datetime > train_end) & (df.datetime < val_end)]
+        val = df.loc[(df.datetime > train_end) & (df.datetime <= val_end)]
         val = val.iloc[:-seq_len]
         # update val_end
         val_end = val.iloc[-1]['datetime']
@@ -452,11 +454,13 @@ class Experiment():
         logger.info('Prediction accuracy for test set')
         for lower_bound, upper_bound in zip(lower_bounds, upper_bounds):
             self.accuracy_by_threshold(y_pred_test, self.y_test, lower_bound, upper_bound)
-        df_eval = self.df.merge(self.df_3_barriers_additional_info, on='datetime', how='outer')
+        if 'triple_barrier' in self.run_subtype:
+            df_eval = self.df.merge(self.df_3_barriers_additional_info, on='datetime', how='outer')
+        else:
+            df_eval = self.df.copy()
 
         self.df_eval_test = df_eval.loc[df_eval.train_val_test == 'test']
-
-        self.budget, self.hit_counter, self.trades_counter = self.backtest(self.df_eval_test, 0.4, 0.6)
+        self.backtest(self.df_eval_test, 0.4, 0.6)
 
     def evaluate_model_short(self):
         self.budget, self.hit_counter, self.trades_counter = self.backtest(self.df_eval_test, 0.4, 0.6)
@@ -477,14 +481,53 @@ class Experiment():
             (df['prediction'] > upper_bound)
         ]
         values = [0, 0.5, 1]
-
         df['trade'] = np.select(conditions, values)
-        # INITIALIZE PORTFOLIO
+
+        cols = ['datetime','open', 'close', 'high','low', 'cost', 'trade', 'prediction', 'prc_change']
+        if 'triple_barrier' in self.run_subtype:
+            cols = cols + ['time_step','barrier_touched', 'barrier_touched_date', 'bottom_barrier', 'top_barrier']
+        else:
+            df['prc_change'] = df['y_pred'] - 1
+        df = df[cols]
+
+        if 'triple_barrier' in self.run_subtype:
+            df = self.run_trades_3_barriers(df)
+        else:
+            df = self.run_trades_one_step(df)
+
+        # export trades to later compute sharpe ratio etc.
+        df.to_csv(os.path.join(config.package_directory, 'models',
+                                f'''backtest_{config.currency}_{config.RUN_SUBTYPE}_{config.val_end.strftime("%Y%m%d")}_{config.test_end.strftime("%Y%m%d")}_{config.seed}.csv'''))
+        # SUMMARIZE RESULTS
+        hits = df.loc[((df['transaction'] == 'buy') & (df['prc_change'] > 0)) |
+                            ((df['transaction'] == 'sell') & (df['prc_change'] < 0))].shape[0]
+        transactions = df.loc[df['transaction'].isin(['buy', 'sell'])].shape[0]
+        try:
+            hits_ratio = hits / transactions
+        except ZeroDivisionError:
+            hits_ratio = 0
+
+        logger.info('Portfolio result:  %.2f', self.budget)
+        logger.info('Hit ratio:  %.2f on %.0f trades', hits_ratio, transactions)
+
+        self.hit_counter = hits
+        self.trades_counter = transactions
+    
+    def run_trades_3_barriers(self, df):
+        '''
+        This function is used to run trades based on 3 barriers. For this method, transaction costs
+        happen always to open and close. There is no leaving the position open as trading is based on
+        take profit and stop loss.
+        args:
+            df: dataframe with predictions and actual values
+        return: 
+            df: dataframe with budget and transaction columns
+        '''
+         # INITIALIZE PORTFOLIO
         budget = self.budget
         logger.info('Starting trading with:  %.2f', budget)
         transaction = 'No trade'
         i = 0
-        df = df[['datetime','open', 'close', 'high','low', 'prc_change', 'cost', 'trade', 'time_step', 'prediction','barrier_touched', 'barrier_touched_date', 'bottom_barrier', 'top_barrier']]
         while i < df.shape[0]:
         
             if df.loc[i, 'trade'] == 1:
@@ -517,26 +560,71 @@ class Experiment():
                 df.loc[i, 'budget'] = budget
                 df.loc[i, 'transaction'] = transaction
                 i = i + 1
+        # close any open transaction at the end of the test set        
+        if transaction != 'No trade':
+            budget = budget * (1 - df.loc[df.shape[0], 'cost'])
+                
+        self.budget = budget
+        self.test_start_date_next_interval = max(df.loc[df['transaction'].isin(['buy', 'sell']), 'barrier_touched_date'])
+        return df
+    
+    def run_trades_one_step(self, df):
+        '''
+        This function is used to run trades based on step ahead predictions. For this method, transaction costs
+        happen sometimes can be avoided if position is not changed.
+        args:
+            df: dataframe with predictions and actual values
+        return: 
+            df: dataframe with budget and transaction columns
+        '''
+         # INITIALIZE PORTFOLIO
+        budget = self.budget
+        logger.info('Starting trading with:  %.2f', budget)
+        transaction = 'No trade'
+        i = 0
+        while i < df.shape[0]:
+        
+            if df.loc[i, 'trade'] == 1:
+                if transaction == 'sell':
+                    # first close open short position if open
+                    budget = budget * (1 - df.loc[i, 'cost']) 
+                if transaction != 'buy':
+                    # then open new position if needed
+                    budget = budget * (1 - df.loc[i, 'cost'])
+                transaction = 'buy'
+                budget = budget + budget * df.loc[i, 'prc_change']
+                df.loc[i, 'budget'] = budget
+                df.loc[i, 'transaction'] = transaction
+                i+=1 # jump one step ahead
+            elif df.loc[i, 'trade'] == 0:
+                # add transaction cost if position changes
+                if transaction == 'buy':
+                    # first close open long position if open
+                    budget = budget * (1 - df.loc[i, 'cost']) 
+                if transaction != 'sell':
+                    # then open new position if needed
+                    budget = budget * (1 - df.loc[i, 'cost'])
+                transaction = 'sell'
+                budget = budget + budget * (-df.loc[i, 'prc_change'])
+                df.loc[i, 'budget'] = budget
+                df.loc[i, 'transaction'] = transaction
+                i+=1 # jump one step ahead
+            elif df.loc[i, 'trade'] == 0.5:
+                if transaction in ['buy', 'sell']:
+                    budget = budget * (1 - df.loc[i, 'cost']) # add cost while closing position
+                    transaction = 'No trade'
+                df.loc[i, 'budget'] = budget
+                df.loc[i, 'transaction'] = transaction
+                i+=1
 
-        # temporary for building sharpe ratio
-        df.to_csv(os.path.join(config.package_directory, 'models',
-                                f'''backtest_{config.currency}_{config.RUN_SUBTYPE}_{config.val_end.strftime("%Y%m%d")}_{config.test_end.strftime("%Y%m%d")}_{config.seed}.csv'''))
-        # SUMMARIZE RESULTS
-        hits = df.loc[((df['transaction'] == 'buy') & (df['prc_change'] > 0)) |
-                            ((df['transaction'] == 'sell') & (df['prc_change'] < 0))].shape[0]
-        transactions = df.loc[df['transaction'].isin(['buy', 'sell'])].shape[0]
-        try:
-            hits_ratio = hits / transactions
-        except ZeroDivisionError:
-            hits_ratio = 0
+        # close any open transaction at the end of the test set        
+        if transaction != 'No trade':
+            budget = budget * (1 - df.loc[df.shape[0], 'cost'])
 
-        logger.info('Portfolio result:  %.2f', budget)
-        logger.info('Hit ratio:  %.2f on %.0f trades', hits_ratio, transactions)
+        self.budget = budget
+        return df
 
-        self.plot_portfolio(df, lower_bound, upper_bound)
-
-        return budget, hits, transactions
-
+        
     def accuracy_by_threshold(self, y_pred, actual, lower_bound, upper_bound):
         '''calculate accuracy for a given upper and lowe threshold
         y_pred: array of predictions [2d array]
@@ -577,138 +665,4 @@ class Experiment():
         return df
 
 
-    def compute_profitability_classes(self, df, y_pred, date_start, date_end, lower_bound, upper_bound,
-                                    hours_exclude=None):
-
-       
-        if config.RUN_SUBTYPE == 'triple_barrier_time_aggregated':
-            df = df.merge(self.asset_factory.df_3_barriers_additional_info[['datetime', 'prc_change']], on='datetime', how='inner')
-            # TODO: check that y_pred here is on the same scale as in another flow
-            df['y_pred'] = df['prc_change']
-        else:
-        # recreate target as continous variable
-            df['y_pred'] = df['close'].shift(-config.steps_ahead) / df['close'] - 1
-        # new_start = config.val_end + config.seq_len * datetime.timedelta(minutes=int(''.join(filter(str.isdigit, config.freq))))
-        prediction = df.loc[(df.datetime >= date_start) & (df.datetime <= date_end)].copy()
-        if config.provider == 'hist_data':
-            prediction['datetime_local'] = prediction['datetime'].dt.tz_localize('US/Eastern').dt.tz_convert(
-                'Europe/London').dt.tz_localize(None)
-        else:
-            prediction['datetime_local'] = prediction['datetime']
-
-        prediction['hour_local'] = prediction['datetime_local'].dt.time
-        # TODO: here triple barriers fails
-        prediction = prediction.loc[prediction.datetime.isin(self.test_y_index)]
-        prediction['prediction'] = y_pred[:, 1]
-        conditions = [
-            (prediction['prediction'] <= lower_bound),
-            (prediction['prediction'] > lower_bound) & (prediction['prediction'] <= upper_bound),
-            (prediction['prediction'] > upper_bound)
-        ]
-        values = [0, 0.5, 1]
-        prediction['trade'] = np.select(conditions, values)
-        if hours_exclude:
-            prediction.loc[prediction['hour_local'].isin(hours_exclude), 'trade'] = 0.5
-        prediction.reset_index(inplace=True)
-        # drop last row for which we don't have a label - this works only for one step ahead prediction
-        prediction.drop(prediction.tail(1).index, inplace=True)
-
-        # INITIALIZE PORTFOLIO
-        budget = 100
-        transaction = None
-        i = 0
-
-        # ITERATE OVER PREDICTIONS
-        # cost is added once as it represents spread
-        while i < prediction.shape[0]:
-        
-            if prediction.loc[i, 'trade'] == 1:
-                # add transaction cost if position changes
-                if transaction != 'buy':
-                    budget = budget * (1 - prediction.loc[i, 'cost'])
-                transaction = 'buy'
-                budget = budget + budget * prediction.loc[i, 'y_pred']
-                prediction.loc[i, 'budget'] = budget
-                prediction.loc[i, 'transaction'] = transaction
-                i = i + config.steps_ahead
-            elif prediction.loc[i, 'trade'] == 0:
-                # add transaction cost if position changes
-                if transaction != 'sell':
-                    budget = budget * (1 - prediction.loc[i, 'cost'])
-                transaction = 'sell'
-                budget = budget + budget * (-prediction.loc[i, 'y_pred'])
-                prediction.loc[i, 'budget'] = budget
-                prediction.loc[i, 'transaction'] = transaction
-                i = i + config.steps_ahead
-            elif prediction.loc[i, 'trade'] == 0.5:
-                if transaction in ['buy', 'sell']:
-                    # budget = budget * (1 - prediction.loc[i, 'cost']) # spread is included once in transaction costs
-                    transaction = None
-                prediction.loc[i, 'budget'] = budget
-                prediction.loc[i, 'transaction'] = transaction
-                i = i + 1
-            if budget is None:
-                print('is none')
-
-        # SUMMARIZE RESULTS
-        hits = prediction.loc[((prediction['transaction'] == 'buy') & (prediction['y_pred'] > 0)) |
-                            ((prediction['transaction'] == 'sell') & (prediction['y_pred'] < 0))].shape[0]
-        transactions = prediction.loc[prediction['transaction'].isin(['buy', 'sell'])].shape[0]
-        try:
-            hits_ratio = hits / transactions
-        except ZeroDivisionError:
-            hits_ratio = 0
-        share_of_time_active = round(prediction.loc[prediction['transaction'].isin(['buy', 'sell'])].shape[0] * \
-                                    config.steps_ahead / prediction.shape[0], 2)
-
-        logger.info('''share_of_time_active for bounds %.2f-%.2f is %.2f and hit ratio is %.4f''',
-                    lower_bound, upper_bound, share_of_time_active, hits_ratio)
-        logger.info('Portfolio result:  %.2f', budget)
-
-        self.plot_portfolio(prediction, lower_bound, upper_bound)
-        
-        return budget, hits_ratio, share_of_time_active
-
-    def plot_portfolio(self, prediction, lower_bound, upper_bound):
-
-        name = f'''portfolio_evolution_{config.model}_{config.currency}_{config.nb_classes}_
-                    {lower_bound}_{upper_bound}.png'''
-        plt.figure(2)
-        plt.plot(prediction['datetime'], prediction['budget'])
-        plt.axhline(y=100, color='r', linestyle='-')
-        plt.savefig(os.path.join(config.package_directory, 'models', name))
-        plt.close()
-
-    # time_waw_list = [datetime.time(20,0,0), datetime.time(22,0,0)]
-    def check_hours(df, y_pred, date_start, date_end, lower_bound, upper_bound):
-        
-        prediction = df.loc[(df.datetime >= date_start) & (df.datetime <= date_end)].copy()
-        prediction.reset_index(inplace=True)
-        prediction['y_pred'] = prediction['close'].shift(-config.steps_ahead) / prediction['close'] - 1
-        prediction['change'] = [1 if y > 0 else 0 for y in prediction['y_pred']]
-        # new_start = config.val_end + config.seq_len * datetime.timedelta(minutes=int(''.join(filter(str.isdigit, config.freq))))
-
-        prediction['datetime_london'] = prediction['datetime'].dt.tz_localize('US/Eastern').dt.tz_convert(
-            'Europe/London').dt.tz_localize(None)
-        # make it so that time represents end of interval, not beginning - that's the time when transaction would be opened - prediction is for next hour
-        prediction['datetime_london'] = prediction['datetime_london'] + pd.Timedelta(minutes=int(re.findall("\d+", config.freq)[0]))
-        prediction['hour_london'] = prediction['datetime_london'].dt.time
-        # prediction['trade'] = y_pred.argmax(axis=1)
-        prediction['prediction'] = y_pred[:, 1]
-        conditions = [
-            (prediction['prediction'] <= lower_bound),
-            (prediction['prediction'] > lower_bound) & (prediction['prediction'] <= upper_bound),
-            (prediction['prediction'] > upper_bound)
-        ]
-        values = [0, 0.5, 1]
-        prediction['trade'] = np.select(conditions, values)
-
-        prediction['success'] = 0
-        prediction.loc[((prediction['trade'] == 1) & (prediction['y_pred'] > 0)) |
-                    ((prediction['trade'] == 0) & (prediction['y_pred'] < 0)), 'success'] = 1
-        print('Distribution by hour')
-        print(prediction.groupby('hour_london')['change'].mean())
-        print('Distribution by hour for prediction')
-        print(prediction.loc[prediction['trade'] != 0.5].groupby('hour_london').agg(count=('trade', 'size'),
-                                                                                success=('success', 'mean')))
-        return prediction
+   

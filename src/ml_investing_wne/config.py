@@ -9,7 +9,7 @@ import datetime
 RUN_TYPE = 'crypto' # forex or crypto
 RUN_SUBTYPE = 'cumsum_triple_barrier' #'triple_barrier_time_aggregated','time_aggregated', 'volume_bars', 'cumsum', cumsum_triple_barrier', 'volume_bars_triple_barrier'
 provider = 'Binance' # hist_data, Bitstamp, Binance
-currency = 'ETHUSDT'
+currency = 'MATICUSDT'
 
 # model parameters
 input_dim = '1d'  # 2d or 1d
@@ -20,14 +20,14 @@ seed = 12345
 load_model = ''
 
 # time bars
-freq = '1min'
+freq = '60min'
 
 # volume for volume bars
 volume = 5000
 
 # Tripple barrier params
 t_final=24
-fixed_barrier=0.05
+fixed_barrier=0.025
 
 # cumsum params
 cumsum_threshold = 0.02
@@ -48,14 +48,14 @@ COST_FOREX = {
 
 # Cost is expressed in percentages
 COST_CRYPTO = {
-    'BTCUSD': 0.0025,
-    'ETHUSD': 0.0025,
-    'BTCUSDT': 0.0025,
-    'ETHUSDT': 0.0025,
-    'MATICUSDT': 0.0025,
-    'SOLUSDT': 0.0025,
-    'ETHBTC': 0.0025,
-    'LTCUSDT': 0.0025
+    'BTCUSD': 0.001,
+    'ETHUSD': 0.001,
+    'BTCUSDT': 0.001,
+    'ETHUSDT': 0.001,
+    'MATICUSDT': 0.001,
+    'SOLUSDT': 0.001,
+    'ETHBTC': 0.001,
+    'LTCUSDT': 0.001
 }
 
 try:
@@ -89,7 +89,7 @@ test_end = datetime.datetime(2022, 7, 1, 0, 0, 0)
 seq_len = 96
 batch = 128
 patience = 10
-epochs = 100
+epochs = 1
 nb_classes = 2
 steps_ahead = 1
 
