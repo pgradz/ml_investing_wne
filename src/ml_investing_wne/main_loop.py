@@ -66,8 +66,9 @@ def main():
             mlflow.tensorflow.autolog()
             asset = create_asset()
             experiment = experiment_factory(asset).get_experiment(train_end=config.train_end, 
-                                                        val_end=config.val_end,
-                                                        test_end=config.test_end, seed=config.seed)
+                                                                    val_end=config.val_end,
+                                                                    test_end=config.test_end, 
+                                                                    seed=config.seed)
             experiment.train_test_val_split()
             experiment.hyperparameter_tunning()
             model = experiment.get_model()

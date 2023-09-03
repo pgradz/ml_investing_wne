@@ -7,7 +7,7 @@ import datetime
 # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 RUN_TYPE = 'crypto' # forex or crypto
-RUN_SUBTYPE = 'cumsum_triple_barrier' #'triple_barrier_time_aggregated','time_aggregated', 'volume_bars', 'cumsum', cumsum_triple_barrier', 'volume_bars_triple_barrier'
+RUN_SUBTYPE = 'cumsum' #'triple_barrier_time_aggregated','time_aggregated', 'volume_bars', 'cumsum', cumsum_triple_barrier', 'volume_bars_triple_barrier'
 provider = 'Binance' # hist_data, Bitstamp, Binance
 currency = 'MATICUSDT'
 
@@ -27,7 +27,7 @@ volume = 5000
 
 # Tripple barrier params
 t_final=24
-fixed_barrier=0.025
+fixed_barrier=0.05
 
 # cumsum params
 cumsum_threshold = 0.02
@@ -89,7 +89,7 @@ test_end = datetime.datetime(2022, 7, 1, 0, 0, 0)
 seq_len = 96
 batch = 128
 patience = 10
-epochs = 1
+epochs = 100
 nb_classes = 2
 steps_ahead = 1
 

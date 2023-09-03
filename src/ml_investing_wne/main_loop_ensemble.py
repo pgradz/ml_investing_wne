@@ -52,6 +52,8 @@ def main():
         trading_result = 100
         hit_counter = 0
         trades = 0
+        # this is a placeholder to deal with situation when triple barrier method ends in next quarter
+        test_start_date_next_interval = val_end[0]
         for train, val, test in zip(train_end, val_end, test_end):
             
             # ensemble of 3 best models
@@ -59,7 +61,7 @@ def main():
             # just in case set seed once again, it used to reset after each experiment
                 set_seed(seed)
                 config.train_end = train
-                config.val_end = val
+                config.val_end = max(val, test_start_date_next_interval)
                 config.test_end = test
                 config.seed = seed
                 mlflow.tensorflow.autolog()
@@ -68,6 +70,7 @@ def main():
                                                             val_end=config.val_end,
                                                             test_end=config.test_end, seed=config.seed)
                 experiment.train_test_val_split()
+                experiment.hyperparameter_tunning(2)
                 experiment.hyperparameter_tunning(m)
                 model = experiment.get_model()
                 # once again
@@ -95,8 +98,12 @@ def main():
 
             trading_result = experiment.get_budget()
             hit_counter += experiment.get_hit_counter()
-            trades += experiment.get_trades_counter()
-            logger.info(f'Running hit ratio: {hit_counter/trades}')   
+            trades += experiment.get_trades_counter()   
+            try:
+                logger.info(f'Running hit ratio: {hit_counter/trades}')   
+            except ZeroDivisionError:
+                logger.info(f'Running hit ratio: no trades yet')
+            test_start_date_next_interval = experiment.test_start_date_next_interval
 
         logger.info(f'Final budget: {trading_result}')
         logger.info(f'Final hit ratio: {hit_counter/trades}')    

@@ -45,7 +45,7 @@ def prepare_processed_dataset(plot=False, df=None, allow_null=False, features=Tr
     if features:
         MA = [5, 10, 15, 20, 50]
         for ma in MA:
-            df.ta.sma(length=ma, append=True)
+            # df.ta.sma(length=ma, append=True)
             df.ta.ema(length=ma, append=True)
             df.ta.variance(length=ma, append=True)
 
@@ -58,8 +58,7 @@ def prepare_processed_dataset(plot=False, df=None, allow_null=False, features=Tr
         df.ta.stoch(append=True) # adds 2 columns
         df.ta.willr(append=True) # adds 1 column
         df.ta.bbands(append=True) # adds 5 columns
-        # df.ta.atr(append=True) # adds 1 column
-        # df.ta.obv(append=True) # adds 1 column
+
         df['roc_1'] = df['close'].shift(-1) / df['close'] - 1
         df['roc_1'] = df['roc_1'].shift(1)
         # df['roc_2'] = df['close'].shift(-2) / df['close'] - 1
@@ -72,6 +71,11 @@ def prepare_processed_dataset(plot=False, df=None, allow_null=False, features=Tr
         # df['roc_5'] = df['roc_5'].shift(5)
         # df['roc_10'] = df['close'].shift(-10) / df['close'] - 1
         # df['roc_10'] = df['roc_10'].shift(10)
+        # volume indicators
+        # df.ta.atr(append=True) # adds 1 column
+        # df.ta.obv(append=True) # adds 1 column
+        df.ta.cmf(append=True)
+        df.ta.mfi(append=True) 
 
         df['datetime'] = df.index
         if df['datetime'].dtype == 'object':
@@ -85,7 +89,7 @@ def prepare_processed_dataset(plot=False, df=None, allow_null=False, features=Tr
     # check of encoding
     # df.plot.scatter('hour_sin', 'hour_cos')
     # df.plot.scatter('weekday_sin', 'weekday_cos')
-        df.drop(columns=['datetime'], axis=1, inplace=True)
+        df.drop(columns=['datetime', 'hour', 'weekday'], axis=1, inplace=True)
 
     if not allow_null:
         df.dropna(inplace=True)

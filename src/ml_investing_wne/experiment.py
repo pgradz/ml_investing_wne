@@ -298,7 +298,7 @@ class Experiment():
         my_hyper_model = MyHyperModel(input_shape=(self.seq_len, self.no_features), train_dataset=self.train_dataset, val_dataset=self.val_dataset,
                                       seed=self.seed)
         my_hyper_model.run_tuner()
-        self.model = my_hyper_model.get_best_model(model_index)
+        self.model = my_hyper_model.get_best_unique_model(model_index)
 
     def set_budget(self, budget):
         self.budget = budget
@@ -463,7 +463,7 @@ class Experiment():
         self.backtest(self.df_eval_test, 0.4, 0.6)
 
     def evaluate_model_short(self):
-        self.budget, self.hit_counter, self.trades_counter = self.backtest(self.df_eval_test, 0.4, 0.6)
+        self.backtest(self.df_eval_test, 0.4, 0.6)
 
 
     def backtest(self, df, lower_bound, upper_bound):
@@ -562,10 +562,15 @@ class Experiment():
                 i = i + 1
         # close any open transaction at the end of the test set        
         if transaction != 'No trade':
-            budget = budget * (1 - df.loc[df.shape[0], 'cost'])
+            budget = budget * (1 - df.loc[df.shape[0]-1, 'cost'])
                 
         self.budget = budget
-        self.test_start_date_next_interval = max(df.loc[df['transaction'].isin(['buy', 'sell']), 'barrier_touched_date'])
+        # it can happen there was no transaction in a given period, then the next interval is the end of the test set.
+        # this is to make sure there would be no overlap between different test sets
+        try:
+            self.test_start_date_next_interval = max(df.loc[df['transaction'].isin(['buy', 'sell']), 'barrier_touched_date'])
+        except ValueError:
+            self.test_start_date_next_interval = df['datetime'].max()
         return df
     
     def run_trades_one_step(self, df):
@@ -619,9 +624,11 @@ class Experiment():
 
         # close any open transaction at the end of the test set        
         if transaction != 'No trade':
-            budget = budget * (1 - df.loc[df.shape[0], 'cost'])
+            budget = budget * (1 - df.loc[df.shape[0]-1, 'cost'])
 
         self.budget = budget
+        # this is to make sure there would be no overlap between different test sets
+        self.test_start_date_next_interval = df['datetime'].max()
         return df
 
         

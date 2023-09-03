@@ -45,7 +45,7 @@ class MyHyperModel():
         np.random.seed(seed)
         tf.random.set_seed(seed)
 
-    def build_model_for_tunning(self, hp, nb_classes=2):
+    def build_model_for_tuning(self, hp, nb_classes=2):
 
         n_feature_maps = hp.Int('n_feature_maps', min_value=8, max_value=64, step=4)
         input_layer = keras.layers.Input(self.input_shape)
@@ -123,7 +123,7 @@ class MyHyperModel():
 
     def run_tuner(self):
 
-        self.tuner = kt.Hyperband(self.build_model_for_tunning,
+        self.tuner = kt.Hyperband(self.build_model_for_tuning,
                             objective='val_accuracy',
                             max_epochs=20,
                             hyperband_iterations=1, 
@@ -162,4 +162,43 @@ class MyHyperModel():
         return model
 
   
+
+    def get_best_unique_model(self, model_index=0):
+        '''
+        Sometimes top models are the same. With this function we can get unique models'''
+
+        model_representation = []
+        for i in range(model_index+1):
+
+            best_hps = self.tuner.get_best_hyperparameters(num_trials=i+1)[i]
+            model_representation.append(dict((k, best_hps[k]) for k in ['n_feature_maps', 'kernel_size_1', 'kernel_size_2','kernel_size_3','lstm_neurons','dropout','learning_rate'] if k in best_hps))
+
+            if i == model_index:
+                self.best_hps = best_hps
+                model = self.tuner.hypermodel.build(self.best_hps)
+                
+
+        for j in range(len(model_representation)-1):
+            if model_representation[j] != model_representation[-1]:
+                continue
+            else:
+                logger.info(f""" found duplicated model, increasing model_index by 1""")
+                self.get_best_unique_model(model_index=model_index+1)
+                break
+
+        logger.info(f"""
+        The hyperparameter search is complete. 
+        The optimal dropout is {self.best_hps.get('dropout')} 
+        The optimal n_feature_maps is {self.best_hps.get('n_feature_maps')}
+        The optimal kernel_size_1 is {self.best_hps.get('kernel_size_1')}
+        The optimal kernel_size_2 is {self.best_hps.get('kernel_size_2')}
+        The optimal kernel_size_3 is {self.best_hps.get('kernel_size_3')}
+        The optimal lstm_neurons is {self.best_hps.get('lstm_neurons')}
+        and the optimal learning rate for the optimizer
+        is {self.best_hps.get('learning_rate')}.
+        """)
+
+        return  model
+
+
 
