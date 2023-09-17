@@ -496,7 +496,10 @@ class Experiment():
             df = self.run_trades_one_step(df)
 
         # export trades to later compute sharpe ratio etc.
-        df.to_csv(os.path.join(config.package_directory, 'models',
+        dir_path = os.path.join(config.package_directory, 'models', f'''{config.currency}_{config.RUN_SUBTYPE}_{config.model}''')
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
+        df.to_csv(os.path.join(dir_path,
                                 f'''backtest_{config.currency}_{config.RUN_SUBTYPE}_{config.val_end.strftime("%Y%m%d")}_{config.test_end.strftime("%Y%m%d")}_{config.seed}.csv'''))
         # SUMMARIZE RESULTS
         hits = df.loc[((df['transaction'] == 'buy') & (df['prc_change'] > 0)) |

@@ -151,7 +151,7 @@ class MyHyperModel():
                 continue
             else:
                 logger.info(f""" found duplicated model, increasing model_index by 1""")
-                self.get_best_unique_model(model_index=model_index+1)
+                model = self.get_best_unique_model(model_index=model_index+1)
                 break
 
         logger.info(f"""
@@ -164,7 +164,7 @@ class MyHyperModel():
         and the optimal learning rate for the optimizer
         is {self.best_hps.get('learning_rate')}.
         """)
-
+        self.model = model
         return  model
 
 
