@@ -70,7 +70,6 @@ def main():
                                                             val_end=config.val_end,
                                                             test_end=config.test_end, seed=config.seed)
                 experiment.train_test_val_split()
-                experiment.hyperparameter_tunning(2)
                 experiment.hyperparameter_tunning(m)
                 model = experiment.get_model()
                 # once again
