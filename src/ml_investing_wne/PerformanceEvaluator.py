@@ -10,28 +10,43 @@ from ml_investing_wne.utils import get_logger
 
 logger = get_logger()
 
-backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_ETHUSDT_cumsum_triple_barrier_reduced_features'
-df_daily = pd.read_csv('/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_ETHUSDT/time_aggregated_1440min.csv', parse_dates=['datetime'])
-daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_ETHUSDT/time_aggregated_1440min.csv'
+# backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_ETHUSDT_cumsum_triple_barrier_with_volume_no_SMA'
+# backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_MATICUSDT_cumsum_triple_barrier_with_volume_no_SMA'
+# backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_SOLUSDT_cumsum_triple_barrier'
+# backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_BTCUSDT_cumsum_triple_barrier_with_volume_no_SMA'
+# backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_BTCUSDT_cumsum'
+# backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_ETHUSDT_cumsum'
+backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_MATICUSDT_cumsum'
+# daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_BTCUSDT/time_aggregated_1440min.csv'
+# daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_SOLUSDT/time_aggregated_1440min.csv'
+daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_MATICUSDT/time_aggregated_1440min.csv'
+# daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_ETHUSDT/time_aggregated_1440min.csv'
+# output folder
+output_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/results'
+
 
 
 class PerformanceEvaluator():
 
-    def __init__(self, backtest_folder, daily_records, risk_free_rate=0.01, seeds = ['12345', '123456', '1234567']):
+    def __init__(self, backtest_folder, daily_records, risk_free_rate=0.02, seeds = ['12345', '123456', '1234567']):
         self.backtest_folder = backtest_folder
-        # prepare end of the day records
+        self.triple_barrier = False
+        if 'triple_barrier' in self.backtest_folder:
+            self.triple_barrier = True
+        self.name = os.path.splitext(os.path.basename(backtest_folder))[0]
         self.df_daily = pd.read_csv(daily_records, parse_dates=['datetime'])
         self.df_daily['datetime'] = pd.to_datetime(self.df_daily['datetime']) 
         self.df_daily['datetime'] = self.df_daily['datetime'] +  pd.DateOffset(hours=23) + pd.DateOffset(minutes=59) +  pd.DateOffset(seconds=59)
         self.risk_free_rate = risk_free_rate
         self.seeds = seeds
         self.metrics = {}
-        self.metrics['accuracy'] = []
-        self.metrics['correct_transactions'] = []
-        self.metrics['portfolio_result'] = []
-        self.metrics['sharpe_ratio'] = []
-        self.metrics['sortino_ratio'] = []
-        self.metrics['max_drawdown'] = []
+        self.metrics['3. accuracy'] = []
+        self.metrics['2. correct_transactions'] = []
+        self.metrics['1. gain_loss'] = []
+        self.metrics['4. sharpe_ratio'] = []
+        self.metrics['5. sortino_ratio'] = []
+        self.metrics['6. max_drawdown'] = []
+
 
 
     def load_backtest_data(self, seed):
@@ -50,26 +65,27 @@ class PerformanceEvaluator():
         trades.reset_index(inplace=True, drop=True)
         trades.sort_values(by=['datetime'], inplace=True)
 
-        # add entry and exit price to each trade
-        for i in trades.index:
-            trades.loc[i, 'price_entry'] = trades.loc[i, 'close']
-            # prices
-            if trades.loc[i, 'transaction'] in ['sell', 'buy']:
-                if trades.loc[i, 'barrier_touched'] == 'top':
-                    trades.loc[i, 'exit_price'] = trades.loc[i, 'top_barrier']
-                elif trades.loc[i, 'barrier_touched'] == 'bottom':
-                    trades.loc[i, 'exit_price'] = trades.loc[i, 'bottom_barrier']
-                elif trades.loc[i, 'barrier_touched'] == 'vertical':
+        if self.triple_barrier:
+            # add entry and exit price to each trade
+            for i in trades.index:
+                trades.loc[i, 'price_entry'] = trades.loc[i, 'close']
+                # prices
+                if trades.loc[i, 'transaction'] in ['sell', 'buy']:
+                    if trades.loc[i, 'barrier_touched'] == 'top':
+                        trades.loc[i, 'exit_price'] = trades.loc[i, 'top_barrier']
+                    elif trades.loc[i, 'barrier_touched'] == 'bottom':
+                        trades.loc[i, 'exit_price'] = trades.loc[i, 'bottom_barrier']
+                    elif trades.loc[i, 'barrier_touched'] == 'vertical':
+                        if i+1 <= trades.index.max():
+                            trades.loc[i, 'exit_price'] = trades.loc[i+1, 'close']
+                elif trades.loc[i, 'transaction'] == 'No trade':
                     if i+1 <= trades.index.max():
                         trades.loc[i, 'exit_price'] = trades.loc[i+1, 'close']
-            elif trades.loc[i, 'transaction'] == 'No trade':
-                if i+1 <= trades.index.max():
-                    trades.loc[i, 'exit_price'] = trades.loc[i+1, 'close']
 
         self.trades = trades
 
 
-    def accuracy_by_threshold(self, df, lower_bound, upper_bound, type='accuracy'):
+    def accuracy_by_threshold(self, df, lower_bound, upper_bound, type='3. accuracy'):
         '''calculate accuracy for a given upper and lowe threshold
         lower_bound: lower bound of threshold
         upper_bound: upper bound of threshold'''
@@ -79,6 +95,8 @@ class PerformanceEvaluator():
         df_accuracy = pd.DataFrame({'prediction': df['prediction'], 'y_true': actual, 'y_pred': y_pred_class})
         predictions_above_threshold = df_accuracy.loc[(df_accuracy['prediction'] < lower_bound) | (df_accuracy['prediction'] > upper_bound)]
         accuracy = (predictions_above_threshold['y_true'] == predictions_above_threshold['y_pred']).mean()
+        # change to percentages
+        accuracy = accuracy * 100
         logger.info('accuracy for threshold between %.2f and %.2f : %.4f, based on %.1f observations', lower_bound, upper_bound, accuracy, predictions_above_threshold.shape[0]/df_accuracy.shape[0])
 
         self.metrics[type].append(accuracy)
@@ -93,25 +111,31 @@ class PerformanceEvaluator():
         start_date = self.backtest['datetime'].min().date()
         start_datetime = datetime.datetime.combine(start_date, datetime.time(23, 0, 0))
         df_daily = self.df_daily.loc[self.df_daily['datetime']>=start_datetime].copy()
-        cols = ['datetime', 'open','close', 'high', 'low', 'barrier_touched','barrier_touched_date', 'top_barrier','bottom_barrier', 'transaction', 'budget', 'exit_price']
-        df_daily['barrier_touched'] = None
-        df_daily['barrier_touched_date'] = None
-        df_daily['top_barrier'] = None
-        df_daily['bottom_barrier'] = None
+        if self.triple_barrier:
+            cols = ['datetime', 'open','close', 'high', 'low', 'barrier_touched','barrier_touched_date', 'top_barrier','bottom_barrier', 'transaction', 'budget', 'exit_price']
+            df_daily['barrier_touched'] = None
+            df_daily['barrier_touched_date'] = None
+            df_daily['top_barrier'] = None
+            df_daily['bottom_barrier'] = None
+            df_daily['exit_price'] = None
+        else: 
+            cols = ['datetime', 'open','close', 'high', 'low', 'transaction', 'budget']
+
         df_daily['transaction'] = None
         df_daily['budget'] = None
-        df_daily['exit_price'] = None
 
         # concatenate trades and end of the day records so performance at the end of the day can be calculated
         trades_and_close = pd.concat([self.trades[cols], df_daily[cols]])
         trades_and_close.sort_values(by='datetime', inplace=True)
         trades_and_close['transaction'] = trades_and_close['transaction'].ffill()
         trades_and_close.reset_index(inplace=True, drop=True)
-        max_date = pd.to_datetime(trades_and_close['barrier_touched_date']).max()
-        self.trades_and_close = trades_and_close.loc[trades_and_close['datetime']<=max_date]
+        if self.triple_barrier:
+            max_date = pd.to_datetime(trades_and_close['barrier_touched_date']).max()
+            self.trades_and_close = trades_and_close.loc[trades_and_close['datetime']<=max_date]
+        else:
+            self.trades_and_close = trades_and_close
 
-
-    def get_daily_returns(self):
+    def get_daily_returns_one_step(self):
 
         results = []
         transaction = 'No trade'
@@ -119,8 +143,98 @@ class PerformanceEvaluator():
 
         while i <= self.trades_and_close.index.max():
             # open position
-            if i == 52:
-                print('debug')
+            # if i == 437:
+            #     print('debug')
+
+            if transaction == 'No trade':
+                if self.trades_and_close.loc[i, 'transaction'] == 'No trade':
+                    i += 1
+                    continue
+                else:
+                    datetime_start = self.trades_and_close.loc[i, 'datetime']
+                    transaction = self.trades_and_close.loc[i, 'transaction']
+                    entry_price = self.trades_and_close.loc[i, 'close']
+                    entry_position_price = entry_price 
+                    hold_period = 0
+                    i += 1
+                    continue
+
+            if transaction == self.trades_and_close.loc[i, 'transaction'] and transaction != 'No trade':
+                # this means that this is end of the day record
+                # if self.trades_and_close.loc[i, 'budget'] is None:
+                datetime_end = self.trades_and_close.loc[i, 'datetime']
+                if hold_period == 0:
+                    entry_cost = config.cost
+                else:
+                    entry_cost = 0
+                    
+                exit_price = self.trades_and_close.loc[i, 'close']
+                exit_cost = 0
+                hold_period += 1
+                daily_return = exit_price/entry_price -1
+                trade_return = exit_price/entry_position_price -1
+                results.append([datetime_start, datetime_end, transaction, entry_position_price, entry_price, exit_price, daily_return, trade_return, entry_cost, exit_cost])
+                # entry price for the next row becomes close of the current one
+                datetime_start = datetime_end
+                entry_price = self.trades_and_close.loc[i, 'close']
+                entry_cost = 0
+                i += 1
+                continue
+
+            # change in open position
+            if transaction != self.trades_and_close.loc[i, 'transaction']:
+                datetime_end = self.trades_and_close.loc[i, 'datetime']
+                # close the position
+                
+                exit_price = self.trades_and_close.loc[i, 'close']
+                entry_price = self.trades_and_close.loc[i-1, 'close']
+                daily_return = exit_price/entry_price -1
+                trade_return = exit_price/entry_position_price -1
+                if hold_period == 0:
+                    entry_cost = config.cost
+                else:
+                    entry_cost = 0
+                exit_cost = config.cost
+                results.append([datetime_start, datetime_end, transaction, entry_position_price, entry_price, exit_price, daily_return, trade_return, entry_cost, exit_cost])
+
+                transaction = self.trades_and_close.loc[i, 'transaction']
+                if transaction in ['buy','sell']:
+                    datetime_start = self.trades_and_close.loc[i, 'datetime']
+                    entry_price = self.trades_and_close.loc[i, 'close']
+                    entry_position_price = entry_price 
+                    daily_return = 0
+                    entry_cost = config.cost
+                    exit_cost = 0
+                    hold_period = 0
+                i += 1
+                continue
+
+
+        daily_returns = pd.DataFrame(results, columns = ['datetime_start', 'datetime_end', 'transaction', 'entry_position_price', 'entry_price', 'exit_price','daily_return', 'trade_return', 'entry_cost', 'exit_cost'])
+        daily_returns['trade_return'] = np.where(daily_returns['transaction']== 'sell', -daily_returns['trade_return'], daily_returns['trade_return'])
+                    
+        self.daily_returns = daily_returns
+    
+    def get_daily_returns(self):
+
+        if self.triple_barrier:
+            self.get_daily_returns_triple_barrier()
+        else:
+            self.get_daily_returns_one_step()
+
+    def get_daily_returns_triple_barrier(self):
+        '''
+        This function calculates daily returns of the strategy based on transaction and close prices
+        '''
+
+        results = []
+        transaction = 'No trade'
+        i = 0
+
+        while i <= self.trades_and_close.index.max():
+            # open position
+            # if i == 2357:
+            #     print('debug')
 
             if transaction == 'No trade':
                 if self.trades_and_close.loc[i, 'transaction'] == 'No trade':
@@ -159,7 +273,11 @@ class PerformanceEvaluator():
                         results.append([datetime_start, datetime_end, transaction, entry_position_price, entry_price, exit_price, daily_return, trade_return, entry_cost, exit_cost])
                         transaction = 'No trade'
                         # if that situation occured, transaction is closed and we have to wait for next bar - jump to it
-                        i = min(self.trades_and_close[(self.trades_and_close['datetime']>datetime_end) & (self.trades_and_close['barrier_touched'].notna())].index)
+                        try:
+                            i = min(self.trades_and_close[(self.trades_and_close['datetime']>datetime_end) & (self.trades_and_close['barrier_touched'].notna())].index)
+                        # there might no more rows
+                        except ValueError:
+                            continue
                     else:
                         exit_price = self.trades_and_close.loc[i, 'close']
                         exit_cost = 0
@@ -231,6 +349,10 @@ class PerformanceEvaluator():
         # close last transaction
         if transaction != 'No trade':
             datetime_end = pd.to_datetime(self.trades_and_close['barrier_touched_date']).max()
+            if hold_period == 0:
+                entry_cost = config.cost
+            else:
+                entry_cost = 0
             exit_price = exit_position_price
             daily_return = exit_price/entry_price -1
             trade_return = exit_price/entry_position_price -1
@@ -243,10 +365,6 @@ class PerformanceEvaluator():
         daily_returns['trade_return'] = np.where(daily_returns['transaction']== 'sell', -daily_returns['trade_return'], daily_returns['trade_return'])
                     
         self.daily_returns = daily_returns
-
-
-    def compute_financial_performance():
-        pass
 
     def format_daily_returns(self):
 
@@ -267,9 +385,13 @@ class PerformanceEvaluator():
         logger.info('End result in transformed df {}'.format(self.daily_returns['result'].iloc[-1]))
         logger.info('End result in original df {}'.format(self.trades['budget'].iloc[-1]))
 
-        self.metrics['portfolio_result'].append(self.daily_returns['result'].iloc[-1])
+        # subtract 100 to make gain/loss
+        self.metrics['1. gain_loss'].append(self.daily_returns['result'].iloc[-1] - 100)
 
     def compute_financial_performance(self):
+        '''
+        This function calculates financial performance of the strategy
+        '''
 
         self.daily_returns_agg = self.daily_returns.groupby(self.daily_returns['datetime_end'].dt.date).agg({'daily_portfolio_return': 'sum'})
         daily_returns = self.daily_returns_agg['daily_portfolio_return']
@@ -279,7 +401,7 @@ class PerformanceEvaluator():
         sharpe_ratio = np.mean(excess_returns) / np.std(excess_returns)
         # annualized Sharpe ratio
         annualized_sharpe_ratio = (365**0.5) * sharpe_ratio
-        self.metrics['sharpe_ratio'].append(annualized_sharpe_ratio)
+        self.metrics['4. sharpe_ratio'].append(annualized_sharpe_ratio)
         # Sortino ratio
         downside_returns = [r for r in excess_returns if r < 0]
         expected_return = np.mean(daily_returns)
@@ -287,10 +409,10 @@ class PerformanceEvaluator():
         sortino_ratio = expected_return / downside_std
         # annualized Sortino ratio
         annualized_sortino_ratio = (365**0.5) * sortino_ratio
-        self.metrics['sortino_ratio'].append(annualized_sortino_ratio)
+        self.metrics['5. sortino_ratio'].append(annualized_sortino_ratio)
         # Max drawdown
         max_drawdown = self.max_drawdown_on_portfolio(self.daily_returns['result'])
-        self.metrics['max_drawdown'].append(max_drawdown)
+        self.metrics['6. max_drawdown'].append(max_drawdown)
         # below KPIs were provided by copilot, I have to check them
         # Annualized return
         annualized_return = (1 + np.mean(daily_returns))**365 - 1
@@ -355,17 +477,20 @@ class PerformanceEvaluator():
     def average_metrics(self):
         self.metrics_avg = {}
         for key in self.metrics.keys():
-            self.metrics_avg[key] = np.mean(self.metrics[key])
+            self.metrics_avg[key] = round(np.mean(self.metrics[key]),2)
         logger.info('Average metrics: {}'.format(self.metrics_avg))
-        
+        metrics_df = pd.DataFrame.from_dict(self.metrics_avg,  orient='index', columns=['value']).reset_index()
+        metrics_df.sort_values(by='index', inplace=True)
+        metrics_df.to_csv(output_folder+ '/'+ self.name + '.csv', index=False)
+
 
     def run(self):
         for seed in self.seeds:
             self.backtest = pd.concat(self.load_backtest_data(seed))
             self.backtest.sort_values(by=['datetime'], inplace=True)
             self.format_backtest_results()
-            self.accuracy_by_threshold(self.backtest,0.5, 0.5, type='accuracy')
-            self.accuracy_by_threshold(self.trades,0.4, 0.6, type='correct_transactions')
+            self.accuracy_by_threshold(self.backtest,0.5, 0.5, type='3. accuracy')
+            self.accuracy_by_threshold(self.trades,0.4, 0.6, type='2. correct_transactions')
             self.combine_trades_and_daily_close()
             self.get_daily_returns()
             self.format_daily_returns()
@@ -383,6 +508,4 @@ if __name__ == "__main__":
     # trades_and_close = combine_trades_and_daily_close(df_daily, trades)
     # daily_returns = get_daily_returns(trades, trades_and_close)
 
-
-# check - TODO: figure out relationship between returns and budget. There are still cases with empty exit price and return
 
