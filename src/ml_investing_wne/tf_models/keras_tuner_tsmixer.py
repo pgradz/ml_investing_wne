@@ -65,7 +65,7 @@ class MyHyperModel():
     def __init__(self, input_shape, train_dataset, val_dataset, 
                  currency=config.currency, seq_len=config.seq_len, 
                  RUN_SUBTYPE=config.RUN_SUBTYPE, model=config.model, 
-                 seed=config.seed):
+                 seed=config.seed, freq=config.freq):
         self.input_shape = input_shape
         self.train_dataset = train_dataset
         self.val_dataset = val_dataset
@@ -74,9 +74,16 @@ class MyHyperModel():
         self.RUN_SUBTYPE = RUN_SUBTYPE
         self.model = model
         self.seed = seed
+        self.freq = freq
         random.seed(seed)
         np.random.seed(seed)
         tf.random.set_seed(seed)
+        
+        # since multiple time aggregations are used, we need to distinguish between them
+        if 'time_aggregated' in self.RUN_SUBTYPE:
+            self.project_name=f'{self.currency}_{self.seq_len}_{self.RUN_SUBTYPE}_{self.model}_{self.freq}'
+        else:
+            self.project_name=f'{self.currency}_{self.seq_len}_{self.RUN_SUBTYPE}_{self.model}'
 
 
     def build_model_for_tuning(self, hp, nb_classes=2):
@@ -110,7 +117,7 @@ class MyHyperModel():
                             hyperband_iterations=1, 
                             factor=3,
                             directory='keras_tuner',
-                            project_name=f'{self.currency}_{self.seq_len}_{self.RUN_SUBTYPE}_{self.model}')
+                            project_name=self.project_name)
 
 
         stop_early = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=10)
@@ -163,7 +170,7 @@ class MyHyperModel():
                 continue
             else:
                 logger.info(f""" found duplicated model, increasing model_index by 1""")
-                self.get_best_unique_model(model_index=model_index+1)
+                model = self.get_best_unique_model(model_index=model_index+1)
                 break
 
         logger.info(f"""
@@ -176,7 +183,8 @@ class MyHyperModel():
         and the optimal learning rate for the optimizer
         is {self.best_hps.get('learning_rate')}.
         """)
-
+        
+        self.model = model
         return  model
 
 

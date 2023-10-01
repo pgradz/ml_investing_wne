@@ -14,7 +14,7 @@ currency = 'ETHUSDT'
 # model parameters
 input_dim = '1d'  # 2d or 1d
 # has to be defined inside tf_models folder
-model = 'keras_tuner_CNN_LSTM' # resnet_lstm_regularized, transformer_learnable_encoding, lstm, keras_tuner_CNN_LSTM, keras_tuner_LSTM
+model = 'keras_tuner_tsmixer' # resnet_lstm_regularized, transformer_learnable_encoding, lstm, keras_tuner_CNN_LSTM, keras_tuner_LSTM, keras_tuner_tsmixer
 seed = 12345
 # leave empty if training from scratch, for transfer learning specify currency to be used as a base
 load_model = ''

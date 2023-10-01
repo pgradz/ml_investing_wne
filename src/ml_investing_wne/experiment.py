@@ -494,9 +494,13 @@ class Experiment():
             df = self.run_trades_3_barriers(df)
         else:
             df = self.run_trades_one_step(df)
-
-        # export trades to later compute sharpe ratio etc.
-        dir_path = os.path.join(config.package_directory, 'models', f'''{config.currency}_{config.RUN_SUBTYPE}_{config.model}''')
+            
+        if 'time_aggregated' in self.run_subtype:
+            dir_path = os.path.join(config.package_directory, 'models', f'''{config.currency}_{config.RUN_SUBTYPE}_{config.model}_{config.freq}''')
+        else:
+            dir_path = os.path.join(config.package_directory, 'models', f'''{config.currency}_{config.RUN_SUBTYPE}_{config.model}''')
+            
+        # export trades to later compute sharpe ratio etc.     
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
         df.to_csv(os.path.join(dir_path,
