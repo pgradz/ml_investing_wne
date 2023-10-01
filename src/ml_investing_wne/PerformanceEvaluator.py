@@ -32,7 +32,9 @@ output_folder = '/root/ml_investing_wne/src/ml_investing_wne/models/results'
 
 
 class PerformanceEvaluator():
-
+    '''
+    This class calculates daily returns of the strategy. It is based on the backtest results.
+    '''
     def __init__(self, backtest_folder, daily_records, risk_free_rate=0.02, seeds = ['12345', '123456', '1234567']):
         self.backtest_folder = backtest_folder
         self.triple_barrier = False
@@ -83,6 +85,8 @@ class PerformanceEvaluator():
                     elif trades.loc[i, 'barrier_touched'] == 'vertical':
                         if i+1 <= trades.index.max():
                             trades.loc[i, 'exit_price'] = trades.loc[i+1, 'close']
+                        else:
+                            trades.loc[i, 'exit_price'] = trades.loc[i, 'close'] * (1+trades.loc[i, 'prc_change'])
                 elif trades.loc[i, 'transaction'] == 'No trade':
                     if i+1 <= trades.index.max():
                         trades.loc[i, 'exit_price'] = trades.loc[i+1, 'close']

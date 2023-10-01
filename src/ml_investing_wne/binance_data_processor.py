@@ -18,7 +18,8 @@ class BinanceDataProcessor():
     FIRST_COLUMNS = ['datetime', 'price', 'volume']
     EXCHANGE = 'binance'
 
-    def __init__(self, crypto :str=None, file: str=None, volume_frequency: int=500, freq: str='60min', strategy:str ='volume_bars', files_path: str=None, output_path: str=None, s3_path: str=None) -> None:
+    def __init__(self, crypto :str=None, file: str=None, volume_frequency: int=500, value_frequency: int=10000000, freq: str='60min', strategy:str ='volume_bars', 
+    files_path: str=None, output_path: str=None, s3_path: str=None) -> None:
         '''
         it allows to process data in two ways:
         1. volume_bars - it generates volume bars from raw data
@@ -35,6 +36,7 @@ class BinanceDataProcessor():
         '''
         self.file = file
         self.volume_frequency = volume_frequency
+        self.value_frequency = value_frequency
         self.freq = freq
         self.strategy = strategy
         if file is not None:
@@ -59,8 +61,10 @@ class BinanceDataProcessor():
                 self.output_path = os.path.join(output_path, f'volume_bars_{self.volume_frequency}.csv')
             elif self.strategy == 'time_aggregated':
                 self.output_path = os.path.join(output_path, f'time_aggregated_{self.freq}.csv')
+            elif self.strategy == 'dollar_bars':
+                self.output_path = os.path.join(output_path, f'dollar_bars_{self.value_frequency}.csv')
             else:
-                pass
+                logger.info('Output_path is missing')
             logger.info(f'output path is {self.output_path}')
         else:
             logging.error(msg='output_path is required')
@@ -68,6 +72,7 @@ class BinanceDataProcessor():
         self.remaining_df = None
         self.processed_df = None
         self.running_volume_sum = 0
+        self.running_value_sum = 0
 
     def clean_binance(self, df: pd.DataFrame) -> pd.DataFrame:
         '''
@@ -81,7 +86,6 @@ class BinanceDataProcessor():
         '''
         Generates volume bars from binance data
         '''
-        
         df_np = df.to_numpy()
         self.running_volume_sum += df_np[:,2].sum()
         if isinstance(self.remaining_df, np.ndarray):
@@ -112,7 +116,46 @@ class BinanceDataProcessor():
         self.remaining_df = df_np[lasti:,:]
         df = pd.DataFrame(ans[:candle_counter], 
                             columns = ['datetime','open','high', 'low','close', 'volume', 'seconds'])
-        return df 
+        return df
+
+    def generate_dollar_bars(self, df: pd.DataFrame) -> pd.DataFrame:
+        '''
+        Generates dollar bars from binance data
+        '''
+        df['value'] = df['price'] * df['volume']
+        df_np = df.to_numpy()
+        self.running_value_sum += df_np[:,3].sum()
+        if isinstance(self.remaining_df, np.ndarray):
+            df_np = np.concatenate((self.remaining_df, df_np), axis=0)
+        times = df_np[:,0]
+        prices = df_np[:,1]
+        volumes = df_np[:,2]
+        values = df_np[:,3]
+        ans =  np.empty([len(prices), 7], dtype=object)
+        candle_counter = 0
+        val = 0
+        lasti = 0
+        for i, _ in enumerate(prices):
+            if i % 100000 == 0:
+                pass
+                # logger.info(f'processed {i/len(prices) * 100} %')
+            val += values[i]
+            if val >= self.value_frequency:
+                ans[candle_counter][0] = times[i]                                       # time
+                ans[candle_counter][1] = prices[lasti]                                  # open
+                ans[candle_counter][2] = np.max(prices[lasti:i+1])                      # high
+                ans[candle_counter][3] = np.min(prices[lasti:i+1])                      # low
+                ans[candle_counter][4] = prices[i]                                      # close
+                ans[candle_counter][5] = np.sum(volumes[lasti:i+1])                     # volume
+                ans[candle_counter][6] = (times[i] - times[lasti]).total_seconds()      # time
+                candle_counter += 1
+                lasti = i+1
+                val = 0
+        self.remaining_df = df_np[lasti:,:]
+        df = pd.DataFrame(ans[:candle_counter], 
+                            columns = ['datetime','open','high', 'low','close', 'volume', 'seconds'])
+        return df
+
     
     def time_aggregation(self, df: pd.DataFrame) -> pd.DataFrame:
         '''
@@ -168,6 +211,8 @@ class BinanceDataProcessor():
                     df_chunk = self.generate_volumebars(df_chunk)
                 elif self.strategy == 'time_aggregated':
                     df_chunk = self.time_aggregation(df_chunk)
+                elif self.strategy == 'dollar_bars':
+                    df_chunk = self.generate_dollar_bars(df_chunk)
                 else:
                     logging.info("flow not implemented")
                 if isinstance(self.processed_df, pd.DataFrame):
@@ -219,6 +264,12 @@ class BinanceDataProcessor():
 #                                          output_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_ETHUSDT',
 #                                          strategy='volume_bars'
 #                                          )
+binance_processor = BinanceDataProcessor(value_frequency=25000000, crypto = 'ETHUSDT',
+                                         files_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/raw/crypto/binance_ETHUSDT',
+                                         output_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed',
+                                         strategy='dollar_bars'
+                                         )
+binance_processor.load_chunks()
 # binance_processor = BinanceDataProcessor(freq='1440min', 
 #                                          crypto = 'ETHUSDT',
 #                                          files_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/raw/crypto/binance_ETHUSDT',
@@ -240,13 +291,14 @@ class BinanceDataProcessor():
 #                                          )
 # binance_processor.load_chunks()
 
-binance_processor = BinanceDataProcessor(freq='1440min', 
-                                         crypto = 'SOLUSDT',
-                                         files_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/raw/crypto/binance_SOLUSDT',
-                                         output_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed',
-                                         strategy='time_aggregated'
-                                         )
-binance_processor.load_chunks()
+
+# binance_processor = BinanceDataProcessor(freq='1440min', 
+#                                          crypto = 'SOLUSDT',
+#                                          files_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/raw/crypto/binance_SOLUSDT',
+#                                          output_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed',
+#                                          strategy='time_aggregated'
+#                                          )
+# binance_processor.load_chunks()
 
 # binance_processor = BinanceDataProcessor(volume_frequency=50000, 
 #                                          crypto = 'ETHUSDT',

@@ -50,6 +50,8 @@ class CryptoFactory():
         if config.RUN_SUBTYPE in ['volume_bars', 'volume_bars_triple_barrier']:   
             file_path = os.path.join(config.processed_data_path, f'binance_{currency}', f'volume_bars_{config.volume}.csv')
             # volume bars are almost exactly the same, so don't bring any information
+        elif config.RUN_SUBTYPE in ['dollar_bars', 'dollar_bars_triple_barrier']:   
+            file_path = os.path.join(config.processed_data_path, f'binance_{currency}', f'dollar_bars_{config.value}.csv')
         elif config.RUN_SUBTYPE in ['time_aggregated', 'triple_barrier_time_aggregated']:  
             file_path = os.path.join(config.processed_data_path, f'binance_{currency}', f'time_aggregated_{config.freq}.csv')
         elif config.RUN_SUBTYPE in ['cumsum', 'cumsum_triple_barrier']:
@@ -60,10 +62,13 @@ class CryptoFactory():
 
         if config.RUN_SUBTYPE in ['time_aggregated', 'triple_barrier_time_aggregated']:  
             self.df_time_aggregated = df
-        if config.RUN_SUBTYPE in ['volume_bars','volume_bars_triple_barrier']:  
+        if config.RUN_SUBTYPE in ['volume_bars','volume_bars_triple_barrier', 'dollar_bars', 'dollar_bars_triple_barrier']:  
             # df.drop(columns=['volume'], inplace=True)
             df = self.deal_with_duplicates(df)
-            self.df_volume_bars = df
+            if 'volume' in config.RUN_SUBTYPE:
+                self.df_volume_bars = df
+            else:
+                self.df_dollar_bars = df
 
         return df
 
@@ -393,15 +398,16 @@ class CryptoFactory():
         
 
         # drop obs with the same consecutive barrier only for training period - this is INCORRECT as will filter obs that are needed for sequencing
-        # instead, create column to_keep which will be used in tensorflow dataset to create sequences
-        self.df_3_barriers_additional_info['barrier_touched_date_lag'] = self.df_3_barriers_additional_info['barrier_touched_date'].shift(1)
-        training_periods_to_exclude = self.df_3_barriers_additional_info.loc[(self.df_3_barriers_additional_info['datetime'] < config.train_end) & 
-                                                                             (self.df_3_barriers_additional_info['barrier_touched_date']==self.df_3_barriers_additional_info['barrier_touched_date_lag'])
-                                                                             ]['datetime'].tolist()
-        self.df_3_barriers_additional_info['to_keep'] = 1
-        self.df_3_barriers_additional_info.loc[self.df_3_barriers_additional_info['datetime'].isin(training_periods_to_exclude), 'to_keep'] = 0
-        barriers['to_keep'] = 1
+        # instead, create column to_keep which will be used in tensorflow dataset to create sequences - this idea is NOT being used currently
+        # self.df_3_barriers_additional_info['barrier_touched_date_lag'] = self.df_3_barriers_additional_info['barrier_touched_date'].shift(1)
+        # training_periods_to_exclude = self.df_3_barriers_additional_info.loc[(self.df_3_barriers_additional_info['datetime'] < config.train_end) & 
+        #                                                                      (self.df_3_barriers_additional_info['barrier_touched_date']==self.df_3_barriers_additional_info['barrier_touched_date_lag'])
+        #                                                                      ]['datetime'].tolist()
+        # self.df_3_barriers_additional_info['to_keep'] = 1
+        # self.df_3_barriers_additional_info.loc[self.df_3_barriers_additional_info['datetime'].isin(training_periods_to_exclude), 'to_keep'] = 0
+        # barriers['to_keep'] = 1
        # barriers.loc[barriers.index.isin(training_periods_to_exclude), 'to_keep'] = 0
 
-        self.df_3_barriers = barriers[['open', 'close', 'high', 'low', 'volume', 'y_pred','to_keep']]
+        # self.df_3_barriers = barriers[['open', 'close', 'high', 'low', 'volume', 'y_pred','to_keep']]
+        self.df_3_barriers = barriers[['open', 'close', 'high', 'low', 'volume', 'y_pred']]
         self.df_3_barriers.dropna(inplace=True)
