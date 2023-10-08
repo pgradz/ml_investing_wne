@@ -264,7 +264,7 @@ class BinanceDataProcessor():
 #                                          output_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_ETHUSDT',
 #                                          strategy='volume_bars'
 #                                          )
-binance_processor = BinanceDataProcessor(value_frequency=25000000, crypto = 'ETHUSDT',
+binance_processor = BinanceDataProcessor(value_frequency=50000000, crypto = 'ETHUSDT',
                                          files_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/raw/crypto/binance_ETHUSDT',
                                          output_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed',
                                          strategy='dollar_bars'
