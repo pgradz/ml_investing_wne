@@ -32,7 +32,9 @@ class MyHyperModel():
     def __init__(self, input_shape, train_dataset, val_dataset, 
                  currency=config.currency, seq_len=config.seq_len, 
                  RUN_SUBTYPE=config.RUN_SUBTYPE, model=config.model, 
-                 seed=config.seed, freq=config.freq):
+                 seed=config.seed, freq=config.freq, cumsum_threshold=config.cumsum_threshold,
+                 fixed_barrier=config.fixed_barrier, volume=config.volume, value=config.value,
+                 t_final=config.t_final):
         self.input_shape = input_shape
         self.train_dataset = train_dataset
         self.val_dataset = val_dataset
@@ -42,15 +44,28 @@ class MyHyperModel():
         self.model = model
         self.seed = seed
         self.freq = freq
+        self.cumsum_threshold = cumsum_threshold
+        self.fixed_barrier = fixed_barrier
+        self.volume = volume
+        self.value = value
+        self.t_final = t_final
         random.seed(seed)
         np.random.seed(seed)
         tf.random.set_seed(seed)
 
         # since multiple time aggregations are used, we need to distinguish between them
+        self.project_name=f'{self.currency}_{self.seq_len}_{self.RUN_SUBTYPE}_{self.model}'
+
         if 'time_aggregated' in self.RUN_SUBTYPE:
-            self.project_name=f'{self.currency}_{self.seq_len}_{self.RUN_SUBTYPE}_{self.model}_{self.freq}'
-        else:
-            self.project_name=f'{self.currency}_{self.seq_len}_{self.RUN_SUBTYPE}_{self.model}'
+            self.project_name=self.project_name + f'_{self.freq}'
+        if 'cumsum' in self.RUN_SUBTYPE:
+            self.project_name=self.project_name + f'_cusum_{self.cumsum_threshold}'.replace(".","")
+        if 'triple_barrier' in self.RUN_SUBTYPE:
+            self.project_name=self.project_name + f'_triple_{self.fixed_barrier}_{self.t_final}'.replace(".","")
+        if 'volume' in self.RUN_SUBTYPE:
+            self.project_name=self.project_name + f'_volume_{self.volume}'.replace(".","")
+        if 'dollar' in self.RUN_SUBTYPE:
+            self.project_name=self.project_name + f'_dollar_{self.value}'.replace(".","")
 
     def build_model_for_tuning(self, hp, nb_classes=2):
 
