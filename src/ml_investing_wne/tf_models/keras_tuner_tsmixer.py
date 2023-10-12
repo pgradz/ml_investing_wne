@@ -29,6 +29,7 @@ import logging
 
 from ml_investing_wne import config
 from ml_investing_wne.utils import get_logger
+from ml_investing_wne.tf_models.keras_tuner_base import MyHyperModelBase
 
 tf.keras.backend.set_image_data_format("channels_last")
 logger = logging.getLogger(__name__)
@@ -60,23 +61,7 @@ def res_block(inputs, norm_type, activation, dropout, ff_dim):
     return x + res  
 
 
-class MyHyperModel():
-
-    def __init__(self, input_shape, train_dataset, val_dataset, 
-                 currency=config.currency, seq_len=config.seq_len, 
-                 RUN_SUBTYPE=config.RUN_SUBTYPE, model=config.model, 
-                 seed=config.seed):
-        self.input_shape = input_shape
-        self.train_dataset = train_dataset
-        self.val_dataset = val_dataset
-        self.currency = currency
-        self.seq_len = seq_len
-        self.RUN_SUBTYPE = RUN_SUBTYPE
-        self.model = model
-        self.seed = seed
-        random.seed(seed)
-        np.random.seed(seed)
-        tf.random.set_seed(seed)
+class MyHyperModel(MyHyperModelBase):
 
 
     def build_model_for_tuning(self, hp, nb_classes=2):
@@ -101,21 +86,6 @@ class MyHyperModel():
         model.compile(loss='categorical_crossentropy', optimizer=tf.keras.optimizers.Adam(learning_rate=hp_learning_rate),
                         metrics=['accuracy'])       
         return model
-    
-    def run_tuner(self):
-
-        self.tuner = kt.Hyperband(self.build_model_for_tuning,
-                            objective='val_accuracy',
-                            max_epochs=20,
-                            hyperband_iterations=1, 
-                            factor=3,
-                            directory='keras_tuner',
-                            project_name=f'{self.currency}_{self.seq_len}_{self.RUN_SUBTYPE}_{self.model}')
-
-
-        stop_early = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=10)
-
-        self.tuner.search(self.train_dataset, epochs=20,validation_data=self.val_dataset, callbacks=[stop_early])
 
 
     def get_best_model(self, model_index=0):
@@ -135,9 +105,6 @@ class MyHyperModel():
 
 
         model = self.tuner.hypermodel.build(self.best_hps)
-        # model = self.reconstruct_model(self.best_hps.get('n_feature_maps'), self.best_hps.get('kernel_size_1'), self.best_hps.get('kernel_size_2'), 
-        #                                self.best_hps.get('kernel_size_3'), self.best_hps.get('dropout'),self.best_hps.get('lstm_neurons'), 
-        #                                self.best_hps.get('learning_rate'))
 
         return model
 
@@ -176,7 +143,7 @@ class MyHyperModel():
         and the optimal learning rate for the optimizer
         is {self.best_hps.get('learning_rate')}.
         """)
-
+        
         self.model = model
         return  model
 

@@ -1,3 +1,4 @@
+import os
 import random
 import numpy as np
 import tensorflow as tf
@@ -7,7 +8,7 @@ import datetime
 from ml_investing_wne import config
 from ml_investing_wne.utils import get_logger
 from ml_investing_wne.experiment_factory import create_asset, experiment_factory
-from ml_investing_wne.performance_evaluator import PerformanceEvaluator
+from ml_investing_wne.PerformanceEvaluator import PerformanceEvaluator
 
 
 train_end = [datetime.datetime(2022, 1, 1, 0, 0, 0), datetime.datetime(2022, 4, 1, 0, 0, 0), datetime.datetime(2022, 7, 1, 0, 0, 0), datetime.datetime(2022, 10, 1, 0, 0, 0), datetime.datetime(2023, 1, 1, 0, 0, 0)]
@@ -15,6 +16,7 @@ val_end = [datetime.datetime(2022, 4, 1, 0, 0, 0), datetime.datetime(2022, 7, 1,
 test_end = [datetime.datetime(2022, 7, 1, 0, 0, 0), datetime.datetime(2022, 10, 1, 0, 0, 0), datetime.datetime(2023, 1, 1, 0, 0, 0), datetime.datetime(2023, 4, 1, 0, 0, 0), datetime.datetime(2023, 7, 1, 0, 0, 0),]
 
 seeds = [12345, 123456, 1234567]
+
 def set_seed(seed):
     random.seed(seed)
     np.random.seed(seed)
@@ -94,7 +96,7 @@ def main():
         
     # summarize results from different seeds
     # daily end prices are needed for some performance metrics
-    daily_records = os.path.join(config.processed_data_path, f'binance_{currency}', 'time_aggregated_1440min.csv')
+    daily_records = os.path.join(config.processed_data_path, f'binance_{config.currency}', 'time_aggregated_1440min.csv')
     performance_evaluator = PerformanceEvaluator(experiment.dir_path, daily_records )
     performance_evaluator.run()
 

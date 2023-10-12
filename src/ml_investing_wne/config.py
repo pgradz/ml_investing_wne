@@ -7,29 +7,29 @@ import datetime
 # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 RUN_TYPE = 'crypto' # forex or crypto
-RUN_SUBTYPE = 'time_aggregated' #'triple_barrier_time_aggregated','time_aggregated', 'volume_bars', dollar_bars, 'cumsum', cumsum_triple_barrier', 'volume_bars_triple_barrier', dollar_bars_triple_barrier
+RUN_SUBTYPE = 'cumsum_triple_barrier' #'triple_barrier_time_aggregated','time_aggregated', 'volume_bars', dollar_bars, 'cumsum', cumsum_triple_barrier', 'volume_bars_triple_barrier', dollar_bars_triple_barrier
 provider = 'Binance' # hist_data, Bitstamp, Binance
-currency = 'BTCUSDT'
+currency = 'ETHUSDT'
 
 # model parameters
 input_dim = '1d'  # 2d or 1d
 # has to be defined inside tf_models folder
-model = 'keras_tuner_CNN_LSTM' # resnet_lstm_regularized, transformer_learnable_encoding, lstm, keras_tuner_CNN_LSTM, keras_tuner_LSTM
+model = 'keras_tuner_tsmixer' # resnet_lstm_regularized, transformer_learnable_encoding, lstm, keras_tuner_CNN_LSTM, keras_tuner_LSTM
 seed = 12345
 # leave empty if training from scratch, for transfer learning specify currency to be used as a base
 load_model = ''
 
 # time bars
-freq = '1min'
+freq = '720min'
 
 # volume for volume bars
-volume = 50000
+volume = 5000
 value = 50000000
 
 
 # Tripple barrier params
 t_final=24
-fixed_barrier=0.025
+fixed_barrier=0.05
 
 # cumsum params
 cumsum_threshold = 0.01

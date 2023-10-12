@@ -22,8 +22,8 @@ backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_inv
 # daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_MATICUSDT/time_aggregated_1440min.csv'
 daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_ETHUSDT/time_aggregated_1440min.csv'
 # output folder
-output_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/results'
-
+# output_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/results'
+output_folder = '/root/ml_investing_wne/src/ml_investing_wne/models/results'
 
 
 class PerformanceEvaluator():
@@ -282,6 +282,7 @@ class PerformanceEvaluator():
                             i = min(self.trades_and_close[(self.trades_and_close['datetime']>datetime_end) & (self.trades_and_close['barrier_touched'].notna())].index)
                         # there might no more rows
                         except ValueError:
+                            i += 1
                             continue
                     else:
                         exit_price = self.trades_and_close.loc[i, 'close']
