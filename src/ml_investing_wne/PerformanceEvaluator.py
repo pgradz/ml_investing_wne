@@ -282,7 +282,6 @@ class PerformanceEvaluator():
                             i = min(self.trades_and_close[(self.trades_and_close['datetime']>datetime_end) & (self.trades_and_close['barrier_touched'].notna())].index)
                         # there might no more rows
                         except ValueError:
-                            i += 1
                             continue
                     else:
                         exit_price = self.trades_and_close.loc[i, 'close']
