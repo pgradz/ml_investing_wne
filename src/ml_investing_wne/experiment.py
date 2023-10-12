@@ -35,7 +35,7 @@ class Experiment():
                  seed=config.seed, run_subtype=config.RUN_SUBTYPE, budget=None,
                  volume=config.volume, value=config.value, cumsum_threshold=config.cumsum_threshold,
                  fixed_barrier=config.fixed_barrier, t_final=config.t_final,
-                 currency=config.currency) -> None:
+                 currency=config.currency, model_name=config.model) -> None:
         self.df = df
         self.binarize_target=binarize_target 
         self.nb_classes=nb_classes
@@ -48,6 +48,13 @@ class Experiment():
         self.batch_size=batch_size
         self.seed=seed
         self.run_subtype=run_subtype
+        self.volume = volume
+        self.value = value
+        self.cumsum_threshold = cumsum_threshold
+        self.fixed_barrier = fixed_barrier
+        self.t_final = t_final
+        self.currency = currency
+        self.model_name = model_name
         # budget for performance evaluation
         if budget:
             self.budget = budget
@@ -56,17 +63,17 @@ class Experiment():
         # placeholder for model    
         self.model = None
 
-        self.experiment_name=f'{self.currency}_{self.seq_len}_{self.RUN_SUBTYPE}_{self.model}'
+        self.experiment_name=f'{self.currency}_{self.seq_len}_{self.run_subtype}_{self.model_name}'
 
-        if 'time_aggregated' in self.RUN_SUBTYPE:
+        if 'time_aggregated' in self.run_subtype:
             self.experiment_name=self.experiment_name + f'_{self.freq}'
-        if 'cumsum' in self.RUN_SUBTYPE:
+        if 'cumsum' in self.run_subtype:
             self.experiment_name=self.experiment_name + f'_cusum_{self.cumsum_threshold}'.replace(".","")
-        if 'triple_barrier' in self.RUN_SUBTYPE:
+        if 'triple_barrier' in self.run_subtype:
             self.experiment_name=self.experiment_name + f'_triple_{self.fixed_barrier}_{self.t_final}'.replace(".","")
-        if 'volume' in self.RUN_SUBTYPE:
+        if 'volume' in self.run_subtype:
             self.experiment_name=self.experiment_name + f'_volume_{self.volume}'.replace(".","")
-        if 'dollar' in self.RUN_SUBTYPE:
+        if 'dollar' in self.run_subtype:
             self.experiment_name=self.experiment_name + f'_dollar_{self.value}'.replace(".","")
 
         # folder to store the results
