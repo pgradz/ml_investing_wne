@@ -32,7 +32,10 @@ class Experiment():
                  seq_len=config.seq_len, seq_stride=config.seq_stride,
                  train_end=config.train_end, val_end=config.val_end,
                  test_end=config.test_end, batch_size=config.batch,
-                 seed=config.seed, run_subtype=config.RUN_SUBTYPE, budget=None) -> None:
+                 seed=config.seed, run_subtype=config.RUN_SUBTYPE, budget=None,
+                 volume=config.volume, value=config.value, cumsum_threshold=config.cumsum_threshold,
+                 fixed_barrier=config.fixed_barrier, t_final=config.t_final,
+                 currency=config.currency) -> None:
         self.df = df
         self.binarize_target=binarize_target 
         self.nb_classes=nb_classes
@@ -52,6 +55,24 @@ class Experiment():
             self.budget = 100
         # placeholder for model    
         self.model = None
+
+        self.experiment_name=f'{self.currency}_{self.seq_len}_{self.RUN_SUBTYPE}_{self.model}'
+
+        if 'time_aggregated' in self.RUN_SUBTYPE:
+            self.experiment_name=self.experiment_name + f'_{self.freq}'
+        if 'cumsum' in self.RUN_SUBTYPE:
+            self.experiment_name=self.experiment_name + f'_cusum_{self.cumsum_threshold}'.replace(".","")
+        if 'triple_barrier' in self.RUN_SUBTYPE:
+            self.experiment_name=self.experiment_name + f'_triple_{self.fixed_barrier}_{self.t_final}'.replace(".","")
+        if 'volume' in self.RUN_SUBTYPE:
+            self.experiment_name=self.experiment_name + f'_volume_{self.volume}'.replace(".","")
+        if 'dollar' in self.RUN_SUBTYPE:
+            self.experiment_name=self.experiment_name + f'_dollar_{self.value}'.replace(".","")
+
+        # folder to store the results
+        self.dir_path = os.path.join(config.package_directory, 'models',  self.experiment_name)
+        if not os.path.exists(self.dir_path):
+            os.makedirs(self.dir_path)
 
     def run(self):
         self.train_test_val_split()
@@ -296,7 +317,7 @@ class Experiment():
         # load model tunner dynamically
         MyHyperModel = getattr(importlib.import_module(f'ml_investing_wne.tf_models.{config.model}'),'MyHyperModel')
         my_hyper_model = MyHyperModel(input_shape=(self.seq_len, self.no_features), train_dataset=self.train_dataset, val_dataset=self.val_dataset,
-                                      seed=self.seed)
+                                      seed=self.seed, project_name=self.experiment_name)
         my_hyper_model.run_tuner()
         self.model = my_hyper_model.get_best_unique_model(model_index)
 
@@ -494,16 +515,8 @@ class Experiment():
             df = self.run_trades_3_barriers(df)
         else:
             df = self.run_trades_one_step(df)
-            
-        if 'time_aggregated' in self.run_subtype:
-            dir_path = os.path.join(config.package_directory, 'models', f'''{config.currency}_{config.RUN_SUBTYPE}_{config.model}_{config.freq}''')
-        else:
-            dir_path = os.path.join(config.package_directory, 'models', f'''{config.currency}_{config.RUN_SUBTYPE}_{config.model}''')
-            
-        # export trades to later compute sharpe ratio etc.     
-        if not os.path.exists(dir_path):
-            os.makedirs(dir_path)
-        df.to_csv(os.path.join(dir_path,
+
+        df.to_csv(os.path.join(self.dir_path,
                                 f'''backtest_{config.currency}_{config.RUN_SUBTYPE}_{config.val_end.strftime("%Y%m%d")}_{config.test_end.strftime("%Y%m%d")}_{config.seed}.csv'''))
         # SUMMARIZE RESULTS
         hits = df.loc[((df['transaction'] == 'buy') & (df['prc_change'] > 0)) |

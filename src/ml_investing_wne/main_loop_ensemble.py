@@ -7,27 +7,12 @@ import datetime
 from ml_investing_wne import config
 from ml_investing_wne.utils import get_logger
 from ml_investing_wne.experiment_factory import create_asset, experiment_factory
-
+from ml_investing_wne.performance_evaluator import PerformanceEvaluator
 
 
 train_end = [datetime.datetime(2022, 1, 1, 0, 0, 0), datetime.datetime(2022, 4, 1, 0, 0, 0), datetime.datetime(2022, 7, 1, 0, 0, 0), datetime.datetime(2022, 10, 1, 0, 0, 0), datetime.datetime(2023, 1, 1, 0, 0, 0)]
 val_end = [datetime.datetime(2022, 4, 1, 0, 0, 0), datetime.datetime(2022, 7, 1, 0, 0, 0), datetime.datetime(2022, 10, 1, 0, 0, 0), datetime.datetime(2023, 1, 1, 0, 0, 0), datetime.datetime(2023, 4, 1, 0, 0, 0)]
 test_end = [datetime.datetime(2022, 7, 1, 0, 0, 0), datetime.datetime(2022, 10, 1, 0, 0, 0), datetime.datetime(2023, 1, 1, 0, 0, 0), datetime.datetime(2023, 4, 1, 0, 0, 0), datetime.datetime(2023, 7, 1, 0, 0, 0),]
-
-
-# train_end = [datetime.datetime(2022, 1, 1, 0, 0, 0), datetime.datetime(2022, 2, 1, 0, 0, 0), datetime.datetime(2022, 3, 1, 0, 0, 0), datetime.datetime(2022, 4, 1, 0, 0, 0), datetime.datetime(2022, 5, 1, 0, 0, 0),
-#              datetime.datetime(2022, 6, 1, 0, 0, 0), datetime.datetime(2022, 7, 1, 0, 0, 0), datetime.datetime(2022, 8, 1, 0, 0, 0), datetime.datetime(2022, 9, 1, 0, 0, 0), datetime.datetime(2022, 10, 1, 0, 0, 0),
-#              datetime.datetime(2022, 11, 1, 0, 0, 0), datetime.datetime(2022, 12, 1, 0, 0, 0), datetime.datetime(2023, 1, 1, 0, 0, 0), datetime.datetime(2023, 2, 1, 0, 0, 0), datetime.datetime(2023, 3, 1, 0, 0, 0)
-#              ]
-# val_end = [datetime.datetime(2022, 4, 1, 0, 0, 0), datetime.datetime(2022, 5, 1, 0, 0, 0), datetime.datetime(2022, 6, 1, 0, 0, 0), datetime.datetime(2022, 7, 1, 0, 0, 0), datetime.datetime(2022, 8, 1, 0, 0, 0),
-#            datetime.datetime(2022, 9, 1, 0, 0, 0), datetime.datetime(2022, 10, 1, 0, 0, 0), datetime.datetime(2022, 11, 1, 0, 0, 0), datetime.datetime(2022, 12, 1, 0, 0, 0), datetime.datetime(2023, 1, 1, 0, 0, 0),
-#            datetime.datetime(2023, 2, 1, 0, 0, 0), datetime.datetime(2023, 3, 1, 0, 0, 0), datetime.datetime(2023, 4, 1, 0, 0, 0), datetime.datetime(2023, 5, 1, 0, 0, 0), datetime.datetime(2023, 6, 1, 0, 0, 0)
-#            ]
-# test_end = [datetime.datetime(2022, 5, 1, 0, 0, 0), datetime.datetime(2022, 6, 1, 0, 0, 0), datetime.datetime(2022, 7, 1, 0, 0, 0), datetime.datetime(2022, 8, 1, 0, 0, 0), datetime.datetime(2022, 9, 1, 0, 0, 0),
-#             datetime.datetime(2022, 10, 1, 0, 0, 0), datetime.datetime(2022, 11, 1, 0, 0, 0), datetime.datetime(2022, 12, 1, 0, 0, 0), datetime.datetime(2023, 1, 1, 0, 0, 0), datetime.datetime(2023, 2, 1, 0, 0, 0),
-#             datetime.datetime(2023, 3, 1, 0, 0, 0), datetime.datetime(2023, 4, 1, 0, 0, 0), datetime.datetime(2023, 5, 1, 0, 0, 0), datetime.datetime(2023, 6, 1, 0, 0, 0), datetime.datetime(2023, 7, 1, 0, 0, 0)
-#             ]
-
 
 seeds = [12345, 123456, 1234567]
 
@@ -108,6 +93,11 @@ def main():
         logger.info(f'Final budget: {trading_result}')
         logger.info(f'Final hit ratio: {hit_counter/trades}')    
         
+    # summarize results from different seeds
+    # daily end prices are needed for some performance metrics
+    daily_records = os.path.join(config.processed_data_path, f'binance_{currency}', 'time_aggregated_1440min.csv')
+    performance_evaluator = PerformanceEvaluator(experiment.dir_path, daily_records )
+    performance_evaluator.run()
 
 if __name__ == "__main__":
     main()

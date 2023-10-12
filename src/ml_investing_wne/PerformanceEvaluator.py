@@ -35,6 +35,7 @@ class PerformanceEvaluator():
     '''
     This class calculates daily returns of the strategy. It is based on the backtest results.
     '''
+
     def __init__(self, backtest_folder, daily_records, risk_free_rate=0.02, seeds = ['12345', '123456', '1234567']):
         self.backtest_folder = backtest_folder
         self.triple_barrier = False
@@ -242,7 +243,7 @@ class PerformanceEvaluator():
 
         while i <= self.trades_and_close.index.max():
             # open position
-            # if i == 2357:
+            # if i == 1917:
             #     print('debug')
 
             if transaction == 'No trade':
