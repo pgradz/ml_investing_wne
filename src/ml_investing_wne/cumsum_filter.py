@@ -14,12 +14,13 @@ tf.random.set_seed(config.seed)
 
 logger = get_logger()
 EXCHANGE = 'binance'
-threshold = 0.03
+threshold = 0.02
 output_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed'
-output_path = os.path.join(output_path, f'{EXCHANGE}_{config.currency}', f'cumsum_{threshold}.csv')
+output_path = os.path.join(output_path, f'{EXCHANGE}_{config.currency}')
+range_bar = True
 
 
-def cumsum_filter(df,h):
+def cumsum_filter(df,h,range_bar=False):
     
     # make index numeric
     df.reset_index(inplace=True)
@@ -35,7 +36,10 @@ def cumsum_filter(df,h):
     df['group_id'] = 0
     logger.info('Starting cumsum filter')
     for i in df.index[1:]:
-        s_pos,s_neg=max(0,s_pos+df.iloc[i, prc_change_index]),min(0,s_neg+df.iloc[i, prc_change_index])
+        if range_bar:
+            s_pos,s_neg=s_pos+df.iloc[i, prc_change_index], s_neg+df.iloc[i, prc_change_index]
+        else:
+            s_pos,s_neg=max(0,s_pos+df.iloc[i, prc_change_index]),min(0,s_neg+df.iloc[i, prc_change_index])
         df.loc[i, 'group_id'] = group_id
         if s_neg<-h or s_pos>h:
             group_id += 1
@@ -49,9 +53,13 @@ def cumsum_filter(df,h):
                                     'low': 'min',
                                     'close': 'last',
                                     'volume': 'sum'})
-       
-    return df_agg
 
+    if range_bar:
+        file_name = f'range_{threshold}.csv'
+    else:
+        file_name = f'cumsum_{threshold}.csv'
+
+    return df_agg, file_name
 
 if __name__ == "__main__":
 
@@ -59,5 +67,6 @@ if __name__ == "__main__":
     asset = create_asset()
     experiment = experiment_factory(asset).get_experiment()
     df = experiment.df[['open', 'high', 'low', 'close', 'volume']]
-    df2 = cumsum_filter(df, threshold)
+    df2, file_name = cumsum_filter(df, threshold, range_bar=range_bar)
+    output_path = os.path.join(output_path, file_name)
     df2.to_csv(output_path, index=False)

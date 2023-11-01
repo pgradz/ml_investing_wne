@@ -257,26 +257,26 @@ class BinanceDataProcessor():
             # save work in progress        
             self.processed_df.to_csv(self.output_path, index=False)
 
-    
 #binance_processor = BinanceDataProcessor(file='/Users/i0495036/Downloads/BTCUSDT-trades-2023-01.csv')
-# binance_processor = BinanceDataProcessor(volume_frequency=50000, 
-#                                          files_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/raw/crypto/binance_ETHUSDT',
-#                                          output_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_ETHUSDT',
-#                                          strategy='volume_bars'
-#                                          )
-binance_processor = BinanceDataProcessor(value_frequency=50000000, crypto = 'ETHUSDT',
-                                         files_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/raw/crypto/binance_ETHUSDT',
-                                         output_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed',
-                                         strategy='dollar_bars'
-                                         )
-binance_processor.load_chunks()
-# binance_processor = BinanceDataProcessor(freq='1440min', 
-#                                          crypto = 'ETHUSDT',
+# binance_processor = BinanceDataProcessor(volume_frequency=100000, 
 #                                          files_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/raw/crypto/binance_ETHUSDT',
 #                                          output_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed',
-#                                          strategy='time_aggregated'
+#                                          strategy='volume_bars'
 #                                          )
 # binance_processor.load_chunks()
+# binance_processor = BinanceDataProcessor(value_frequency=100000000, crypto = 'ETHUSDT',
+#                                          files_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/raw/crypto/binance_ETHUSDT',
+#                                          output_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed',
+#                                          strategy='dollar_bars'
+#                                          )
+# binance_processor.load_chunks()
+binance_processor = BinanceDataProcessor(freq='1min', 
+                                         crypto = 'ETHUSDT',
+                                         files_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/raw/crypto/binance_ETHUSDT',
+                                         output_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed',
+                                         strategy='time_aggregated'
+                                         )
+binance_processor.load_chunks()
 # binance_processor = BinanceDataProcessor(freq='10min', 
 #                                          files_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/raw/crypto/binance_BTCUSDT',
 #                                          output_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_BTCUSDT',
@@ -300,7 +300,7 @@ binance_processor.load_chunks()
 #                                          )
 # binance_processor.load_chunks()
 
-# binance_processor = BinanceDataProcessor(volume_frequency=50000, 
+# binance_processor = BinanceDataProcessor(volume_frequency=100000, 
 #                                          crypto = 'ETHUSDT',
 #                                          files_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/raw/crypto/binance_ETHUSDT',
 #                                          output_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed',

@@ -62,6 +62,8 @@ class Experiment():
             self.budget = 100
         # placeholder for model    
         self.model = None
+        # how many observations to skip when splitting the data
+        self.offset = 0
 
         self.experiment_name=f'{self.currency}_{self.seq_len}_{self.run_subtype}_{self.model_name}'
 
@@ -71,10 +73,14 @@ class Experiment():
             self.experiment_name=self.experiment_name + f'_cusum_{self.cumsum_threshold}'.replace(".","")
         if 'triple_barrier' in self.run_subtype:
             self.experiment_name=self.experiment_name + f'_triple_{self.fixed_barrier}_{self.t_final}'.replace(".","")
+            # offset (preventing data leakage) has to be applied for triple barrier method
+            self.offset =  self.t_final
         if 'volume' in self.run_subtype:
             self.experiment_name=self.experiment_name + f'_volume_{self.volume}'.replace(".","")
         if 'dollar' in self.run_subtype:
             self.experiment_name=self.experiment_name + f'_dollar_{self.value}'.replace(".","")
+        if 'range' in self.run_subtype:
+            self.experiment_name=self.experiment_name + f'_range_{self.cumsum_threshold}'.replace(".","")
 
         # folder to store the results
         self.dir_path = os.path.join(config.package_directory, 'models',  self.experiment_name)
@@ -88,25 +94,27 @@ class Experiment():
 
 
     def _train_test_val_split(self, df: pd.DataFrame,train_end, val_end,
-                         test_end, seq_len) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+                         test_end) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         ''' Objective of this function is to split the data into train, test and validation sets in a manner that
         there is no overlap between the sets. It will remove some of the data at the end of train and val sets so
         test set is exactly what is expected and is comparable between different configurations'.cs/
         :param df: dataframe to split
         :return: train, test and validation sets, train date index, val date index, test date index
         '''
-        train = df.loc[df.datetime <= train_end] 
+        train = df.loc[df.datetime < train_end] 
         # remove last seq_len rows from train
-        train = train.iloc[:-seq_len]
+        if self.offset > 0:
+            train = train.iloc[:-self.offset]
         # update train_end
         train_end = train.iloc[-1]['datetime']
         # validation
-        val = df.loc[(df.datetime > train_end) & (df.datetime <= val_end)]
-        val = val.iloc[:-seq_len]
+        val = df.loc[(df.datetime >= train_end) & (df.datetime < val_end)]
+        if self.offset > 0:
+            val = val.iloc[:-self.offset]
         # update val_end
         val_end = val.iloc[-1]['datetime']
         # test
-        test = df.loc[(df.datetime > val_end) & (df.datetime < test_end)]
+        test = df.loc[(df.datetime >= val_end) & (df.datetime < test_end)]
 
         # xxx_date_index is needed to later get back datetime index
         train_date_index = train.reset_index()
@@ -143,8 +151,7 @@ class Experiment():
         # move datetime from index to column
         df.reset_index(inplace=True)
         train, val, test, train_date_index, val_date_index, test_date_index = self._train_test_val_split(df, train_end=self.train_end, 
-                                                                                                         val_end=self.val_end, test_end=self.test_end,
-                                                                                                           seq_len=self.seq_len)
+                                                                                                         val_end=self.val_end, test_end=self.test_end)
         train_y = train['y_pred']
         val_y = val['y_pred']
         test_y = test['y_pred']

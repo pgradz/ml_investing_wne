@@ -50,6 +50,8 @@ class experiment_factory():
                 experiment = self.crypto_cumsum(**kwargs)
             elif config.RUN_SUBTYPE == 'cumsum_triple_barrier':
                 experiment = self.crypto_cumsum_triple_barrier(**kwargs)
+            elif config.RUN_SUBTYPE == 'range_bar':
+                experiment = self.crypto_range_bar(**kwargs)
             else:
                 logger.info('Flow not implemented!')
         else:
@@ -138,6 +140,12 @@ class experiment_factory():
         df = prepare_processed_dataset(df=self.asset.df, add_target=True)
         experiment = Experiment(df, **kwargs)
         return experiment
+    
+    def crypto_range_bar(self, **kwargs):
+        df = prepare_processed_dataset(df=self.asset.df, add_target=True)
+        experiment = Experiment(df, **kwargs)
+        return experiment
+
     
     def crypto_cumsum_triple_barrier(self, **kwargs):
 
