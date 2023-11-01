@@ -15,6 +15,10 @@ train_end = [datetime.datetime(2022, 1, 1, 0, 0, 0), datetime.datetime(2022, 4, 
 val_end = [datetime.datetime(2022, 4, 1, 0, 0, 0), datetime.datetime(2022, 7, 1, 0, 0, 0), datetime.datetime(2022, 10, 1, 0, 0, 0), datetime.datetime(2023, 1, 1, 0, 0, 0), datetime.datetime(2023, 4, 1, 0, 0, 0)]
 test_end = [datetime.datetime(2022, 7, 1, 0, 0, 0), datetime.datetime(2022, 10, 1, 0, 0, 0), datetime.datetime(2023, 1, 1, 0, 0, 0), datetime.datetime(2023, 4, 1, 0, 0, 0), datetime.datetime(2023, 7, 1, 0, 0, 0),]
 
+# train_end = [datetime.datetime(2023, 1, 1, 0, 0, 0)]
+# val_end =  [datetime.datetime(2023, 4, 1, 0, 0, 0)]
+# test_end = [datetime.datetime(2023, 7, 1, 0, 0, 0)]
+
 seeds = [12345, 123456, 1234567]
 
 def set_seed(seed):

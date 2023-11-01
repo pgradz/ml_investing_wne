@@ -70,10 +70,33 @@ def build_model(
     # x = layers.Dense(pred_len)(x)  # [Batch, Channel, Output Length]
     # outputs = tf.transpose(x, perm=[0, 2, 1])  # [Batch, Output Length, Channel])
            
-    output_layer = layers.Dense(nb_classes, activation='softmax')(x)
+    # output_layer = layers.Dense(nb_classes, activation='softmax')(x)
+    # model = tf.keras.models.Model(inputs=inputs, outputs=output_layer)
+    # model.compile(loss='categorical_crossentropy', optimizer=tf.keras.optimizers.Adam(),
+    #                 metrics=['accuracy'])    
+
+    # flatten the output of the resnet block
+    flatten = layers.Flatten()(x)
+    dense = layers.Dense(64, activation='relu')(flatten)
+    output_layer = layers.Dense(nb_classes, activation='softmax')(dense)
     model = tf.keras.models.Model(inputs=inputs, outputs=output_layer)
+
+
+    # gap_layer_1 = layers.GlobalAveragePooling1D()(x)  
+    # x = tf.transpose(x, perm=[0, 2, 1])
+    # gap_layer_2 = layers.GlobalAveragePooling1D()(x)  
+    # # concatenate the two gap layers
+    # gap = tf.keras.layers.Concatenate()([gap_layer_1, gap_layer_2])
+    # output_layer = layers.Dense(nb_classes, activation='softmax')(gap)
+    # model = tf.keras.models.Model(inputs=inputs, outputs=output_layer)
     model.compile(loss='categorical_crossentropy', optimizer=tf.keras.optimizers.Adam(),
-                    metrics=['accuracy'])       
+                    metrics=['accuracy'])  
+
+    # x = tf.transpose(x, perm=[0, 2, 1])  # [Batch, Channel, Input Length]
+    # x = layers.Dense(5)(x)  # [Batch, Channel, Output Length]
+    # outputs = tf.transpose(x, perm=[0, 2, 1])  # [Batch, Output Length, Channel])
+    # model = tf.keras.models.Model(inputs=inputs, outputs=outputs)
+
     return model        
 
 

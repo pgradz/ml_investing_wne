@@ -10,20 +10,20 @@ from ml_investing_wne.utils import get_logger
 
 logger = get_logger()
 
-backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ETHUSDT_cumsum_triple_barrier_keras_tuner_CNN_LSTM_cusum_001_triple_0025_24'
+backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/BTCUSDT_96_cumsum_triple_barrier_keras_tuner_CNN_LSTM_cusum_001_triple_0025_24'
 # backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_MATICUSDT_cumsum_triple_barrier_with_volume_no_SMA'
 # backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_SOLUSDT_cumsum_triple_barrier'
 # backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_BTCUSDT_cumsum_triple_barrier_with_volume_no_SMA'
 # backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_BTCUSDT_cumsum'
 # backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_ETHUSDT_cumsum'
 # backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_MATICUSDT_cumsum'
-# daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_BTCUSDT/time_aggregated_1440min.csv'
+daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_BTCUSDT/time_aggregated_1440min.csv'
 # daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_SOLUSDT/time_aggregated_1440min.csv'
 # daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_MATICUSDT/time_aggregated_1440min.csv'
-daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_ETHUSDT/time_aggregated_1440min.csv'
+# daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_ETHUSDT/time_aggregated_1440min.csv'
 # output folder
-# output_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/results'
-output_folder = '/root/ml_investing_wne/src/ml_investing_wne/models/results'
+output_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/results'
+# output_folder = '/root/ml_investing_wne/src/ml_investing_wne/models/results'
 
 
 class PerformanceEvaluator():
