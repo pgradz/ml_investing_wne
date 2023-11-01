@@ -102,17 +102,17 @@ class Experiment():
         :return: train, test and validation sets, train date index, val date index, test date index
         '''
         train = df.loc[df.datetime < train_end] 
-        # remove last seq_len rows from train
+        # update train_end
+        train_end = train.iloc[-self.seq_len+1]['datetime']
+        # remove last target length rows from train
         if self.offset > 0:
             train = train.iloc[:-self.offset]
-        # update train_end
-        train_end = train.iloc[-1]['datetime']
         # validation
         val = df.loc[(df.datetime >= train_end) & (df.datetime < val_end)]
+        # update val_end
+        val_end = val.iloc[-self.seq_len+1]['datetime']
         if self.offset > 0:
             val = val.iloc[:-self.offset]
-        # update val_end
-        val_end = val.iloc[-1]['datetime']
         # test
         test = df.loc[(df.datetime >= val_end) & (df.datetime < test_end)]
 

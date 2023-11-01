@@ -161,7 +161,7 @@ class BinanceDataProcessor():
         '''
         Aggregates data based on time
         '''
-
+        self.running_volume_sum += df['volume'].sum()
         if isinstance(self.remaining_df, pd.DataFrame):
             df = pd.concat([self.remaining_df, df], ignore_index=True)
 
@@ -270,7 +270,7 @@ class BinanceDataProcessor():
 #                                          strategy='dollar_bars'
 #                                          )
 # binance_processor.load_chunks()
-binance_processor = BinanceDataProcessor(freq='1min', 
+binance_processor = BinanceDataProcessor(freq='1440min', 
                                          crypto = 'ETHUSDT',
                                          files_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/raw/crypto/binance_ETHUSDT',
                                          output_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed',
