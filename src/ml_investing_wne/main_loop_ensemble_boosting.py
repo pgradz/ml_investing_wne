@@ -11,6 +11,7 @@ from sklearn.metrics import accuracy_score
 from ml_investing_wne import config
 from ml_investing_wne.utils import get_logger
 from ml_investing_wne.experiment_factory import create_asset, experiment_factory
+from ml_investing_wne.PerformanceEvaluator import PerformanceEvaluator
 
 
 train_end = [datetime.datetime(2022, 1, 1, 0, 0, 0), datetime.datetime(2022, 4, 1, 0, 0, 0), datetime.datetime(2022, 7, 1, 0, 0, 0), datetime.datetime(2022, 10, 1, 0, 0, 0), datetime.datetime(2023, 1, 1, 0, 0, 0)]
@@ -145,7 +146,13 @@ def main():
             test_start_date_next_interval = experiment.test_start_date_next_interval
 
         logger.info(f'Final budget: {trading_result}')
-        logger.info(f'Final hit ratio: {hit_counter/trades}')    
+        logger.info(f'Final hit ratio: {hit_counter/trades}')
+
+    # summarize results from different seeds
+    # daily end prices are needed for some performance metrics
+    daily_records = os.path.join(config.processed_data_path, f'binance_{config.currency}', 'time_aggregated_1440min.csv')
+    performance_evaluator = PerformanceEvaluator(experiment.dir_path, daily_records )
+    performance_evaluator.run()
         
 
 if __name__ == "__main__":

@@ -45,15 +45,15 @@ def main():
         trades = 0
         # this is a placeholder to deal with situation when triple barrier method ends in next quarter
         test_start_date_next_interval = val_end[0]
-        for train, val, test in zip(train_end, val_end, test_end):
+        for j, dates in enumerate(zip(train_end, val_end, test_end)):
             
             # ensemble of 3 best models
             for m in range(3):
             # just in case set seed once again, it used to reset after each experiment
                 set_seed(seed)
-                config.train_end = train
-                config.val_end = max(val, test_start_date_next_interval)
-                config.test_end = test
+                config.train_end = dates[0]
+                config.val_end = max(dates[1], test_start_date_next_interval)
+                config.test_end = dates[2]
                 config.seed = seed
                 mlflow.tensorflow.autolog()
                 asset = create_asset()
@@ -61,8 +61,10 @@ def main():
                                                             val_end=config.val_end,
                                                             test_end=config.test_end, seed=config.seed)
                 experiment.train_test_val_split()
-                experiment.hyperparameter_tunning(m)
-                model = experiment.get_model()
+                # make sure this is only done once
+                if i == 0 and j ==0 and m == 0: 
+                    models = experiment.hyperparameter_tunning(m)
+                model = models[m]
                 # once again
                 set_seed(seed)
                 experiment.set_budget(trading_result)

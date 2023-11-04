@@ -7,7 +7,7 @@ import datetime
 # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 RUN_TYPE = 'crypto' # forex or crypto
-RUN_SUBTYPE = 'triple_barrier_time_aggregated' #'triple_barrier_time_aggregated','time_aggregated', 'volume_bars', dollar_bars, 'cumsum', cumsum_triple_barrier', 'volume_bars_triple_barrier', dollar_bars_triple_barrier, range_bar
+RUN_SUBTYPE = 'cumsum_triple_barrier' #'triple_barrier_time_aggregated','time_aggregated', 'volume_bars', dollar_bars, 'cumsum', cumsum_triple_barrier', 'volume_bars_triple_barrier', dollar_bars_triple_barrier, range_bar
 provider = 'Binance' # hist_data, Bitstamp, Binance
 currency = 'ETHUSDT'
 
@@ -20,11 +20,11 @@ seed = 12345
 load_model = ''
 
 # time bars
-freq = '720min'
+freq = '1440min'
 
 # volume for volume bars
-volume = 100000
-value = 100000000
+volume = 50000
+value = 150000000
 
 
 # Tripple barrier params
@@ -90,7 +90,7 @@ test_end = datetime.datetime(2022, 7, 1, 0, 0, 0)
 # model hyperparameters
 seq_len = 96
 batch = 128
-patience = 10
+patience = 3
 epochs = 100
 nb_classes = 2
 steps_ahead = 1

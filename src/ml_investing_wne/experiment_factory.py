@@ -52,6 +52,8 @@ class experiment_factory():
                 experiment = self.crypto_cumsum_triple_barrier(**kwargs)
             elif config.RUN_SUBTYPE == 'range_bar':
                 experiment = self.crypto_range_bar(**kwargs)
+            elif config.RUN_SUBTYPE == 'range_bar_triple_barrier':
+                experiment = self.crypto_triple_barrier_range_bar(**kwargs)
             else:
                 logger.info('Flow not implemented!')
         else:
@@ -149,6 +151,18 @@ class experiment_factory():
     
     def crypto_cumsum_triple_barrier(self, **kwargs):
 
+        self.asset.run_3_barriers(t_final=config.t_final, fixed_barrier=config.fixed_barrier)
+        df = self.asset.df_3_barriers
+        df = prepare_processed_dataset(df=df, add_target=False)
+        logger.info(f' df shape before merge wiith 3 barriers additional info is {df.shape}')
+        # df = df.merge(self.asset.df_3_barriers_additional_info[['datetime', 'time_step']], on='datetime', how='inner')
+        logger.info(f' df shape after merge wiith 3 barriers additional info is {df.shape}')
+        experiment = Experiment(df, binarize_target=False, **kwargs)
+        experiment.df_3_barriers_additional_info = self.asset.df_3_barriers_additional_info
+        return experiment
+    
+    def crypto_triple_barrier_range_bar(self, **kwargs):
+            
         self.asset.run_3_barriers(t_final=config.t_final, fixed_barrier=config.fixed_barrier)
         df = self.asset.df_3_barriers
         df = prepare_processed_dataset(df=df, add_target=False)

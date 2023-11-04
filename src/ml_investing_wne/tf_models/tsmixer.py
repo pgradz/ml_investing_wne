@@ -76,6 +76,8 @@ def build_model(
     #                 metrics=['accuracy'])    
 
     # flatten the output of the resnet block
+
+    
     flatten = layers.Flatten()(x)
     dense = layers.Dense(64, activation='relu')(flatten)
     output_layer = layers.Dense(nb_classes, activation='softmax')(dense)
