@@ -56,7 +56,7 @@ class CryptoFactory():
             file_path = os.path.join(config.processed_data_path, f'binance_{currency}', f'time_aggregated_{config.freq}.csv')
         elif config.RUN_SUBTYPE in ['cumsum', 'cumsum_triple_barrier']:
             file_path = os.path.join(config.processed_data_path, f'binance_{currency}', f'cumsum_{config.cumsum_threshold}.csv')
-        elif config.RUN_SUBTYPE in ['range_bar']:
+        elif config.RUN_SUBTYPE in ['range_bar', 'range_bar_triple_barrier']:
             file_path = os.path.join(config.processed_data_path, f'binance_{currency}', f'range_{config.cumsum_threshold}.csv')
 
         df = pd.read_csv(file_path, parse_dates=['datetime'])

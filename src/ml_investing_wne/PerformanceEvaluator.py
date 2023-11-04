@@ -5,30 +5,26 @@ import os
 import pandas as pd
 import numpy as np
 import datetime
+import logging
 from ml_investing_wne import config
 from ml_investing_wne.utils import get_logger
 
-logger = get_logger()
+logger = logging.getLogger(__name__)
 
-# backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_ETHUSDT_cumsum_triple_barrier_with_volume_no_SMA'
+backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/BTCUSDT_96_cumsum_triple_barrier_keras_tuner_CNN_LSTM_cusum_001_triple_0025_24'
 # backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_MATICUSDT_cumsum_triple_barrier_with_volume_no_SMA'
 # backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_SOLUSDT_cumsum_triple_barrier'
 # backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_BTCUSDT_cumsum_triple_barrier_with_volume_no_SMA'
 # backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_BTCUSDT_cumsum'
 # backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_ETHUSDT_cumsum'
 # backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_MATICUSDT_cumsum'
-backtest_folder = '/root/ml_investing_wne/src/ml_investing_wne/models/ETHUSDT_96_cumsum_triple_barrier_keras_tuner_tsmixer_flattened_cusum_003_triple_005_24'
-# daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_BTCUSDT/time_aggregated_1440min.csv'
-# daily_records = '/root/ml_investing_wne/src/ml_investing_wne/data/processed/binance_SOLUSDT/time_aggregated_1440min.csv'
+daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_BTCUSDT/time_aggregated_1440min.csv'
+# daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_SOLUSDT/time_aggregated_1440min.csv'
 # daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_MATICUSDT/time_aggregated_1440min.csv'
 # daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_ETHUSDT/time_aggregated_1440min.csv'
-daily_records = '/root/ml_investing_wne/src/ml_investing_wne/data/processed/binance_ETHUSDT/time_aggregated_1440min.csv'
-# daily_records = '/root/ml_investing_wne/src/ml_investing_wne/data/processed/binance_BTCUSDT/time_aggregated_1440min.csv'
-# daily_records = '/root/ml_investing_wne/src/ml_investing_wne/data/processed/binance_MATICUSDT/time_aggregated_1440min.csv'
-# daily_records = '/root/ml_investing_wne/src/ml_investing_wne/data/processed/binance_SOLUSDT/time_aggregated_1440min.csv'
 # output folder
-# output_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/results'
-output_folder = '/root/ml_investing_wne/src/ml_investing_wne/models/results'
+output_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/results'
+# output_folder = '/root/ml_investing_wne/src/ml_investing_wne/models/results'
 
 
 class PerformanceEvaluator():
@@ -243,8 +239,8 @@ class PerformanceEvaluator():
 
         while i <= self.trades_and_close.index.max():
             # open position
-            # if i == 1917:
-            #     print('debug')
+            if i == 742:
+                print('debug')
 
             if transaction == 'No trade':
                 if self.trades_and_close.loc[i, 'transaction'] == 'No trade':
@@ -510,7 +506,8 @@ class PerformanceEvaluator():
     
 
 if __name__ == "__main__":
-    
+
+    logger = get_logger()
     performance_evaluator = PerformanceEvaluator(backtest_folder, daily_records)
     performance_evaluator.run()
     # backtest = pd.concat(load_backtest_data(backtest_folder))

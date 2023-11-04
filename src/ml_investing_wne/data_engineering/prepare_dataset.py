@@ -90,6 +90,9 @@ def prepare_processed_dataset(plot=False, df=None, allow_null=False, features=Tr
     # df.plot.scatter('hour_sin', 'hour_cos')
     # df.plot.scatter('weekday_sin', 'weekday_cos')
         df.drop(columns=['datetime', 'hour', 'weekday'], axis=1, inplace=True)
+        # this will be true for 24h time aggregated method
+        if df['hour_sin'].isnull().all():
+            df.drop(columns=['hour_sin', 'hour_cos'], axis=1, inplace=True)
 
     if not allow_null:
         df.dropna(inplace=True)
