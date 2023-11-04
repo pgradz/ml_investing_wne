@@ -7,14 +7,14 @@ import datetime
 # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 RUN_TYPE = 'crypto' # forex or crypto
-RUN_SUBTYPE = 'cumsum_triple_barrier' #'triple_barrier_time_aggregated','time_aggregated', 'volume_bars', dollar_bars, 'cumsum', cumsum_triple_barrier', 'volume_bars_triple_barrier', dollar_bars_triple_barrier
+RUN_SUBTYPE = 'dollar_bars_triple_barrier' #'triple_barrier_time_aggregated','time_aggregated', 'volume_bars', dollar_bars, 'cumsum', cumsum_triple_barrier', 'volume_bars_triple_barrier', dollar_bars_triple_barrier
 provider = 'Binance' # hist_data, Bitstamp, Binance
 currency = 'ETHUSDT'
 
 # model parameters
 input_dim = '1d'  # 2d or 1d
 # has to be defined inside tf_models folder
-model = 'keras_tuner_tsmixer-GAP' #'keras_tuner_transformer_positional_encoding', resnet_lstm_regularized, transformer_learnable_encoding, lstm, keras_tuner_CNN_LSTM, keras_tuner_LSTM
+model = 'keras_tuner_tsmixer_flattened' #'keras_tuner_transformer_positional_encoding', resnet_lstm_regularized, transformer_learnable_encoding, lstm, keras_tuner_CNN_LSTM, keras_tuner_LSTM
 seed = 12345
 # leave empty if training from scratch, for transfer learning specify currency to be used as a base
 load_model = ''
@@ -23,8 +23,8 @@ load_model = ''
 freq = '720min'
 
 # volume for volume bars
-volume = 5000
-value = 50000000
+volume = 100000
+value = 150000000
 
 
 # Tripple barrier params
@@ -90,7 +90,7 @@ test_end = datetime.datetime(2022, 7, 1, 0, 0, 0)
 # model hyperparameters
 seq_len = 96
 batch = 128
-patience = 10
+patience = 3
 epochs = 100
 nb_classes = 2
 steps_ahead = 1

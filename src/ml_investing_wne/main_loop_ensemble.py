@@ -15,7 +15,12 @@ train_end = [datetime.datetime(2022, 1, 1, 0, 0, 0), datetime.datetime(2022, 4, 
 val_end = [datetime.datetime(2022, 4, 1, 0, 0, 0), datetime.datetime(2022, 7, 1, 0, 0, 0), datetime.datetime(2022, 10, 1, 0, 0, 0), datetime.datetime(2023, 1, 1, 0, 0, 0), datetime.datetime(2023, 4, 1, 0, 0, 0)]
 test_end = [datetime.datetime(2022, 7, 1, 0, 0, 0), datetime.datetime(2022, 10, 1, 0, 0, 0), datetime.datetime(2023, 1, 1, 0, 0, 0), datetime.datetime(2023, 4, 1, 0, 0, 0), datetime.datetime(2023, 7, 1, 0, 0, 0),]
 
-# train_end = [datetime.datetime(2023, 1, 1, 0, 0, 0)]
+
+# train_end = [datetime.datetime(2021, 10, 1, 0, 0, 0), datetime.datetime(2022, 4, 1, 0, 0, 0), datetime.datetime(2022, 10, 1, 0, 0, 0)]
+# val_end = [datetime.datetime(2022, 4, 1, 0, 0, 0), datetime.datetime(2022, 10, 1, 0, 0, 0), datetime.datetime(2023, 4, 1, 0, 0, 0)]
+# test_end = [datetime.datetime(2022, 10, 1, 0, 0, 0), datetime.datetime(2023, 4, 1, 0, 0, 0), datetime.datetime(2023, 7, 1, 0, 0, 0)]
+
+# # train_end = [datetime.datetime(2023, 1, 1, 0, 0, 0)]
 # val_end =  [datetime.datetime(2023, 4, 1, 0, 0, 0)]
 # test_end = [datetime.datetime(2023, 7, 1, 0, 0, 0)]
 
@@ -28,6 +33,7 @@ def set_seed(seed):
     config.seed = seed
 
 logger = get_logger()
+logger.handlers.pop() 
 
 logger.info('Tensorflow has access to the following devices:')
 for device in tf.config.list_physical_devices():

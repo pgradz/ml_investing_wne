@@ -46,7 +46,7 @@ class MyHyperModelBase(ABC):
                             project_name=self.project_name)
 
 
-        stop_early = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=10)
+        stop_early = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3)
 
         self.tuner.search(self.train_dataset, epochs=20,validation_data=self.val_dataset, callbacks=[stop_early])
 
