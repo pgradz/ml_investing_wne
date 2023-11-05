@@ -88,15 +88,17 @@ class MyHyperModel(MyHyperModelBase):
         '''
         Keras tuner get_best_hyperparameters contains a bug and doesn't always return models in the same order, hence this workaround
         '''
-
+        logger.info(self.tuner.results_summary(num_trials=10))
         models = []
         model_representation = []
+        best_hps_list = []
         best_hps_all = self.tuner.get_best_hyperparameters(num_trials=30)
         for i in range(30):
             best_hps = best_hps_all[i]
             model_candidate = dict((k, best_hps[k]) for k in ['n_feature_maps', 'kernel_size_1', 'kernel_size_2','kernel_size_3','lstm_neurons','dropout','learning_rate'] if k in best_hps)
             if model_candidate not in model_representation:
                 model_representation.append(model_candidate)
+                best_hps_list.append(best_hps)
                 models.append(self.tuner.hypermodel.build(best_hps))
                 logger.info(f"""
                 The optimal dropout is {best_hps.get('dropout')} 
@@ -113,7 +115,7 @@ class MyHyperModel(MyHyperModelBase):
             if len(model_representation) == n:
                 break
 
-        return models
+        return models, best_hps_list
 
 
 

@@ -332,8 +332,8 @@ class Experiment():
         MyHyperModel = getattr(importlib.import_module(f'ml_investing_wne.tf_models.{config.model}'),'MyHyperModel')
         my_hyper_model = MyHyperModel(input_shape=(self.seq_len, self.no_features), train_dataset=self.train_dataset, val_dataset=self.val_dataset,
                                       seed=self.seed, project_name=self.experiment_name)
-        models = my_hyper_model.run_tuner()
-        return models
+        models, best_hps = my_hyper_model.run_tuner()
+        return models, best_hps, my_hyper_model
 
     def set_budget(self, budget):
         self.budget = budget

@@ -4,6 +4,7 @@ import numpy as np
 import tensorflow as tf
 import mlflow.keras
 import datetime
+import copy
 
 from ml_investing_wne import config
 from ml_investing_wne.utils import get_logger
@@ -61,10 +62,11 @@ def main():
                                                             val_end=config.val_end,
                                                             test_end=config.test_end, seed=config.seed)
                 experiment.train_test_val_split()
-                # make sure this is only done once
+                # make sure this is only done once - it is solved like that because of problem with keras tuner and tf on macos
                 if i == 0 and j ==0 and m == 0: 
-                    models = experiment.hyperparameter_tunning(m)
-                model = models[m]
+                    models, best_hps, my_hyper_model= experiment.hyperparameter_tunning(m)
+                # model = copy.deepcopy(models[m])
+                model = my_hyper_model.tuner.hypermodel.build(best_hps[m])
                 # once again
                 set_seed(seed)
                 experiment.set_budget(trading_result)
