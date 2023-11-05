@@ -4,6 +4,7 @@ import numpy as np
 import tensorflow as tf
 import mlflow.keras
 import datetime
+import copy
 
 from ml_investing_wne import config
 from ml_investing_wne.utils import get_logger
@@ -70,7 +71,7 @@ def main():
                 # make sure this is only done once
                 if i == 0 and j ==0 and m == 0: 
                     models = experiment.hyperparameter_tunning(m)
-                model = models[m]
+                model = copy.deepcopy(models[m])
                 # once again
                 set_seed(seed)
                 experiment.set_budget(trading_result)

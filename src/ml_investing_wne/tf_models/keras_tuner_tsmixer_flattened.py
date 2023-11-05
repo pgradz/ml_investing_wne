@@ -115,8 +115,41 @@ class MyHyperModel(MyHyperModelBase):
         model = self.tuner.hypermodel.build(self.best_hps)
 
         return model
+    
+    
+    def return_top_n_models(self, n=3):
+        '''
+        Keras tuner get_best_hyperparameters contains a bug and doesn't always return models in the same order, hence this workaround
+        '''
 
-  
+        models = []
+        model_representation = []
+        best_hps_all = self.tuner.get_best_hyperparameters(num_trials=30)
+        for i in range(30):
+            best_hps = best_hps_all[i]
+            model_candidate = dict((k, best_hps[k]) for k in ['dropout', 'n_block', 'norm_type','activation', 
+                                                                    'flattend_dim','ff_dim','learning_rate'] if k in best_hps)
+            if model_candidate not in model_representation:
+                model_representation.append(model_candidate)
+                models.append(self.tuner.hypermodel.build(best_hps))
+                logger.info(f"""
+                The hyperparameter search is complete. 
+                The optimal dropout is {best_hps.get('dropout')} 
+                The optimal n_block is {best_hps.get('n_block')}
+                The optimal norm_type is {best_hps.get('norm_type')}
+                The optimal ff_dim is {best_hps.get('ff_dim')}
+                The optimal flattend_dim is {best_hps.get('flattend_dim')}
+                The optimal activation is {best_hps.get('activation')}
+                and the optimal learning rate for the optimizer
+                is {best_hps.get('learning_rate')}.
+                """)
+            else:
+                continue
+            if len(model_representation) == n:
+                break
+
+        return models
+        
 
     def get_best_unique_model(self, model_index=0):
         '''
