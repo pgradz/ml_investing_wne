@@ -21,7 +21,7 @@ backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_inv
 # daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_BTCUSDT/time_aggregated_1440min.csv'
 # daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_SOLUSDT/time_aggregated_1440min.csv'
 # daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_MATICUSDT/time_aggregated_1440min.csv'
-# daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_ETHUSDT/time_aggregated_1440min.csv'
+daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_ETHUSDT/time_aggregated_1440min.csv'
 # output folder
 # output_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/results'
 output_folder = '/root/ml_investing_wne/src/ml_investing_wne/models/results'
@@ -242,7 +242,7 @@ class PerformanceEvaluator():
 
         while i <= self.trades_and_close.index.max():
             # open position
-            if i == 742:
+            if i == 1665:
                 print('debug')
 
             if transaction == 'No trade':
@@ -455,7 +455,24 @@ class PerformanceEvaluator():
         # Tail ratio
         tail_ratio = np.abs(np.percentile(excess_returns, 95)) / np.abs(np.percentile(excess_returns, 5))
 
-
+        # alternative way to compute sharpe ratio
+        # get value of portfolio at the end of each day
+        # last = self.daily_returns.groupby(self.daily_returns['datetime_end'].dt.date).agg({'result': 'last'}).reset_index()
+        # # convert datetime_end to date
+        # last['datetime_end'] = pd.to_datetime(last['datetime_end'])
+        # #set datetime_end as index
+        # last.set_index('datetime_end', inplace=True)
+        # # fill missing days
+        # last = last.resample('D').ffill()
+        # # calculate daily returns
+        # last['daily_return'] = last['result'].pct_change()
+        # # fill first observation assuming starting capital of 100
+        # last.loc[last.index[0], 'daily_return'] = last.loc[last.index[0], 'result'] / 100 -1
+        # # calculate sharpe ratio
+        # sharpe_ratio = (last['daily_return'].mean() - risk_free_rate) / last['daily_return'].std()
+        # annualized_sharpe_ratio = (365**0.5) * sharpe_ratio
+        # print('sharpe ratio: {}'.format(annualized_sharpe_ratio))
+       
 
     def max_drawdown_on_portfolio(self,portfolio_values):
         """
@@ -500,6 +517,16 @@ class PerformanceEvaluator():
         for seed in self.seeds:
             self.backtest = pd.concat(self.load_backtest_data(seed))
             self.backtest.sort_values(by=['datetime'], inplace=True)
+            #check if any trade was made
+            if self.backtest[self.backtest['transaction']!='No trade'].empty:
+                logger.info('No trades made')
+                self.metrics['1. gain_loss'].append(0)
+                self.metrics['2. correct_transactions'].append(0)
+                self.accuracy_by_threshold(self.backtest,0.5, 0.5, type='3. accuracy')
+                self.metrics['4. sharpe_ratio'].append(0)
+                self.metrics['5. sortino_ratio'].append(0)
+                self.metrics['6. max_drawdown'].append(0)
+                continue
             self.format_backtest_results()
             self.accuracy_by_threshold(self.backtest,0.5, 0.5, type='3. accuracy')
             self.accuracy_by_threshold(self.trades,0.4, 0.6, type='2. correct_transactions')
@@ -515,10 +542,5 @@ if __name__ == "__main__":
     logger = get_logger()
     performance_evaluator = PerformanceEvaluator(backtest_folder, daily_records)
     performance_evaluator.run()
-    # backtest = pd.concat(load_backtest_data(backtest_folder))
-    # backtest.sort_values(by=['datetime'], inplace=True)
-    # trades = format_backtest_results(backtest)
-    # trades_and_close = combine_trades_and_daily_close(df_daily, trades)
-    # daily_returns = get_daily_returns(trades, trades_and_close)
 
 
