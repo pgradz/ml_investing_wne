@@ -551,7 +551,7 @@ class Experiment():
         '''
         This function is used to run trades based on 3 barriers. For this method, transaction costs
         happen always to open and close. There is no leaving the position open as trading is based on
-        take profit and stop loss.
+        take profit and stop loss. Note: this approximate result. Exact implementation is in PerfromancEvaluator.
         args:
             df: dataframe with predictions and actual values
         return: 
@@ -611,6 +611,7 @@ class Experiment():
         '''
         This function is used to run trades based on step ahead predictions. For this method, transaction costs
         happen sometimes can be avoided if position is not changed.
+        Note: this approximate result. Exact implementation is in PerfromancEvaluator
         args:
             df: dataframe with predictions and actual values
         return: 

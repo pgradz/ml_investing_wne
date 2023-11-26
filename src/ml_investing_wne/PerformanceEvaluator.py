@@ -11,33 +11,35 @@ from ml_investing_wne.utils import get_logger
 
 logger = logging.getLogger(__name__)
 
-backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ETHUSDT_96_cumsum_triple_barrier_keras_tuner_tsmixer_flattened_cusum_002_triple_005_24'
+backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ETHUSDT_96_cumsum_triple_barrier_keras_tuner_transformer_learnable_encoding_cusum_001_triple_0025_24'
 # backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_MATICUSDT_cumsum_triple_barrier_with_volume_no_SMA'
 # backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_SOLUSDT_cumsum_triple_barrier'
 # backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_BTCUSDT_cumsum_triple_barrier_with_volume_no_SMA'
 # backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_BTCUSDT_cumsum'
 # backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_ETHUSDT_cumsum'
 # backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_MATICUSDT_cumsum'
-# daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_BTCUSDT/time_aggregated_1440min.csv'
+daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_ETHUSDT/time_aggregated_1440min.csv'
 # daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_SOLUSDT/time_aggregated_1440min.csv'
 # daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_MATICUSDT/time_aggregated_1440min.csv'
-daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_ETHUSDT/time_aggregated_1440min.csv'
+# daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_ETHUSDT/time_aggregated_1440min.csv'
 # output folder
 output_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/results'
 # output_folder = '/root/ml_investing_wne/src/ml_investing_wne/models/results'
-
 
 class PerformanceEvaluator():
     '''
     This class calculates daily returns of the strategy. It is based on the backtest results.
     '''
 
-    def __init__(self, backtest_folder, daily_records, risk_free_rate=0.02, seeds = ['12345', '123456', '1234567']):
+    def __init__(self, backtest_folder, daily_records, risk_free_rate=0.02, seeds = ['12345', '123456', '1234567'],name=None):
         self.backtest_folder = backtest_folder
         self.triple_barrier = False
         if 'triple_barrier' in self.backtest_folder:
             self.triple_barrier = True
-        self.name = os.path.splitext(os.path.basename(backtest_folder))[0]
+        if not name:
+            self.name = os.path.splitext(os.path.basename(backtest_folder))[0]
+        else:
+            self.name = name
         self.df_daily = pd.read_csv(daily_records, parse_dates=['datetime'])
         self.df_daily['datetime'] = pd.to_datetime(self.df_daily['datetime']) 
         self.df_daily['datetime'] = self.df_daily['datetime'] +  pd.DateOffset(hours=23) + pd.DateOffset(minutes=59) +  pd.DateOffset(seconds=59)
@@ -239,7 +241,7 @@ class PerformanceEvaluator():
 
         while i <= self.trades_and_close.index.max():
             # open position
-            if i == 1665:
+            if i == 996:
                 print('debug')
 
             if transaction == 'No trade':
@@ -283,6 +285,8 @@ class PerformanceEvaluator():
                             i = min(self.trades_and_close[(self.trades_and_close['datetime']>datetime_end) & (self.trades_and_close['barrier_touched'].notna())].index)
                         # there might no more rows
                         except ValueError:
+                            # make sure no more transactions will be made
+                            self.trades_and_close.loc[self.trades_and_close['datetime']>datetime_end, 'transaction'] = 'No trade'
                             i += 1
                             continue
                     else:
@@ -450,7 +454,24 @@ class PerformanceEvaluator():
         # Tail ratio
         tail_ratio = np.abs(np.percentile(excess_returns, 95)) / np.abs(np.percentile(excess_returns, 5))
 
-
+        # alternative way to compute sharpe ratio
+        # get value of portfolio at the end of each day
+        # last = self.daily_returns.groupby(self.daily_returns['datetime_end'].dt.date).agg({'result': 'last'}).reset_index()
+        # # convert datetime_end to date
+        # last['datetime_end'] = pd.to_datetime(last['datetime_end'])
+        # #set datetime_end as index
+        # last.set_index('datetime_end', inplace=True)
+        # # fill missing days
+        # last = last.resample('D').ffill()
+        # # calculate daily returns
+        # last['daily_return'] = last['result'].pct_change()
+        # # fill first observation assuming starting capital of 100
+        # last.loc[last.index[0], 'daily_return'] = last.loc[last.index[0], 'result'] / 100 -1
+        # # calculate sharpe ratio
+        # sharpe_ratio = (last['daily_return'].mean() - risk_free_rate) / last['daily_return'].std()
+        # annualized_sharpe_ratio = (365**0.5) * sharpe_ratio
+        # print('sharpe ratio: {}'.format(annualized_sharpe_ratio))
+       
 
     def max_drawdown_on_portfolio(self,portfolio_values):
         """
@@ -495,6 +516,16 @@ class PerformanceEvaluator():
         for seed in self.seeds:
             self.backtest = pd.concat(self.load_backtest_data(seed))
             self.backtest.sort_values(by=['datetime'], inplace=True)
+            #check if any trade was made
+            if self.backtest[self.backtest['transaction']!='No trade'].empty:
+                logger.info('No trades made')
+                self.metrics['1. gain_loss'].append(0)
+                self.metrics['2. correct_transactions'].append(0)
+                self.accuracy_by_threshold(self.backtest,0.5, 0.5, type='3. accuracy')
+                self.metrics['4. sharpe_ratio'].append(0)
+                self.metrics['5. sortino_ratio'].append(0)
+                self.metrics['6. max_drawdown'].append(0)
+                continue
             self.format_backtest_results()
             self.accuracy_by_threshold(self.backtest,0.5, 0.5, type='3. accuracy')
             self.accuracy_by_threshold(self.trades,0.4, 0.6, type='2. correct_transactions')
