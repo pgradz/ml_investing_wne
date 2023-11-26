@@ -10,6 +10,7 @@ import keras_tuner as kt
 from ml_investing_wne.utils import get_logger
 import logging
 
+from ml_investing_wne.tf_models.keras_tuner_base import MyHyperModelBase
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +30,7 @@ def transformer_encoder(inputs, head_size, num_heads, dropout=0):
     return x + res
 
 
+
 class PositionEmbeddingLayer(layers.Layer):
     def __init__(self, sequence_length, output_dim, **kwargs):
         super(PositionEmbeddingLayer, self).__init__(**kwargs)
@@ -46,23 +48,7 @@ class PositionEmbeddingLayer(layers.Layer):
         return config
 
 
-class MyHyperModel():
-
-    def __init__(self, input_shape, train_dataset, val_dataset, 
-                 currency=config.currency, seq_len=config.seq_len, 
-                 RUN_SUBTYPE=config.RUN_SUBTYPE, model=config.model, 
-                 seed=config.seed):
-        self.input_shape = input_shape
-        self.train_dataset = train_dataset
-        self.val_dataset = val_dataset
-        self.currency = currency
-        self.seq_len = seq_len
-        self.RUN_SUBTYPE = RUN_SUBTYPE
-        self.model = model
-        self.seed = seed
-        random.seed(seed)
-        np.random.seed(seed)
-        tf.random.set_seed(seed)
+class MyHyperModel(MyHyperModelBase):
 
 
     def build_model_for_tuning(self, 
@@ -74,9 +60,12 @@ class MyHyperModel():
         
         num_transformer_blocks = hp.Int('num_transformer_blocks', min_value=1, max_value=8, step=1)
         head_size = hp.Int('head_size', min_value=8, max_value=64, step=8)
+        # head_size = hp.Int('head_size', min_value=8, max_value=128, step=8)
         num_heads = hp.Int('num_heads', min_value=1, max_value=6, step=1)
+        # num_heads = hp.Int('num_heads', min_value=1, max_value=8, step=1)
         dropout = hp.Choice('dropout', values=[0.1, 0.15, 0.2, 0.25, 0.3])
         mlp_dim = hp.Int('mlp_dim', min_value=8, max_value=64, step=8)
+        # mlp_dim = hp.Int('mlp_dim', min_value=8, max_value=128, step=8)
         for _ in range(num_transformer_blocks):
 
             x = transformer_encoder(x, head_size, num_heads, dropout)
@@ -92,22 +81,7 @@ class MyHyperModel():
                     metrics=['accuracy'])
 
         return model
-    
-    def run_tuner(self):
-
-        self.tuner = kt.Hyperband(self.build_model_for_tuning,
-                            objective='val_accuracy',
-                            max_epochs=20,
-                            hyperband_iterations=1, 
-                            factor=3,
-                            directory='keras_tuner',
-                            project_name=f'{self.currency}_{self.seq_len}_{self.RUN_SUBTYPE}_{self.model}')
-
-
-        stop_early = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=10)
-
-        self.tuner.search(self.train_dataset, epochs=20,validation_data=self.val_dataset, callbacks=[stop_early])
-
+  
 
     def get_best_model(self, model_index=0):
 
@@ -128,6 +102,40 @@ class MyHyperModel():
         model = self.tuner.hypermodel.build(self.best_hps)
 
         return model
+    
+    
+    def return_top_n_models(self, n=3):
+        '''
+        Keras tuner get_best_hyperparameters contains a bug and doesn't always return models in the same order, hence this workaround
+        '''
+        logger.info(self.tuner.results_summary(num_trials=10))
+        models = []
+        model_representation = []
+        best_hps_list = []
+        best_hps_all = self.tuner.get_best_hyperparameters(num_trials=30)
+        for i in range(30):
+            best_hps = best_hps_all[i]
+            model_candidate = dict((k, best_hps[k]) for k in ['num_transformer_blocks', 'head_size', 'num_heads','mlp_dim','dropout','learning_rate'] if k in best_hps)
+            if model_candidate not in model_representation:
+                model_representation.append(model_candidate)
+                best_hps_list.append(best_hps)
+                models.append(self.tuner.hypermodel.build(best_hps))
+                logger.info(f"""
+                The hyperparameter search is complete. 
+                The optimal dropout is {best_hps.get('dropout')} 
+                The optimal num_transformer_blocks is {best_hps.get('num_transformer_blocks')}
+                The optimal head_size is {best_hps.get('head_size')}
+                The optimal num_heads is {best_hps.get('num_heads')}
+                The optimal mlp_dim is {best_hps.get('mlp_dim')}
+                and the optimal learning rate for the optimizer
+                is {best_hps.get('learning_rate')}.
+                """)
+            else:
+                continue
+            if len(model_representation) == n:
+                break
+
+        return models, best_hps_list
 
   
 
@@ -166,10 +174,6 @@ class MyHyperModel():
         """)
         self.model = model
         return  model
-
-
-
-
 
 
 

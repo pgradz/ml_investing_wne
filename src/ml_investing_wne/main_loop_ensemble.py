@@ -22,6 +22,7 @@ test_end = [datetime.datetime(2022, 7, 1, 0, 0, 0), datetime.datetime(2022, 10, 
 
 seeds = [12345, 123456, 1234567]
 
+
 def set_seed(seed):
     random.seed(seed)
     np.random.seed(seed)
@@ -100,7 +101,8 @@ def main():
             test_start_date_next_interval = experiment.test_start_date_next_interval
 
         logger.info(f'Final budget: {trading_result}')
-        logger.info(f'Final hit ratio: {hit_counter/trades}')    
+        if trades > 0:
+            logger.info(f'Final hit ratio: {hit_counter/trades}')    
         
     # summarize results from different seeds
     # daily end prices are needed for some performance metrics

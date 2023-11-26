@@ -18,13 +18,13 @@ backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_inv
 # backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_BTCUSDT_cumsum'
 # backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_ETHUSDT_cumsum'
 # backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_MATICUSDT_cumsum'
-daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_BTCUSDT/time_aggregated_1440min.csv'
+# daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_BTCUSDT/time_aggregated_1440min.csv'
 # daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_SOLUSDT/time_aggregated_1440min.csv'
 # daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_MATICUSDT/time_aggregated_1440min.csv'
 # daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_ETHUSDT/time_aggregated_1440min.csv'
 # output folder
-output_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/results'
-# output_folder = '/root/ml_investing_wne/src/ml_investing_wne/models/results'
+# output_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/results'
+output_folder = '/root/ml_investing_wne/src/ml_investing_wne/models/results'
 
 
 class PerformanceEvaluator():
@@ -32,12 +32,15 @@ class PerformanceEvaluator():
     This class calculates daily returns of the strategy. It is based on the backtest results.
     '''
 
-    def __init__(self, backtest_folder, daily_records, risk_free_rate=0.02, seeds = ['12345', '123456', '1234567']):
+    def __init__(self, backtest_folder, daily_records, risk_free_rate=0.02, seeds = ['12345', '123456', '1234567'],name=None):
         self.backtest_folder = backtest_folder
         self.triple_barrier = False
         if 'triple_barrier' in self.backtest_folder:
             self.triple_barrier = True
-        self.name = os.path.splitext(os.path.basename(backtest_folder))[0]
+        if not name:
+            self.name = os.path.splitext(os.path.basename(backtest_folder))[0]
+        else:
+            self.name = name
         self.df_daily = pd.read_csv(daily_records, parse_dates=['datetime'])
         self.df_daily['datetime'] = pd.to_datetime(self.df_daily['datetime']) 
         self.df_daily['datetime'] = self.df_daily['datetime'] +  pd.DateOffset(hours=23) + pd.DateOffset(minutes=59) +  pd.DateOffset(seconds=59)
@@ -283,6 +286,8 @@ class PerformanceEvaluator():
                             i = min(self.trades_and_close[(self.trades_and_close['datetime']>datetime_end) & (self.trades_and_close['barrier_touched'].notna())].index)
                         # there might no more rows
                         except ValueError:
+                            # make sure no more transactions will be made
+                            self.trades_and_close.loc[self.trades_and_close['datetime']>datetime_end, 'transaction'] = 'No trade'
                             i += 1
                             continue
                     else:

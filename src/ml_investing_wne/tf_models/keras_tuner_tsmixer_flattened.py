@@ -121,9 +121,10 @@ class MyHyperModel(MyHyperModelBase):
         '''
         Keras tuner get_best_hyperparameters contains a bug and doesn't always return models in the same order, hence this workaround
         '''
-
+        logger.info(self.tuner.results_summary(num_trials=10))
         models = []
         model_representation = []
+        best_hps_list = []
         best_hps_all = self.tuner.get_best_hyperparameters(num_trials=30)
         for i in range(30):
             best_hps = best_hps_all[i]
@@ -131,6 +132,7 @@ class MyHyperModel(MyHyperModelBase):
                                                                     'flattend_dim','ff_dim','learning_rate'] if k in best_hps)
             if model_candidate not in model_representation:
                 model_representation.append(model_candidate)
+                best_hps_list.append(best_hps)
                 models.append(self.tuner.hypermodel.build(best_hps))
                 logger.info(f"""
                 The hyperparameter search is complete. 
@@ -148,7 +150,7 @@ class MyHyperModel(MyHyperModelBase):
             if len(model_representation) == n:
                 break
 
-        return models
+        return models, best_hps_list
         
 
     def get_best_unique_model(self, model_index=0):
