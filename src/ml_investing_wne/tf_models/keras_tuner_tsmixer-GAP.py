@@ -70,8 +70,8 @@ class MyHyperModel(MyHyperModelBase):
         inputs = keras.layers.Input(self.input_shape)
         x = inputs  # [Batch, Input Length, Channel]
         
-        n_block = hp.Int('n_block', min_value=2, max_value=3, step=1)
-        ff_dim = hp.Int('ff_dim', min_value=16, max_value=64, step=8)
+        n_block = hp.Int('n_block', min_value=1, max_value=3, step=1)
+        ff_dim = hp.Int('ff_dim', min_value=16, max_value=128, step=16)
         dropout = hp.Choice('dropout', values=[0.1, 0.15, 0.2, 0.25, 0.3])
         norm_type = hp.Choice('norm_type', values=['B','L'])
         activation = hp.Choice('activation', values=['relu','gelu'])

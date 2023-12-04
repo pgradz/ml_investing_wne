@@ -11,7 +11,7 @@ from sklearn.metrics import accuracy_score
 from ml_investing_wne import config
 from ml_investing_wne.utils import get_logger
 from ml_investing_wne.experiment_factory import create_asset, experiment_factory
-from ml_investing_wne.PerformanceEvaluator import PerformanceEvaluator
+from ml_investing_wne.performance_evaluator import PerformanceEvaluator
 
 
 train_end = [datetime.datetime(2022, 1, 1, 0, 0, 0), datetime.datetime(2022, 4, 1, 0, 0, 0), datetime.datetime(2022, 7, 1, 0, 0, 0), datetime.datetime(2022, 10, 1, 0, 0, 0), datetime.datetime(2023, 1, 1, 0, 0, 0)]
@@ -77,37 +77,42 @@ def main():
         trades = 0
         # this is a placeholder to deal with situation when triple barrier method ends in next quarter
         test_start_date_next_interval = val_end[0]
-        for train, val, test in zip(train_end, val_end, test_end):
+        for j, dates in enumerate(zip(train_end, val_end, test_end)):
             
             # ensemble of 3 best models
             for m in range(3):
             # just in case set seed once again, it used to reset after each experiment
                 set_seed(seed)
-                config.train_end = train
-                config.val_end = max(val, test_start_date_next_interval)
-                config.test_end = test
+                config.train_end = dates[0]
+                config.val_end = max(dates[1], test_start_date_next_interval)
+                config.test_end = dates[2]
                 config.seed = seed
                 asset = create_asset()
                 experiment = experiment_factory(asset).get_experiment(train_end=config.train_end, 
                                                             val_end=config.val_end,
-                                                            test_end=config.test_end, seed=config.seed)
+                                                            test_end=config.test_end, seed=config.seed, model_name=config.model)
                 # in the standard experiment binarization happens in train test split. We need to keep y_pred continous for financial evaluation                         
                 experiment.df['y_pred_bin'] = [1 if y > 1 else 0 for y in experiment.df['y_pred']]
                 
                 train_df = experiment.df[experiment.df.index < config.train_end]
+                # remove last target length rows from train
+                if experiment.offset > 0:
+                    train_df = train_df.iloc[:-experiment.offset]
                 val_df = experiment.df[(experiment.df.index >= config.train_end) & (experiment.df.index < config.val_end)]
-                test_df = experiment.df[(experiment.df.index >= config.val_end) & (experiment.df.index < config.test_end)]
                 train_val_df = experiment.df[experiment.df.index < config.val_end]
-
+                if experiment.offset > 0:
+                    val_df = val_df.iloc[:-experiment.offset]
+                    train_val_df = train_val_df.iloc[:-experiment.offset]
+                test_df = experiment.df[(experiment.df.index >= config.val_end) & (experiment.df.index < config.test_end)]
                 train_indices = np.where(train_df.index < config.train_end, -1, 0)
                 val_indices = np.where(val_df.index < config.val_end, 0, 1)
 
                 split_indices = np.append(train_indices, val_indices)
                 ps = PredefinedSplit(test_fold=split_indices)
                 # find best hyperparameters once and save into pickle
-                if i == 0 and m == 0:
+                if i == 0 and j==0 and m == 0:
                     top_models = xgboost_tuning_random(train_val_df, n_experiments=n_experiments, ps=ps)
-                    dir_path = os.path.join(config.package_directory, 'models', f'''{config.currency}_{config.RUN_SUBTYPE}_{config.model}''')
+                    dir_path = experiment.dir_path
                     if not os.path.exists(dir_path):
                         os.makedirs(dir_path)
                     with open(os.path.join(dir_path,'top_models.pickle'), 'wb') as handle:
@@ -151,7 +156,7 @@ def main():
     # summarize results from different seeds
     # daily end prices are needed for some performance metrics
     daily_records = os.path.join(config.processed_data_path, f'binance_{config.currency}', 'time_aggregated_1440min.csv')
-    performance_evaluator = PerformanceEvaluator(experiment.dir_path, daily_records )
+    performance_evaluator = PerformanceEvaluator(experiment.dir_path, daily_records)
     performance_evaluator.run()
         
 

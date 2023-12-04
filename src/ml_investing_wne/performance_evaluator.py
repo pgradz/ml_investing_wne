@@ -8,10 +8,11 @@ import datetime
 import logging
 from ml_investing_wne import config
 from ml_investing_wne.utils import get_logger
+from scipy.stats import binom_test
 
 logger = logging.getLogger(__name__)
 
-backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/BTCUSDT_96_cumsum_triple_barrier_keras_tuner_CNN_LSTM_cusum_001_triple_0025_24'
+backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ETHUSDT_96_time_aggregated_keras_tuner_CNN_LSTM_1440min'
 # backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_MATICUSDT_cumsum_triple_barrier_with_volume_no_SMA'
 # backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_SOLUSDT_cumsum_triple_barrier'
 # backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_BTCUSDT_cumsum_triple_barrier_with_volume_no_SMA'
@@ -23,16 +24,17 @@ backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_inv
 # daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_MATICUSDT/time_aggregated_1440min.csv'
 daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_ETHUSDT/time_aggregated_1440min.csv'
 # output folder
-# output_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/results'
-output_folder = '/root/ml_investing_wne/src/ml_investing_wne/models/results'
-
+output_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/results'
+# output_folder = '/root/ml_investing_wne/src/ml_investing_wne/models/results'
 
 class PerformanceEvaluator():
     '''
     This class calculates daily returns of the strategy. It is based on the backtest results.
     '''
 
-    def __init__(self, backtest_folder, daily_records, risk_free_rate=0.02, seeds = ['12345', '123456', '1234567'],name=None):
+    def __init__(self, backtest_folder, daily_records, risk_free_rate=0.0314, seeds = ['12345', '123456', '1234567'],name=None, 
+                 start_date=datetime.date(2022, 3, 31), end_date=datetime.date(2023, 7, 1)):
+        # risk free rate is taken as average overnight rate for corresponding period from https://treasurydirect.gov/GA-FI/FedInvest/selectOvernightRateDate
         self.backtest_folder = backtest_folder
         self.triple_barrier = False
         if 'triple_barrier' in self.backtest_folder:
@@ -41,6 +43,8 @@ class PerformanceEvaluator():
             self.name = os.path.splitext(os.path.basename(backtest_folder))[0]
         else:
             self.name = name
+        self.start_date = start_date
+        self.end_date = end_date
         self.df_daily = pd.read_csv(daily_records, parse_dates=['datetime'])
         self.df_daily['datetime'] = pd.to_datetime(self.df_daily['datetime']) 
         self.df_daily['datetime'] = self.df_daily['datetime'] +  pd.DateOffset(hours=23) + pd.DateOffset(minutes=59) +  pd.DateOffset(seconds=59)
@@ -53,7 +57,8 @@ class PerformanceEvaluator():
         self.metrics['4. sharpe_ratio'] = []
         self.metrics['5. sortino_ratio'] = []
         self.metrics['6. max_drawdown'] = []
-
+        self.metrics['7. share_of_time_active'] = []
+        self.metrics['8. no. of trades'] = []
 
 
     def load_backtest_data(self, seed):
@@ -115,8 +120,7 @@ class PerformanceEvaluator():
     def combine_trades_and_daily_close(self):
         '''
         This function combines trades and daily close so daily returns can be calculated
-        '''
-
+        ''' 
         start_date = self.backtest['datetime'].min().date()
         start_datetime = datetime.datetime.combine(start_date, datetime.time(23, 0, 0))
         df_daily = self.df_daily.loc[self.df_daily['datetime']>=start_datetime].copy()
@@ -143,6 +147,7 @@ class PerformanceEvaluator():
             self.trades_and_close = trades_and_close.loc[trades_and_close['datetime']<=max_date]
         else:
             self.trades_and_close = trades_and_close
+        
 
     def get_daily_returns_one_step(self):
 
@@ -241,9 +246,6 @@ class PerformanceEvaluator():
         i = 0
 
         while i <= self.trades_and_close.index.max():
-            # open position
-            if i == 1665:
-                print('debug')
 
             if transaction == 'No trade':
                 if self.trades_and_close.loc[i, 'transaction'] == 'No trade':
@@ -404,75 +406,49 @@ class PerformanceEvaluator():
         '''
         This function calculates financial performance of the strategy
         '''
-
-        self.daily_returns_agg = self.daily_returns.groupby(self.daily_returns['datetime_end'].dt.date).agg({'daily_portfolio_return': 'sum'})
-        daily_returns = self.daily_returns_agg['daily_portfolio_return']
         risk_free_rate = self.risk_free_rate/365 # crypto works whole year
-        # Sharpe ratio
-        excess_returns = [r - risk_free_rate for r in daily_returns]
-        sharpe_ratio = np.mean(excess_returns) / np.std(excess_returns)
-        # annualized Sharpe ratio
-        annualized_sharpe_ratio = (365**0.5) * sharpe_ratio
-        self.metrics['4. sharpe_ratio'].append(annualized_sharpe_ratio)
-        # Sortino ratio
-        downside_returns = [r for r in excess_returns if r < 0]
-        expected_return = np.mean(daily_returns)
-        downside_std = np.std(downside_returns)
-        sortino_ratio = expected_return / downside_std
-        # annualized Sortino ratio
-        annualized_sortino_ratio = (365**0.5) * sortino_ratio
-        self.metrics['5. sortino_ratio'].append(annualized_sortino_ratio)
         # Max drawdown
         max_drawdown = self.max_drawdown_on_portfolio(self.daily_returns['result'])
         self.metrics['6. max_drawdown'].append(max_drawdown)
-        # below KPIs were provided by copilot, I have to check them
-        # Annualized return
-        annualized_return = (1 + np.mean(daily_returns))**365 - 1
-        # Annualized volatility
-        annualized_volatility = np.std(daily_returns) * (365**0.5)
-        # Calmar ratio
-        calmar_ratio = annualized_return / max_drawdown
-        # Omega ratio
-        omega_ratio = np.sum([r for r in daily_returns if r < risk_free_rate]) / np.sum([r for r in daily_returns if r > risk_free_rate])
-        # Skewness
-        skewness = pd.Series(daily_returns).skew()
-        # Kurtosis
-        kurtosis = pd.Series(daily_returns).kurtosis()
-        # Tail ratio
-        tail_ratio = np.abs(np.percentile(daily_returns, 95)) / np.abs(np.percentile(daily_returns, 5))
-        # Common sense ratio
-        common_sense_ratio = np.mean(daily_returns) / np.abs(np.min(daily_returns))
-        # Daily value at risk
-        daily_value_at_risk = np.percentile(daily_returns, 5)
-        # Expected shortfall
-        expected_shortfall = np.mean([r for r in daily_returns if r < np.percentile(daily_returns, 5)])
-        # Information ratio
-        information_ratio = np.mean(excess_returns) / np.std([r - risk_free_rate for r in daily_returns])
-        # Skewness ratio
-        skewness_ratio = np.mean(excess_returns) / pd.Series(excess_returns).skew()
-        # Kurtosis ratio
-        kurtosis_ratio = np.mean(excess_returns) / pd.Series(excess_returns).kurtosis()
-        # Tail ratio
-        tail_ratio = np.abs(np.percentile(excess_returns, 95)) / np.abs(np.percentile(excess_returns, 5))
-
-        # alternative way to compute sharpe ratio
+        # to compute sharpe ratio add 0 returns for days without trades
         # get value of portfolio at the end of each day
-        # last = self.daily_returns.groupby(self.daily_returns['datetime_end'].dt.date).agg({'result': 'last'}).reset_index()
-        # # convert datetime_end to date
-        # last['datetime_end'] = pd.to_datetime(last['datetime_end'])
+        last = self.daily_returns.groupby(self.daily_returns['datetime_end'].dt.date).agg({'result': 'last'}).reset_index()
+        # convert datetime_end to date
+        last['datetime_end'] = pd.to_datetime(last['datetime_end'])
+        # add starting date if not present - it shouldn't be - because it is one day before first trade
+        if self.start_date < self.daily_returns['datetime_end'].min().date():
+            last = pd.concat([pd.DataFrame({'datetime_end': [self.start_date], 'result': [100]}), last], ignore_index=True)
+        # add last date if not present - it shouldn't be - because it is one day after last trade
+        if self.end_date > self.daily_returns['datetime_end'].max().date():
+            last = pd.concat([last, pd.DataFrame({'datetime_end': [self.end_date], 'result': np.nan })], ignore_index=True)
+        last['datetime_end'] = pd.to_datetime(last['datetime_end'])
         # #set datetime_end as index
-        # last.set_index('datetime_end', inplace=True)
+        last.set_index('datetime_end', inplace=True)
         # # fill missing days
-        # last = last.resample('D').ffill()
+        last = last.resample('D').ffill()
         # # calculate daily returns
-        # last['daily_return'] = last['result'].pct_change()
+        last['daily_return'] = last['result'].pct_change()
         # # fill first observation assuming starting capital of 100
         # last.loc[last.index[0], 'daily_return'] = last.loc[last.index[0], 'result'] / 100 -1
         # # calculate sharpe ratio
-        # sharpe_ratio = (last['daily_return'].mean() - risk_free_rate) / last['daily_return'].std()
-        # annualized_sharpe_ratio = (365**0.5) * sharpe_ratio
-        # print('sharpe ratio: {}'.format(annualized_sharpe_ratio))
-       
+        # remove artifically added first and last row
+        last = last.iloc[1:-1]
+        sharpe_ratio = (last['daily_return'].mean() - risk_free_rate) / last['daily_return'].std()
+        annualized_sharpe_ratio = (365**0.5) * sharpe_ratio
+        self.metrics['4. sharpe_ratio'].append(annualized_sharpe_ratio)
+        # sortino ratio
+        downside_returns = [r for r in last['daily_return'] if r < 0]
+        expected_return = np.mean(last['daily_return'])
+        downside_std = np.std(downside_returns)
+        sortino_ratio = expected_return / downside_std
+        annualized_sortino_ratio = (365**0.5) * sortino_ratio
+        self.metrics['5. sortino_ratio'].append(annualized_sortino_ratio)
+        # trade duration in minutes
+        self.daily_returns['duration'] = (self.daily_returns['datetime_end'] - self.daily_returns['datetime_start']).dt.total_seconds()/60
+        # share of time active
+        self.metrics['7. share_of_time_active'].append(self.daily_returns['duration'].sum() / ((self.end_date - self.start_date).total_seconds()/60) * 100)
+        self.metrics['8. no. of trades'].append(self.daily_returns.loc[self.daily_returns['entry_cost'] > 0].shape[0])
+  
 
     def max_drawdown_on_portfolio(self,portfolio_values):
         """
@@ -506,11 +482,26 @@ class PerformanceEvaluator():
     def average_metrics(self):
         self.metrics_avg = {}
         for key in self.metrics.keys():
-            self.metrics_avg[key] = round(np.mean(self.metrics[key]),2)
+            self.metrics_avg[key] = round(np.nanmean(self.metrics[key]),2)
         logger.info('Average metrics: {}'.format(self.metrics_avg))
         metrics_df = pd.DataFrame.from_dict(self.metrics_avg,  orient='index', columns=['value']).reset_index()
         metrics_df.sort_values(by='index', inplace=True)
+        metrics_df.loc[metrics_df['index']=='8. no. of trades', 'value'] = round(metrics_df.loc[metrics_df['index']=='8. no. of trades', 'value'], 0)
+        postive_trades =  round(metrics_df.loc[metrics_df['index']=='2. correct_transactions', 'value'].values[0]/100 * metrics_df.loc[metrics_df['index']=='8. no. of trades', 'value'].values[0],0)
+        no_of_trades = metrics_df.loc[metrics_df['index']=='8. no. of trades', 'value'].values[0]
+        p_value = self.get_p_value(postive_trades, no_of_trades)
+        p_value_row = pd.DataFrame({'index': ['9. p_value'], 'value': [p_value]})
+        metrics_df = pd.concat([metrics_df, p_value_row], ignore_index=True)
         metrics_df.to_csv(output_folder+ '/'+ self.name + '.csv', index=False)
+        # round without decimals for no. of trades
+    
+    @staticmethod
+    def get_p_value(postive_trades, no_of_trades):
+        '''
+        This function calculates p-value for binomial test
+        '''
+        p_value = binom_test(postive_trades, no_of_trades, 0.5, alternative='greater')
+        return p_value
 
 
     def run(self):
@@ -521,11 +512,13 @@ class PerformanceEvaluator():
             if self.backtest[self.backtest['transaction']!='No trade'].empty:
                 logger.info('No trades made')
                 self.metrics['1. gain_loss'].append(0)
-                self.metrics['2. correct_transactions'].append(0)
+                self.metrics['2. correct_transactions'].append(np.nan)
                 self.accuracy_by_threshold(self.backtest,0.5, 0.5, type='3. accuracy')
-                self.metrics['4. sharpe_ratio'].append(0)
-                self.metrics['5. sortino_ratio'].append(0)
+                self.metrics['4. sharpe_ratio'].append(np.nan)
+                self.metrics['5. sortino_ratio'].append(np.nan)
                 self.metrics['6. max_drawdown'].append(0)
+                self.metrics['7. share_of_time_active'].append(0)
+                self.metrics['8. no. of trades'].append(0)
                 continue
             self.format_backtest_results()
             self.accuracy_by_threshold(self.backtest,0.5, 0.5, type='3. accuracy')
