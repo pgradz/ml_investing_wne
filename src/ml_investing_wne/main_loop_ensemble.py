@@ -9,12 +9,12 @@ import copy
 from ml_investing_wne import config
 from ml_investing_wne.utils import get_logger
 from ml_investing_wne.experiment_factory import create_asset, experiment_factory
-from ml_investing_wne.PerformanceEvaluator import PerformanceEvaluator
+from ml_investing_wne.performance_evaluator import PerformanceEvaluator
 
 
 train_end = [datetime.datetime(2022, 1, 1, 0, 0, 0), datetime.datetime(2022, 4, 1, 0, 0, 0), datetime.datetime(2022, 7, 1, 0, 0, 0), datetime.datetime(2022, 10, 1, 0, 0, 0), datetime.datetime(2023, 1, 1, 0, 0, 0)]
 val_end = [datetime.datetime(2022, 4, 1, 0, 0, 0), datetime.datetime(2022, 7, 1, 0, 0, 0), datetime.datetime(2022, 10, 1, 0, 0, 0), datetime.datetime(2023, 1, 1, 0, 0, 0), datetime.datetime(2023, 4, 1, 0, 0, 0)]
-test_end = [datetime.datetime(2022, 7, 1, 0, 0, 0), datetime.datetime(2022, 10, 1, 0, 0, 0), datetime.datetime(2023, 1, 1, 0, 0, 0), datetime.datetime(2023, 4, 1, 0, 0, 0), datetime.datetime(2023, 7, 1, 0, 0, 0),]
+test_end = [datetime.datetime(2022, 7, 1, 0, 0, 0), datetime.datetime(2022, 10, 1, 0, 0, 0), datetime.datetime(2023, 1, 1, 0, 0, 0), datetime.datetime(2023, 4, 1, 0, 0, 0), datetime.datetime(2023, 7, 1, 0, 0, 0)]
 
 # train_end = [datetime.datetime(2023, 1, 1, 0, 0, 0)]
 # val_end =  [datetime.datetime(2023, 4, 1, 0, 0, 0)]
@@ -100,7 +100,11 @@ def main():
             test_start_date_next_interval = experiment.test_start_date_next_interval
 
         logger.info(f'Final budget: {trading_result}')
-        logger.info(f'Final hit ratio: {hit_counter/trades}')    
+        try:
+            logger.info(f'Final hit ratio: {hit_counter/trades}')  
+        except ZeroDivisionError:
+            logger.info(f'Final hit ratio: no trades made')
+           
         
     # summarize results from different seeds
     # daily end prices are needed for some performance metrics
