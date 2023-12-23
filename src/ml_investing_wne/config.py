@@ -7,32 +7,32 @@ import datetime
 # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 RUN_TYPE = 'crypto' # forex or crypto
-RUN_SUBTYPE = 'volume_bars_triple_barrier' #'triple_barrier_time_aggregated','time_aggregated', 'volume_bars', dollar_bars, 'cumsum', cumsum_triple_barrier', 'volume_bars_triple_barrier', dollar_bars_triple_barrier, range_bar, range_bar_triple_barrier
+RUN_SUBTYPE = 'cumsum_triple_barrier' #'triple_barrier_time_aggregated','time_aggregated', 'volume_bars', dollar_bars, 'cumsum', cumsum_triple_barrier', 'volume_bars_triple_barrier', dollar_bars_triple_barrier, range_bar, range_bar_triple_barrier
 provider = 'Binance' # hist_data, Bitstamp, Binance
-currency = 'BTCUSDT'
+currency = 'ETHUSDT'
 
 # model parameters
 input_dim = '1d'  # 2d or 1d
 # has to be defined inside tf_models folder
-model = 'keras_tuner_transformer_learnable_encoding' #'keras_tuner_transformer_positional_encoding', resnet_lstm_regularized, transformer_learnable_encoding, lstm, keras_tuner_CNN_LSTM, keras_tuner_LSTM
+model = 'keras_tuner_CNN_LSTM' #'keras_tuner_transformer_positional_encoding', resnet_lstm_regularized, transformer_learnable_encoding, lstm, keras_tuner_CNN_LSTM, keras_tuner_LSTM
 seed = 12345
 # leave empty if training from scratch, for transfer learning specify currency to be used as a base
 load_model = ''
 
 # time bars
-freq = '720min'
+freq = '1min'
 
 # volume for volume bars
-volume = 5000
+volume = 100000
 value = 150000000
 
 
 # Tripple barrier params
 t_final=24
-fixed_barrier=0.025
+fixed_barrier=0.05
 
 # cumsum params
-cumsum_threshold = 0.03
+cumsum_threshold = 0.01
 
 
 # if we want to skip consequtive sequences, it is configured by seq_stride. If seq_stride = seq_len then there is 0 overlap at expense of many observations dropped

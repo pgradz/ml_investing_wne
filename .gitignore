@@ -144,6 +144,6 @@ mlruns/
 
 keras_tuner/
 my_dir/
-
+results/
 
 *.png

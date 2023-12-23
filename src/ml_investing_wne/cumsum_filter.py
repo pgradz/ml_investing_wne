@@ -14,10 +14,10 @@ tf.random.set_seed(config.seed)
 
 logger = get_logger()
 EXCHANGE = 'binance'
-threshold = 0.03
+threshold = 0.015
 output_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed'
 output_path = os.path.join(output_path, f'{EXCHANGE}_{config.currency}')
-range_bar = True
+range_bar = False
 
 
 def cumsum_filter(df,h,range_bar=False):
