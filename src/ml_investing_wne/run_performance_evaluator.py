@@ -35,7 +35,5 @@ if __name__ == "__main__":
         else:  
             daily_records = daily_records_btc
         
-        performance_evaluator = PerformanceEvaluator(os.path.join(root_dir, dir), daily_records)
+        performance_evaluator = PerformanceEvaluator(os.path.join(root_dir, dir), daily_records, cost=config.cost)
         performance_evaluator.run()
-        
-        

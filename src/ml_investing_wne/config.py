@@ -67,37 +67,16 @@ except KeyError:
 except KeyError:
     cost = 0
 
-# XTB AUTHENTICATION - OPTIONAL
-USER_ID = ""
-PASSWORD = ""
-
-# Ending dates for training, validation and test. Remember that xtb offers much shorther periods, so
-# if using training from xtb folder adjust those dates. Otherwise, program will fail at
-# train, validation split
-# train_end = datetime.datetime(2021, 6, 1, 0, 0, 0)
-# val_end = datetime.datetime(2021, 9, 1, 0, 0, 0)
-# test_end = datetime.datetime(2021, 12, 1, 0, 0, 0)
-# train_end = datetime.datetime(2022, 1, 1, 0, 0, 0)
-# val_end = datetime.datetime(2022, 7, 1, 0, 0, 0)
-# test_end = datetime.datetime(2023, 1, 1, 0, 0, 0)
-train_end = datetime.datetime(2022, 1, 1, 0, 0, 0)
-val_end = datetime.datetime(2022, 4, 1, 0, 0, 0)
-test_end = datetime.datetime(2022, 7, 1, 0, 0, 0)
-# train_end = datetime.datetime(2022, 7, 1, 0, 0, 0)
-# val_end = datetime.datetime(2023, 1, 1, 0, 0, 0)
-# test_end = datetime.datetime(2023, 7, 1, 0, 0, 0)
-
 # model hyperparameters
 seq_len = 96
-batch = 128
+batch_size = 128
 patience = 3
 epochs = 100
 nb_classes = 2
 steps_ahead = 1
 
 # configure directories
-
-if RUN_TYPE == 'crypto':
+if run_type == 'crypto':
     package_directory = os.path.dirname(os.path.abspath(__file__))
     raw_data_path = os.path.join(package_directory, 'data', 'raw', 'crypto')
 elif RUN_TYPE == 'forex':

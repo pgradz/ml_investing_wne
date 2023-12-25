@@ -6,23 +6,22 @@ import pandas as pd
 import numpy as np
 import datetime
 import logging
-from ml_investing_wne import config
 from ml_investing_wne.utils import get_logger
 from scipy.stats import binom_test
 
 logger = logging.getLogger(__name__)
 
-backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ETHUSDT_96_time_aggregated_keras_tuner_CNN_LSTM_1440min'
+backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/BTCUSDT_96_time_aggregated_keras_tuner_transformer_learnable_encoding_1440min'
 # backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_MATICUSDT_cumsum_triple_barrier_with_volume_no_SMA'
 # backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_SOLUSDT_cumsum_triple_barrier'
 # backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_BTCUSDT_cumsum_triple_barrier_with_volume_no_SMA'
 # backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_BTCUSDT_cumsum'
 # backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_ETHUSDT_cumsum'
 # backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_MATICUSDT_cumsum'
-# daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_BTCUSDT/time_aggregated_1440min.csv'
+daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_BTCUSDT/time_aggregated_1440min.csv'
 # daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_SOLUSDT/time_aggregated_1440min.csv'
 # daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_MATICUSDT/time_aggregated_1440min.csv'
-daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_ETHUSDT/time_aggregated_1440min.csv'
+# daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_ETHUSDT/time_aggregated_1440min.csv'
 # output folder
 output_folder = '/root/ml_investing_wne/src/ml_investing_wne/results'
 
@@ -34,7 +33,8 @@ class PerformanceEvaluator():
     '''
 
     def __init__(self, backtest_folder, daily_records, risk_free_rate=0.0314, seeds = ['12345', '123456', '1234567'],name=None, 
-                 start_date=datetime.date(2022, 3, 31), end_date=datetime.date(2023, 7, 1)):
+                 start_date=datetime.date(2022, 3, 31), end_date=datetime.date(2023, 7, 1),
+                 cost=0):
         # risk free rate is taken as average overnight rate for corresponding period from https://treasurydirect.gov/GA-FI/FedInvest/selectOvernightRateDate
         self.backtest_folder = backtest_folder
         self.triple_barrier = False
@@ -46,6 +46,7 @@ class PerformanceEvaluator():
             self.name = name
         self.start_date = start_date
         self.end_date = end_date
+        self.cost = cost
         self.df_daily = pd.read_csv(daily_records, parse_dates=['datetime'])
         self.df_daily['datetime'] = pd.to_datetime(self.df_daily['datetime']) 
         self.df_daily['datetime'] = self.df_daily['datetime'] +  pd.DateOffset(hours=23) + pd.DateOffset(minutes=59) +  pd.DateOffset(seconds=59)
@@ -179,7 +180,7 @@ class PerformanceEvaluator():
                 # if self.trades_and_close.loc[i, 'budget'] is None:
                 datetime_end = self.trades_and_close.loc[i, 'datetime']
                 if hold_period == 0:
-                    entry_cost = config.cost
+                    entry_cost = self.cost
                 else:
                     entry_cost = 0
                     
@@ -206,10 +207,10 @@ class PerformanceEvaluator():
                 daily_return = exit_price/entry_price -1
                 trade_return = exit_price/entry_position_price -1
                 if hold_period == 0:
-                    entry_cost = config.cost
+                    entry_cost = self.cost
                 else:
                     entry_cost = 0
-                exit_cost = config.cost
+                exit_cost = self.cost
                 results.append([datetime_start, datetime_end, transaction, entry_position_price, entry_price, exit_price, daily_return, trade_return, entry_cost, exit_cost])
 
                 transaction = self.trades_and_close.loc[i, 'transaction']
@@ -218,7 +219,7 @@ class PerformanceEvaluator():
                     entry_price = self.trades_and_close.loc[i, 'close']
                     entry_position_price = entry_price 
                     daily_return = 0
-                    entry_cost = config.cost
+                    entry_cost = self.cost
                     exit_cost = 0
                     hold_period = 0
                 i += 1
@@ -271,7 +272,7 @@ class PerformanceEvaluator():
                 if self.trades_and_close.loc[i, 'barrier_touched'] is None:
                     datetime_end = self.trades_and_close.loc[i, 'datetime']
                     if hold_period == 0:
-                        entry_cost = config.cost
+                        entry_cost = self.cost
                     else:
                         entry_cost = 0
                     # finding a day in which take profit or stop loss was triggered but it can't be the same day 
@@ -279,7 +280,7 @@ class PerformanceEvaluator():
                     (barrier_touched == 'bottom' and self.trades_and_close.loc[i, 'low'] < exit_position_price)) and 
                     (datetime_end.date() > datetime_start.date())):
                         exit_price = exit_position_price
-                        exit_cost = config.cost
+                        exit_cost = self.cost
                         daily_return = exit_price/entry_price -1
                         trade_return = exit_price/entry_position_price -1
                         results.append([datetime_start, datetime_end, transaction, entry_position_price, entry_price, exit_price, daily_return, trade_return, entry_cost, exit_cost])
@@ -311,13 +312,13 @@ class PerformanceEvaluator():
                 else:
                     datetime_end = self.trades_and_close.loc[i, 'datetime']
                     if hold_period == 0:
-                        entry_cost = config.cost
+                        entry_cost = self.cost
                     else:
                         entry_cost = 0
                     exit_price = exit_position_price
                     daily_return = exit_price/entry_price -1
                     trade_return = exit_price/entry_position_price -1
-                    exit_cost = config.cost
+                    exit_cost = self.cost
                     results.append([datetime_start, datetime_end, transaction, entry_position_price, entry_price, exit_price, daily_return, trade_return, entry_cost, exit_cost])
                     # open new position in the same direction
                     datetime_start = datetime_end
@@ -340,10 +341,10 @@ class PerformanceEvaluator():
                 daily_return = exit_price/entry_price -1
                 trade_return = exit_price/entry_position_price -1
                 if hold_period == 0:
-                    entry_cost = config.cost
+                    entry_cost = self.cost
                 else:
                     entry_cost = 0
-                exit_cost = config.cost
+                exit_cost = self.cost
                 results.append([datetime_start, datetime_end, transaction, entry_position_price, entry_price, exit_price, daily_return, trade_return, entry_cost, exit_cost])
 
 
@@ -355,7 +356,7 @@ class PerformanceEvaluator():
                     exit_position_price = self.trades_and_close.loc[i, 'exit_price']
                     barrier_touched = self.trades_and_close.loc[i, 'barrier_touched']
                     daily_return = 0
-                    entry_cost = config.cost
+                    entry_cost = self.cost
                     exit_cost = 0
                     hold_period = 0
                     i += 1
@@ -365,13 +366,13 @@ class PerformanceEvaluator():
         if transaction != 'No trade':
             datetime_end = pd.to_datetime(self.trades_and_close['barrier_touched_date']).max()
             if hold_period == 0:
-                entry_cost = config.cost
+                entry_cost = self.cost
             else:
                 entry_cost = 0
             exit_price = exit_position_price
             daily_return = exit_price/entry_price -1
             trade_return = exit_price/entry_position_price -1
-            exit_cost = config.cost
+            exit_cost = self.cost
             results.append([datetime_start, datetime_end, transaction, entry_position_price, entry_price, exit_price, daily_return, trade_return, entry_cost, exit_cost])
             i += 1
 
