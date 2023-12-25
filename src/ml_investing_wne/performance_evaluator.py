@@ -24,7 +24,8 @@ backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_inv
 # daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_MATICUSDT/time_aggregated_1440min.csv'
 daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_ETHUSDT/time_aggregated_1440min.csv'
 # output folder
-output_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/results'
+output_folder = '/root/ml_investing_wne/src/ml_investing_wne/results'
+
 # output_folder = '/root/ml_investing_wne/src/ml_investing_wne/models/results'
 
 class PerformanceEvaluator():
