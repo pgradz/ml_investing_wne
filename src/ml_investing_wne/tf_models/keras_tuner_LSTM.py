@@ -25,20 +25,20 @@ logger = logging.getLogger(__name__)
 # experiment.train_test_val_split()
 
 # print(config.currency)
-# print(config.RUN_SUBTYPE)
+# print(config.run_subtype)
 # print(config.seq_stride)
 class MyHyperModel():
 
     def __init__(self, input_shape, train_dataset, val_dataset, 
                  currency=config.currency, seq_len=config.seq_len, 
-                 RUN_SUBTYPE=config.RUN_SUBTYPE, model=config.model, 
+                 run_subtype=config.run_subtype, model=config.model, 
                  seed=config.seed):
         self.input_shape = input_shape
         self.train_dataset = train_dataset
         self.val_dataset = val_dataset
         self.currency = currency
         self.seq_len = seq_len
-        self.RUN_SUBTYPE = RUN_SUBTYPE
+        self.run_subtype = run_subtype
         self.model = model
         self.seed = seed
         random.seed(seed)
@@ -74,7 +74,7 @@ class MyHyperModel():
                             hyperband_iterations=1, 
                             factor=3,
                             directory='keras_tuner',
-                            project_name=f'{self.currency}_{self.seq_len}_{self.RUN_SUBTYPE}_{self.model}')
+                            project_name=f'{self.currency}_{self.seq_len}_{self.run_subtype}_{self.model}')
 
 
         stop_early = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=10)

@@ -18,7 +18,7 @@ class MyHyperModelBase(ABC):
     def __init__(self, input_shape, train_dataset, val_dataset, 
                  project_name,
                  currency=config.currency, seq_len=config.seq_len, 
-                 RUN_SUBTYPE=config.RUN_SUBTYPE, model=config.model, 
+                 run_subtype=config.run_subtype, model=config.model, 
                  seed=config.seed):
         self.input_shape = input_shape
         self.train_dataset = train_dataset
@@ -26,7 +26,7 @@ class MyHyperModelBase(ABC):
         self.project_name = project_name
         self.currency = currency
         self.seq_len = seq_len
-        self.RUN_SUBTYPE = RUN_SUBTYPE
+        self.run_subtype = run_subtype
         self.model = model
         self.seed = seed
     

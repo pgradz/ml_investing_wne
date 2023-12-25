@@ -34,5 +34,5 @@ if __name__ == "__main__":
         else:  
             daily_records = daily_records_btc
         
-        performance_evaluator = PerformanceEvaluator(os.path.join('/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models',dir), daily_records)
+        performance_evaluator = PerformanceEvaluator(os.path.join('/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models',dir), daily_records, cost=config.cost)
         performance_evaluator.run()

@@ -15,7 +15,6 @@ from sklearn.metrics import confusion_matrix, roc_auc_score, f1_score
 from sklearn.preprocessing import StandardScaler
 from keras.callbacks import ModelCheckpoint, EarlyStopping, CSVLogger
 from tensorflow.keras.utils import to_categorical
-import ml_investing_wne.config as config
 from ml_investing_wne.models import model_factory
 
 
@@ -27,34 +26,10 @@ logger = logging.getLogger(__name__)
 # logger = get_logger()
 
 class Experiment():
-    def __init__(self, df, binarize_target=True, 
-                 nb_classes=config.nb_classes, freq=config.freq, 
-                 seq_len=config.seq_len, seq_stride=config.seq_stride,
-                 train_end=config.train_end, val_end=config.val_end,
-                 test_end=config.test_end, batch_size=config.batch,
-                 seed=config.seed, run_subtype=config.RUN_SUBTYPE, budget=None,
-                 volume=config.volume, value=config.value, cumsum_threshold=config.cumsum_threshold,
-                 fixed_barrier=config.fixed_barrier, t_final=config.t_final,
-                 currency=config.currency, model_name=config.model) -> None:
+    def __init__(self, df, args, binarize_target=True, budget=None) -> None:
         self.df = df
         self.binarize_target=binarize_target 
-        self.nb_classes=nb_classes
-        self.freq=freq
-        self.seq_len=seq_len
-        self.seq_stride=seq_stride
-        self.train_end=train_end
-        self.val_end=val_end
-        self.test_end=test_end
-        self.batch_size=batch_size
-        self.seed=seed
-        self.run_subtype=run_subtype
-        self.volume = volume
-        self.value = value
-        self.cumsum_threshold = cumsum_threshold
-        self.fixed_barrier = fixed_barrier
-        self.t_final = t_final
-        self.currency = currency
-        self.model_name = model_name
+        self.args = args
         # budget for performance evaluation
         if budget:
             self.budget = budget
@@ -65,25 +40,25 @@ class Experiment():
         # how many observations to skip when splitting the data
         self.offset = 0
 
-        self.experiment_name=f'{self.currency}_{self.seq_len}_{self.run_subtype}_{self.model_name}'
+        self.experiment_name=f'{self.args.currency}_{self.args.seq_len}_{self.args.run_subtype}_{self.args.model}'
 
-        if 'time_aggregated' in self.run_subtype:
-            self.experiment_name=self.experiment_name + f'_{self.freq}'
-        if 'cumsum' in self.run_subtype:
-            self.experiment_name=self.experiment_name + f'_cusum_{self.cumsum_threshold}'.replace(".","")
-        if 'triple_barrier' in self.run_subtype:
-            self.experiment_name=self.experiment_name + f'_triple_{self.fixed_barrier}_{self.t_final}'.replace(".","")
+        if 'time_aggregated' in self.args.run_subtype:
+            self.experiment_name=self.experiment_name + f'_{self.args.freq}'
+        if 'cumsum' in self.args.run_subtype:
+            self.experiment_name=self.experiment_name + f'_cusum_{self.args.cumsum_threshold}'.replace(".","")
+        if 'triple_barrier' in self.args.run_subtype:
+            self.experiment_name=self.experiment_name + f'_triple_{self.args.fixed_barrier}_{self.args.t_final}'.replace(".","")
             # offset (preventing data leakage) has to be applied for triple barrier method
-            self.offset =  self.t_final
-        if 'volume' in self.run_subtype:
-            self.experiment_name=self.experiment_name + f'_volume_{self.volume}'.replace(".","")
-        if 'dollar' in self.run_subtype:
-            self.experiment_name=self.experiment_name + f'_dollar_{self.value}'.replace(".","")
-        if 'range' in self.run_subtype:
-            self.experiment_name=self.experiment_name + f'_range_{self.cumsum_threshold}'.replace(".","")
+            self.offset =  self.args.t_final
+        if 'volume' in self.args.run_subtype:
+            self.experiment_name=self.experiment_name + f'_volume_{self.args.volume}'.replace(".","")
+        if 'dollar' in self.args.run_subtype:
+            self.experiment_name=self.experiment_name + f'_dollar_{self.args.value}'.replace(".","")
+        if 'range' in self.args.run_subtype:
+            self.experiment_name=self.experiment_name + f'_range_{self.args.cumsum_threshold}'.replace(".","")
 
         # folder to store the results
-        self.dir_path = os.path.join(config.package_directory, 'models',  self.experiment_name)
+        self.dir_path = os.path.join(self.args.package_directory, 'models',  self.experiment_name)
         if not os.path.exists(self.dir_path):
             os.makedirs(self.dir_path)
 
@@ -103,14 +78,14 @@ class Experiment():
         '''
         train = df.loc[df.datetime < train_end] 
         # update train_end
-        train_end = train.iloc[-self.seq_len+1]['datetime']
+        train_end = train.iloc[-self.args.seq_len+1]['datetime']
         # remove last target length rows from train
         if self.offset > 0:
             train = train.iloc[:-self.offset]
         # validation
         val = df.loc[(df.datetime >= train_end) & (df.datetime < val_end)]
         # update val_end
-        val_end = val.iloc[-self.seq_len+1]['datetime']
+        val_end = val.iloc[-self.args.seq_len+1]['datetime']
         if self.offset > 0:
             val = val.iloc[:-self.offset]
         # test
@@ -142,16 +117,16 @@ class Experiment():
         df = self.df.copy()
         # take care if more than two classes
         if self.binarize_target:
-            if self.nb_classes == 2:
+            if self.args.nb_classes == 2:
                 df['y_pred'] = [1 if y > 1 else 0 for y in df['y_pred']]
             else:
-                df['y_pred'] = pd.qcut(df['y_pred'], self.nb_classes, labels=range(self.nb_classes))
+                df['y_pred'] = pd.qcut(df['y_pred'], self.args.nb_classes, labels=range(self.args.nb_classes))
 
         # split train val test
         # move datetime from index to column
         df.reset_index(inplace=True)
-        train, val, test, train_date_index, val_date_index, test_date_index = self._train_test_val_split(df, train_end=self.train_end, 
-                                                                                                         val_end=self.val_end, test_end=self.test_end)
+        train, val, test, train_date_index, val_date_index, test_date_index = self._train_test_val_split(df, train_end=self.args.train_end, 
+                                                                                                         val_end=self.args.val_end, test_end=self.args.test_end)
         train_y = train['y_pred']
         val_y = val['y_pred']
         test_y = test['y_pred']
@@ -184,8 +159,8 @@ class Experiment():
         self.sc_x = sc_x
         val = sc_x.transform(val)
         test = sc_x.transform(test)
-        joblib.dump(sc_x, os.path.join(config.package_directory, 'models',
-                                    'sc_x_{}_{}.save'.format(config.currency, self.freq)))
+        joblib.dump(sc_x, os.path.join(self.args.package_directory, 'models',
+                                    'sc_x_{}_{}.save'.format(self.args.currency, self.args.freq)))
         if 'to_keep' in df.columns:
             train = np.hstack((train_keep, train))
             val = np.hstack((val_keep, val))
@@ -193,43 +168,43 @@ class Experiment():
         
         # create tensorflow datasets
         # train
-        train_dataset = tf.keras.utils.timeseries_dataset_from_array(data=train, targets=to_categorical(train_y.values[self.seq_len-1:]),
-                                                                sequence_length=self.seq_len, sequence_stride=self.seq_stride, batch_size=None)
+        train_dataset = tf.keras.utils.timeseries_dataset_from_array(data=train, targets=to_categorical(train_y.values[self.args.seq_len-1:]),
+                                                                sequence_length=self.args.seq_len, sequence_stride=self.args.seq_stride, batch_size=None)
         if 'to_keep' in df.columns:
-            train_dataset = self.filter_tf_dataset(train_dataset, self.batch_size, self.seq_len, filter_rows=True)
-        self.train_dataset = train_dataset.batch(self.batch_size)
+            train_dataset = self.filter_tf_dataset(train_dataset, self.args.batch_size, self.args.seq_len, filter_rows=True)
+        self.train_dataset = train_dataset.batch(self.args.batch_size)
         
-        train_date_index_dataset = tf.keras.utils.timeseries_dataset_from_array(data=train, targets=train_date_index.values[self.seq_len-1:, 0].astype(int),
-                                                                sequence_length=self.seq_len, sequence_stride=self.seq_stride, batch_size=None)
+        train_date_index_dataset = tf.keras.utils.timeseries_dataset_from_array(data=train, targets=train_date_index.values[self.args.seq_len-1:, 0].astype(int),
+                                                                sequence_length=self.args.seq_len, sequence_stride=self.args.seq_stride, batch_size=None)
         if 'to_keep' in df.columns:
-            train_date_index_dataset = self.filter_tf_dataset(train_date_index_dataset, self.batch_size, self.seq_len, filter_rows=True)
-        train_date_index_dataset = train_date_index_dataset.batch(self.batch_size)
+            train_date_index_dataset = self.filter_tf_dataset(train_date_index_dataset, self.args.batch_size, self.args.seq_len, filter_rows=True)
+        train_date_index_dataset = train_date_index_dataset.batch(self.args.batch_size)
 
         # val
-        val_dataset = tf.keras.utils.timeseries_dataset_from_array(data=val, targets=to_categorical(val_y.values[self.seq_len-1:]), 
-                                                                sequence_length=self.seq_len, sequence_stride=1, batch_size=None)
+        val_dataset = tf.keras.utils.timeseries_dataset_from_array(data=val, targets=to_categorical(val_y.values[self.args.seq_len-1:]), 
+                                                                sequence_length=self.args.seq_len, sequence_stride=1, batch_size=None)
         if 'to_keep' in df.columns:
-            val_dataset = self.filter_tf_dataset(val_dataset, self.batch_size, self.seq_len, filter_rows=False)
-        self.val_dataset = val_dataset.batch(self.batch_size)
+            val_dataset = self.filter_tf_dataset(val_dataset, self.args.batch_size, self.args.seq_len, filter_rows=False)
+        self.val_dataset = val_dataset.batch(self.args.batch_size)
     
-        val_date_index_dataset = tf.keras.utils.timeseries_dataset_from_array(data=val, targets=val_date_index.values[self.seq_len-1:, 0].astype(int),
-                                                                sequence_length=self.seq_len, sequence_stride=1, batch_size=None)
+        val_date_index_dataset = tf.keras.utils.timeseries_dataset_from_array(data=val, targets=val_date_index.values[self.args.seq_len-1:, 0].astype(int),
+                                                                sequence_length=self.args.seq_len, sequence_stride=1, batch_size=None)
         if 'to_keep' in df.columns:
-            val_date_index_dataset = self.filter_tf_dataset(val_date_index_dataset, self.batch_size, self.seq_len, filter_rows=False)
-        val_date_index_dataset = val_date_index_dataset.batch(self.batch_size)
+            val_date_index_dataset = self.filter_tf_dataset(val_date_index_dataset, self.args.batch_size, self.args.seq_len, filter_rows=False)
+        val_date_index_dataset = val_date_index_dataset.batch(self.args.batch_size)
 
         # test
-        test_dataset = tf.keras.utils.timeseries_dataset_from_array(data=test, targets=to_categorical(test_y.values[self.seq_len-1:]),
-                                                                sequence_length=self.seq_len, sequence_stride=1, batch_size=None)
+        test_dataset = tf.keras.utils.timeseries_dataset_from_array(data=test, targets=to_categorical(test_y.values[self.args.seq_len-1:]),
+                                                                sequence_length=self.args.seq_len, sequence_stride=1, batch_size=None)
         if 'to_keep' in df.columns:
-            test_dataset = self.filter_tf_dataset(test_dataset, self.batch_size, self.seq_len, filter_rows=False)
-        self.test_dataset = test_dataset.batch(self.batch_size)
+            test_dataset = self.filter_tf_dataset(test_dataset, self.args.batch_size, self.args.seq_len, filter_rows=False)
+        self.test_dataset = test_dataset.batch(self.args.batch_size)
 
-        test_date_index_dataset = tf.keras.utils.timeseries_dataset_from_array(data=test, targets=test_date_index.values[self.seq_len-1:, 0].astype(int),
-                                                                sequence_length=self.seq_len, sequence_stride=1, batch_size=None)
+        test_date_index_dataset = tf.keras.utils.timeseries_dataset_from_array(data=test, targets=test_date_index.values[self.args.seq_len-1:, 0].astype(int),
+                                                                sequence_length=self.args.seq_len, sequence_stride=1, batch_size=None)
         if 'to_keep' in df.columns:
-            test_date_index_dataset = self.filter_tf_dataset(test_date_index_dataset, self.batch_size, self.seq_len, filter_rows=False)
-        test_date_index_dataset = test_date_index_dataset.batch(self.batch_size)
+            test_date_index_dataset = self.filter_tf_dataset(test_date_index_dataset, self.args.batch_size, self.args.seq_len, filter_rows=False)
+        test_date_index_dataset = test_date_index_dataset.batch(self.args.batch_size)
 
 
         # # create tensorflow datasets
@@ -329,9 +304,9 @@ class Experiment():
     
     def hyperparameter_tunning(self, model_index=0):
         # load model tunner dynamically
-        MyHyperModel = getattr(importlib.import_module(f'ml_investing_wne.tf_models.{config.model}'),'MyHyperModel')
-        my_hyper_model = MyHyperModel(input_shape=(self.seq_len, self.no_features), train_dataset=self.train_dataset, val_dataset=self.val_dataset,
-                                      seed=self.seed, project_name=self.experiment_name)
+        MyHyperModel = getattr(importlib.import_module(f'ml_investing_wne.tf_models.{self.args.model}'),'MyHyperModel')
+        my_hyper_model = MyHyperModel(input_shape=(self.args.seq_len, self.no_features), train_dataset=self.train_dataset, val_dataset=self.val_dataset,
+                                      seed=self.args.seed, project_name=self.experiment_name)
         models, best_hps = my_hyper_model.run_tuner()
         return models, best_hps, my_hyper_model
 
@@ -360,8 +335,8 @@ class Experiment():
             str: mlflow experiment name
         """
 
-        ml_flow_experiment_name = (f"{config.provider}_{config.model}_{str(config.nb_classes)}"
-                                    f"{config.freq}_{str(config.steps_ahead)}_{str(config.seq_len)}")
+        ml_flow_experiment_name = (f"{self.args.provider}_{self.args.model}_{str(self.args.nb_classes)}"
+                                    f"{self.args.freq}_{str(self.args.steps_ahead)}_{str(self.args.seq_len)}")
         return ml_flow_experiment_name
 
 
@@ -371,8 +346,8 @@ class Experiment():
         Returns:
             _type_: _description_
         """
-        model_name = f"{config.model}_{config.provider}_{config.currency}_{config.freq}_{config.steps_ahead}.h5"
-        model_path_training = os.path.join(config.package_directory, 'models', model_name)
+        model_name = f"{self.args.model}_{self.args.provider}_{self.args.currency}_{self.args.freq}_{self.args.steps_ahead}.h5"
+        model_path_training = os.path.join(self.args.package_directory, 'models', model_name)
 
         return model_path_training
 
@@ -382,30 +357,30 @@ class Experiment():
         Returns:
             _type_: _description_
         """
-        model_name = f"{config.model}_hist_data_{config.currency}_{config.freq}_{config.steps_ahead}.h5"
-        model_path_training = os.path.join(config.package_directory, 'models', model_name)
+        model_name = f"{self.args.model}_hist_data_{self.args.currency}_{self.args.freq}_{self.args.steps_ahead}.h5"
+        model_path_training = os.path.join(self.args.package_directory, 'models', model_name)
 
         return model_path_training
 
     def get_final_model_path(self):
 
-        model_name = (f"{config.model}_{config.provider}_{config.currency}_{config.freq}_"
-                        f"{str(config.steps_ahead)}_{config.seq_len}")
-        model_path_final = os.path.join(config.package_directory, 'models', 'production', model_name)
+        model_name = (f"{self.args.model}_{self.args.provider}_{self.args.currency}_{self.args.freq}_"
+                        f"{str(self.args.steps_ahead)}_{self.args.seq_len}")
+        model_path_final = os.path.join(self.args.package_directory, 'models', 'production', model_name)
         return model_path_final
 
     def get_callbacks(self):
         
-        if config.provider == 'xtb':
+        if self.args.provider == 'xtb':
             training_model_path = self.get_xtb_training_model_path()
         else:
             training_model_path = self.get_training_model_path()
 
-        early_stop = EarlyStopping(monitor='val_accuracy', patience=config.patience, 
+        early_stop = EarlyStopping(monitor='val_accuracy', patience=self.args.patience, 
                     restore_best_weights=True)
         model_checkpoint = ModelCheckpoint(filepath=training_model_path, monitor='val_accuracy',
                             verbose=1, save_best_only=True)
-        csv_logger = CSVLogger(os.path.join(config.package_directory, 'logs', 'keras_log.csv'), 
+        csv_logger = CSVLogger(os.path.join(self.args.package_directory, 'logs', 'keras_log.csv'), 
                                 append=True, separator=';')
         callbacks = [early_stop, model_checkpoint, csv_logger]
 
@@ -413,8 +388,8 @@ class Experiment():
 
     def get_scaler(self):
         
-        sc_x = joblib.load(os.path.join(config.package_directory, 'models',
-                                    f'sc_x_{config.currency}_{config.freq}.save'))
+        sc_x = joblib.load(os.path.join(self.args.package_directory, 'models',
+                                    f'sc_x_{self.args.currency}_{self.args.freq}.save'))
         return sc_x
 
 
@@ -423,8 +398,8 @@ class Experiment():
         mlflow.set_experiment(experiment_name=self.get_ml_flow_experiment_name())
         callbacks = self.get_callbacks()
         if self.model is None:
-            self.model = model_factory(input_shape=(self.seq_len, self.no_features))
-        self.history = self.model.fit(self.train_dataset, batch_size=config.batch, epochs=config.epochs, verbose=2,
+            self.model = model_factory(input_shape=(self.args.seq_len, self.no_features))
+        self.history = self.model.fit(self.train_dataset, batch_size=self.args.batch_size, epochs=self.args.epochs, verbose=2,
                             validation_data=self.val_dataset, callbacks=callbacks)
         self.model.save(self.get_final_model_path())
 
@@ -436,14 +411,11 @@ class Experiment():
         mlflow.log_metric("test_acc", test_acc)
         mlflow.log_metric("test_loss", test_loss)
         mlflow.log_metric("test_loss", test_loss)
-        mlflow.set_tag('currency', config.currency)
-        mlflow.set_tag('frequency', config.freq)
-        mlflow.set_tag('steps_ahead', config.steps_ahead)
-        # mlflow.log_metric('y_distribution', self.y.mean())
-        # mlflow.log_metric('y_val_distribution', self.y_val.mean())
-        # mlflow.log_metric('y_test_distribution', self.y_test.mean())
-        mlflow.log_metric('cost', config.cost)
-        mlflow.log_metric('seq_len', config.seq_len)
+        mlflow.set_tag('currency', self.args.currency)
+        mlflow.set_tag('frequency', self.args.freq)
+        mlflow.set_tag('steps_ahead', self.args.steps_ahead)
+        mlflow.log_metric('cost', self.args.cost)
+        mlflow.log_metric('seq_len', self.args.seq_len)
 
         self.y_val = self.set_y_true(self.val_dataset)
         y_pred_val = self.model.predict(self.val_dataset)
@@ -452,13 +424,6 @@ class Experiment():
         self.y_test = self.set_y_true(self.test_dataset)
         y_pred_test = self.model.predict(self.test_dataset)
         y_pred_class_test = [1 if y > 0.5 else 0 for y in y_pred_test[:,1]]
-
-        # roc_auc = roc_auc_score(self.y_test, y_pred_class)
-        # f1 = f1_score(self.y_test, y_pred_class)
-        # logger.info('roc_auc : %.4f',roc_auc)
-        # logger.info('f1 : %.4f', f1)
-        # mlflow.log_metric('roc_auc', roc_auc)
-        # mlflow.log_metric('f1', f1)
 
         accuracy = (self.y_test == y_pred_class_test).mean()
         logger.info('accuracy on test set : %.4f', accuracy)
@@ -489,7 +454,7 @@ class Experiment():
         logger.info('Prediction accuracy for test set')
         for lower_bound, upper_bound in zip(lower_bounds, upper_bounds):
             self.accuracy_by_threshold(y_pred_test, self.y_test, lower_bound, upper_bound)
-        if 'triple_barrier' in self.run_subtype:
+        if 'triple_barrier' in self.args.run_subtype:
             df_eval = self.df.merge(self.df_3_barriers_additional_info, on='datetime', how='outer')
         else:
             df_eval = self.df.copy()
@@ -519,19 +484,19 @@ class Experiment():
         df['trade'] = np.select(conditions, values)
 
         cols = ['datetime','open', 'close', 'high','low', 'cost', 'trade', 'prediction', 'prc_change']
-        if 'triple_barrier' in self.run_subtype:
+        if 'triple_barrier' in self.args.run_subtype:
             cols = cols + ['time_step','barrier_touched', 'barrier_touched_date', 'bottom_barrier', 'top_barrier']
         else:
             df['prc_change'] = df['y_pred'] - 1
         df = df[cols]
 
-        if 'triple_barrier' in self.run_subtype:
+        if 'triple_barrier' in self.args.run_subtype:
             df = self.run_trades_3_barriers(df)
         else:
             df = self.run_trades_one_step(df)
 
         df.to_csv(os.path.join(self.dir_path,
-                                f'''backtest_{config.currency}_{config.RUN_SUBTYPE}_{config.val_end.strftime("%Y%m%d")}_{config.test_end.strftime("%Y%m%d")}_{config.seed}.csv'''))
+                                f'''backtest_{self.args.currency}_{self.args.run_subtype}_{self.args.val_end.strftime("%Y%m%d")}_{self.args.test_end.strftime("%Y%m%d")}_{self.args.seed}.csv'''))
         # SUMMARIZE RESULTS
         hits = df.loc[((df['transaction'] == 'buy') & (df['prc_change'] > 0)) |
                             ((df['transaction'] == 'sell') & (df['prc_change'] < 0))].shape[0]
@@ -684,23 +649,23 @@ class Experiment():
 
     def load_test_dates(self):
 
-        name = f'test_{config.currency}_{config.freq}.save'
+        name = f'test_{self.args.currency}_{self.args.freq}.save'
 
-        start_date = joblib.load(os.path.join(config.package_directory, 'models',
+        start_date = joblib.load(os.path.join(self.args.package_directory, 'models',
                                             f'first_sequence_ends_{name}'))
-        end_date = joblib.load(os.path.join(config.package_directory, 'models',
+        end_date = joblib.load(os.path.join(self.args.package_directory, 'models',
                                             f'last_sequence_ends_{name}'))
 
         return start_date, end_date
 
     def add_cost(self, df):
-        if config.RUN_TYPE == 'forex':
-            if 'JPY' in config.currency:
-                df['cost'] = (config.cost / 100) / df['close']
+        if self.args.run_type == 'forex':
+            if 'JPY' in self.args.currency:
+                df['cost'] = (self.args.cost / 100) / df['close']
             else:
-                df['cost'] = (config.cost / 10000) / df['close']
-        elif config.RUN_TYPE == 'crypto':
-            df['cost']  = config.cost
+                df['cost'] = (self.args.cost / 10000) / df['close']
+        elif self.args.run_type == 'crypto':
+            df['cost']  = self.args.cost
         else:
             logger.info('Did not find cost information, assuming 0 costs')
             df['cost'] = 0

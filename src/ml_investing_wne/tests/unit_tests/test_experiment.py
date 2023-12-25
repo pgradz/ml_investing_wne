@@ -7,7 +7,7 @@ from ml_investing_wne.experiment import Experiment
 import pandas.testing as pd_testing
 from ml_investing_wne import config
 
-config.RUN_SUBTYPE = 'TEST'
+config.run_subtype = 'TEST'
 
 datetime_col = [datetime.datetime(2021, 1, 1, 12, 0, 0), datetime.datetime(2021, 1, 2, 0, 0, 0),
                     datetime.datetime(2021, 1, 2, 12, 0, 0), datetime.datetime(2021, 1, 3, 0, 0, 0),

@@ -47,27 +47,27 @@ class CryptoFactory():
     def load_binance(self, currency):
         '''
         '''
-        if config.RUN_SUBTYPE in ['volume_bars', 'volume_bars_triple_barrier']:   
+        if config.run_subtype in ['volume_bars', 'volume_bars_triple_barrier']:   
             file_path = os.path.join(config.processed_data_path, f'binance_{currency}', f'volume_bars_{config.volume}.csv')
             # volume bars are almost exactly the same, so don't bring any information
-        elif config.RUN_SUBTYPE in ['dollar_bars', 'dollar_bars_triple_barrier']:   
+        elif config.run_subtype in ['dollar_bars', 'dollar_bars_triple_barrier']:   
             file_path = os.path.join(config.processed_data_path, f'binance_{currency}', f'dollar_bars_{config.value}.csv')
-        elif config.RUN_SUBTYPE in ['time_aggregated', 'triple_barrier_time_aggregated']:  
+        elif config.run_subtype in ['time_aggregated', 'triple_barrier_time_aggregated']:  
             file_path = os.path.join(config.processed_data_path, f'binance_{currency}', f'time_aggregated_{config.freq}.csv')
-        elif config.RUN_SUBTYPE in ['cumsum', 'cumsum_triple_barrier']:
+        elif config.run_subtype in ['cumsum', 'cumsum_triple_barrier']:
             file_path = os.path.join(config.processed_data_path, f'binance_{currency}', f'cumsum_{config.cumsum_threshold}.csv')
-        elif config.RUN_SUBTYPE in ['range_bar', 'range_bar_triple_barrier']:
+        elif config.run_subtype in ['range_bar', 'range_bar_triple_barrier']:
             file_path = os.path.join(config.processed_data_path, f'binance_{currency}', f'range_{config.cumsum_threshold}.csv')
 
         df = pd.read_csv(file_path, parse_dates=['datetime'])
         df.set_index('datetime', inplace=True)
 
-        if config.RUN_SUBTYPE in ['time_aggregated', 'triple_barrier_time_aggregated']:  
+        if config.run_subtype in ['time_aggregated', 'triple_barrier_time_aggregated']:  
             self.df_time_aggregated = df
-        if config.RUN_SUBTYPE in ['volume_bars','volume_bars_triple_barrier', 'dollar_bars', 'dollar_bars_triple_barrier']:  
+        if config.run_subtype in ['volume_bars','volume_bars_triple_barrier', 'dollar_bars', 'dollar_bars_triple_barrier']:  
             # df.drop(columns=['volume'], inplace=True)
             df = self.deal_with_duplicates(df)
-            if 'volume' in config.RUN_SUBTYPE:
+            if 'volume' in config.run_subtype:
                 self.df_volume_bars = df
             else:
                 self.df_dollar_bars = df
