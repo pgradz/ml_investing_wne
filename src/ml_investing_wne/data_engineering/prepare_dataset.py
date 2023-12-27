@@ -4,13 +4,13 @@ import numpy as np
 import logging
 import datetime
 import pandas_ta as ta
-import ml_investing_wne.config as config
+
 from ml_investing_wne.data_engineering.load_data import import_forex_csv, aggregate_time_window, \
     check_time_delta
 
 logger = logging.getLogger(__name__)
 
-def prepare_processed_dataset(plot=False, df=None, allow_null=False, features=True, add_target=True):
+def prepare_processed_dataset(args, plot=False, df=None, allow_null=False, features=True, add_target=True,):
     '''
 
     :param plot:  flag whether to plot price evolution
@@ -21,8 +21,8 @@ def prepare_processed_dataset(plot=False, df=None, allow_null=False, features=Tr
     '''
 
     if not isinstance(df, pd.DataFrame):
-        df = pd.concat(import_forex_csv(config.raw_data_path, config.currency))
-        df = aggregate_time_window(df, config.freq)
+        df = pd.concat(import_forex_csv(args.raw_data_path, args.currency))
+        df = aggregate_time_window(df, args.freq)
         check_time_delta(df)
         # pick bid for technical indicators
         df.rename(columns={'bid_open': 'open', 'bid_close': 'close', 'bid_high': 'high', 'bid_min': 'low'}, inplace=True)
@@ -32,12 +32,12 @@ def prepare_processed_dataset(plot=False, df=None, allow_null=False, features=Tr
         check['close'] = check['close'].fillna(value=0)
         ax = check['close'].plot()
         ax.set_ylabel('close')
-        ax.set_title(config.currency)
+        ax.set_title(args.currency)
 
     # eliminate weekends
     df = df.loc[df['close'].notna()].copy()
     if add_target:
-        df['y_pred'] = df['close'].shift(-config.steps_ahead) / df['close']
+        df['y_pred'] = df['close'].shift(-args.steps_ahead) / df['close']
 
     # lag of target - depending on the setup, it can leak information from the future
     # df['y_pred_lag'] = df['y_pred'].shift(1)
@@ -101,10 +101,10 @@ def prepare_processed_dataset(plot=False, df=None, allow_null=False, features=Tr
     for column in df.select_dtypes(include='object'):
         df[column] = df[column].astype('float')
 
-    output_directory = os.path.join(config.processed_data_path, config.currency)
+    output_directory = os.path.join(args.processed_data_path, args.currency)
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
-    path = os.path.join(output_directory, '{}_processed_{}.csv'.format(config.currency, config.freq))
+    path = os.path.join(output_directory, '{}_processed_{}.csv'.format(args.currency, args.freq))
     df.to_csv(path)
     logger.info('exported to {}'.format(path))
 

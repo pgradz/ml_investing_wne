@@ -6,15 +6,15 @@ import datetime
 # # suppress tensorflow warnings
 # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-RUN_TYPE = 'crypto' # forex or crypto
-RUN_SUBTYPE = 'cumsum_triple_barrier' #'triple_barrier_time_aggregated','time_aggregated', 'volume_bars', dollar_bars, 'cumsum', cumsum_triple_barrier', 'volume_bars_triple_barrier', dollar_bars_triple_barrier, range_bar, range_bar_triple_barrier
+run_type = 'crypto' # forex or crypto
+run_subtype = '' #'triple_barrier_time_aggregated','time_aggregated', 'volume_bars', dollar_bars, 'cumsum', cumsum_triple_barrier', 'volume_bars_triple_barrier', dollar_bars_triple_barrier, range_bar, range_bar_triple_barrier
 provider = 'Binance' # hist_data, Bitstamp, Binance
 currency = 'ETHUSDT'
 
 # model parameters
 input_dim = '1d'  # 2d or 1d
 # has to be defined inside tf_models folder
-model = 'keras_tuner_CNN_LSTM' #'keras_tuner_transformer_positional_encoding', resnet_lstm_regularized, keras_tuner_transformer_learnable_encoding, lstm, keras_tuner_CNN_LSTM, keras_tuner_LSTM
+model = '' #'keras_tuner_transformer_positional_encoding', resnet_lstm_regularized, keras_tuner_transformer_learnable_encoding, lstm, keras_tuner_CNN_LSTM, keras_tuner_LSTM
 seed = 12345
 # leave empty if training from scratch, for transfer learning specify currency to be used as a base
 load_model = ''
@@ -29,10 +29,10 @@ value = 300000000
 
 # Tripple barrier params
 t_final=24
-fixed_barrier=0.07
+fixed_barrier=0.1
 
 # cumsum params
-cumsum_threshold = 0.03
+cumsum_threshold =0.1
 
 
 # if we want to skip consequtive sequences, it is configured by seq_stride. If seq_stride = seq_len then there is 0 overlap at expense of many observations dropped
@@ -79,7 +79,7 @@ steps_ahead = 1
 if run_type == 'crypto':
     package_directory = os.path.dirname(os.path.abspath(__file__))
     raw_data_path = os.path.join(package_directory, 'data', 'raw', 'crypto')
-elif RUN_TYPE == 'forex':
+elif run_type == 'forex':
     package_directory = os.path.dirname(os.path.abspath(__file__))
     raw_data_path = os.path.join(package_directory, 'data', 'raw', 'hist_data')
     raw_data_path_xtb = os.path.join(package_directory, 'data', 'raw', 'xtb')

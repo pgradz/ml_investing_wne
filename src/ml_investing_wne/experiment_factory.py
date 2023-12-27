@@ -13,9 +13,9 @@ def create_asset(args):
     if args.run_type == 'forex':
         # TODO: something is worng with the order
         df = get_hist_data(currency=args.currency)
-        asset = CryptoFactory(args.provider, args.currency, args.run_subtype, df=df)
+        asset = CryptoFactory(args, df=df)
     else:
-        asset = CryptoFactory(args.provider, args.currency, args.run_subtype)
+        asset = CryptoFactory(args)
 
     return asset
 
@@ -64,7 +64,7 @@ class experiment_factory():
 
         self.asset.run_3_barriers(t_final=self.args.t_final, fixed_barrier=self.args.fixed_barrier)
         df = self.asset.df_3_barriers
-        df = prepare_processed_dataset(df=df, add_target=False)
+        df = prepare_processed_dataset(self.args, df=df, add_target=False)
         logger.info(f' df shape before merge wiith 3 barriers additional info is {df.shape}')
         df = df.merge(self.asset.df_3_barriers_additional_info[['datetime', 'time_step']], on='datetime', how='inner')
         logger.info(f' df shape after merge wiith 3 barriers additional info is {df.shape}')
@@ -76,7 +76,7 @@ class experiment_factory():
         if self.asset.df_time_aggregated is None:
             self.asset.time_aggregation(freq=self.args.freq)
         df = self.asset.df_time_aggregated
-        df = prepare_processed_dataset(df=df, add_target=True)
+        df = prepare_processed_dataset(self.args, df=df, add_target=True)
         experiment = Experiment(df, args=self.args, **kwargs)
         return experiment
 
@@ -85,7 +85,7 @@ class experiment_factory():
         if self.asset.df_volume_bars is None:
             self.asset.generate_volumebars(frequency=self.args.volume)
         df = self.asset.df_volume_bars
-        df = prepare_processed_dataset(df=df, add_target=True)
+        df = prepare_processed_dataset(self.args, df=df, add_target=True)
         experiment = Experiment(df, args=self.args, **kwargs)
         return experiment
 
@@ -94,7 +94,7 @@ class experiment_factory():
         if self.asset.df_dollar_bars is None:
             self.asset.generate_dollarbars(frequency=self.args.volume)
         df = self.asset.df_dollar_bars
-        df = prepare_processed_dataset(df=df, add_target=True)
+        df = prepare_processed_dataset(self.args, df=df, add_target=True)
         experiment = Experiment(df, args=self.args, **kwargs)
         return experiment
     
@@ -105,7 +105,7 @@ class experiment_factory():
         #     self.asset.time_aggregation(freq=args.freq)
         self.asset.run_3_barriers(t_final=self.args.t_final, fixed_barrier=self.args.fixed_barrier)
         df = self.asset.df_3_barriers
-        df = prepare_processed_dataset(df=df, add_target=False)
+        df = prepare_processed_dataset(self.args, df=df, add_target=False)
         logger.info(f' df shape before merge wiith 3 barriers additional info is {df.shape}')
         # df = df.merge(self.asset.df_3_barriers_additional_info[['datetime', 'time_step']], on='datetime', how='inner')
         logger.info(f' df shape after merge wiith 3 barriers additional info is {df.shape}')
@@ -117,7 +117,7 @@ class experiment_factory():
             
         self.asset.run_3_barriers(t_final=self.args.t_final, fixed_barrier=self.args.fixed_barrier)
         df = self.asset.df_3_barriers
-        df = prepare_processed_dataset(df=df, add_target=False)
+        df = prepare_processed_dataset(self.args, df=df, add_target=False)
         logger.info(f' df shape before merge wiith 3 barriers additional info is {df.shape}')
         # df = df.merge(self.asset.df_3_barriers_additional_info[['datetime', 'time_step']], on='datetime', how='inner')
         logger.info(f' df shape after merge wiith 3 barriers additional info is {df.shape}')
@@ -129,7 +129,7 @@ class experiment_factory():
             
         self.asset.run_3_barriers(t_final=self.args.t_final, fixed_barrier=self.args.fixed_barrier)
         df = self.asset.df_3_barriers
-        df = prepare_processed_dataset(df=df, add_target=False)
+        df = prepare_processed_dataset(self.args, df=df, add_target=False)
         logger.info(f' df shape before merge wiith 3 barriers additional info is {df.shape}')
         # df = df.merge(self.asset.df_3_barriers_additional_info[['datetime', 'time_step']], on='datetime', how='inner')
         logger.info(f' df shape after merge wiith 3 barriers additional info is {df.shape}')
@@ -139,12 +139,12 @@ class experiment_factory():
 
 
     def crypto_cumsum(self, **kwargs):
-        df = prepare_processed_dataset(df=self.asset.df, add_target=True)
+        df = prepare_processed_dataset(self.args, df=self.asset.df, add_target=True)
         experiment = Experiment(df, args=self.args, **kwargs)
         return experiment
     
     def crypto_range_bar(self, **kwargs):
-        df = prepare_processed_dataset(df=self.asset.df, add_target=True)
+        df = prepare_processed_dataset(self.args, df=self.asset.df, add_target=True)
         experiment = Experiment(df, args=self.args,  **kwargs)
         return experiment
 
@@ -153,7 +153,7 @@ class experiment_factory():
 
         self.asset.run_3_barriers(t_final=self.args.t_final, fixed_barrier=self.args.fixed_barrier)
         df = self.asset.df_3_barriers
-        df = prepare_processed_dataset(df=df, add_target=False)
+        df = prepare_processed_dataset(self.args, df=df, add_target=False)
         logger.info(f' df shape before merge wiith 3 barriers additional info is {df.shape}')
         # df = df.merge(self.asset.df_3_barriers_additional_info[['datetime', 'time_step']], on='datetime', how='inner')
         logger.info(f' df shape after merge wiith 3 barriers additional info is {df.shape}')
@@ -165,7 +165,7 @@ class experiment_factory():
             
         self.asset.run_3_barriers(t_final=self.args.t_final, fixed_barrier=self.args.fixed_barrier)
         df = self.asset.df_3_barriers
-        df = prepare_processed_dataset(df=df, add_target=False)
+        df = prepare_processed_dataset(self.args, df=df, add_target=False)
         logger.info(f' df shape before merge wiith 3 barriers additional info is {df.shape}')
         # df = df.merge(self.asset.df_3_barriers_additional_info[['datetime', 'time_step']], on='datetime', how='inner')
         logger.info(f' df shape after merge wiith 3 barriers additional info is {df.shape}')

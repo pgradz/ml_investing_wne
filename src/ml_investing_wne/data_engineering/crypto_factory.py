@@ -4,7 +4,6 @@ import pandas as pd
 import numpy as np
 import logging
 import plotly.graph_objects as go
-from ml_investing_wne import config
 
 logger = logging.getLogger(__name__)
 
@@ -13,15 +12,14 @@ class CryptoFactory():
 
     FIRST_COLUMNS = ['datetime', 'price', 'volume']
 
-    def __init__(self, provider, currency, df=None) -> None:
-        self.provider = provider
-        self.currency = currency
+    def __init__(self, args, df=None) -> None:
+        self.args = args
         self.df_time_aggregated = None
         self.df_volume_bars = None
         if isinstance(df, pd.DataFrame):
             self.df_time_aggregated = df
         else:
-            self.df = self.load_data(self.provider, self.currency)
+            self.df = self.load_data(self.args.provider, self.args.currency)
 
 
     def load_data(self, exchange, currency):
@@ -35,10 +33,10 @@ class CryptoFactory():
         Returns:
             pd.DataFrame: dataframe in standardized format: date, price, volume, others
         """
-        if self.provider == 'Bitstamp':
-            df = self.load_bitstamp(self.currency)
-        elif self.provider == 'Binance':
-            df = self.load_binance(self.currency)
+        if self.args.provider == 'Bitstamp':
+            df = self.load_bitstamp(self.args.currency)
+        elif self.args.provider == 'Binance':
+            df = self.load_binance(self.args.currency)
         else:
             pass
 
@@ -47,27 +45,27 @@ class CryptoFactory():
     def load_binance(self, currency):
         '''
         '''
-        if config.run_subtype in ['volume_bars', 'volume_bars_triple_barrier']:   
-            file_path = os.path.join(config.processed_data_path, f'binance_{currency}', f'volume_bars_{config.volume}.csv')
+        if self.args.run_subtype in ['volume_bars', 'volume_bars_triple_barrier']:   
+            file_path = os.path.join(self.args.processed_data_path, f'binance_{currency}', f'volume_bars_{self.args.volume}.csv')
             # volume bars are almost exactly the same, so don't bring any information
-        elif config.run_subtype in ['dollar_bars', 'dollar_bars_triple_barrier']:   
-            file_path = os.path.join(config.processed_data_path, f'binance_{currency}', f'dollar_bars_{config.value}.csv')
-        elif config.run_subtype in ['time_aggregated', 'triple_barrier_time_aggregated']:  
-            file_path = os.path.join(config.processed_data_path, f'binance_{currency}', f'time_aggregated_{config.freq}.csv')
-        elif config.run_subtype in ['cumsum', 'cumsum_triple_barrier']:
-            file_path = os.path.join(config.processed_data_path, f'binance_{currency}', f'cumsum_{config.cumsum_threshold}.csv')
-        elif config.run_subtype in ['range_bar', 'range_bar_triple_barrier']:
-            file_path = os.path.join(config.processed_data_path, f'binance_{currency}', f'range_{config.cumsum_threshold}.csv')
+        elif self.args.run_subtype in ['dollar_bars', 'dollar_bars_triple_barrier']:   
+            file_path = os.path.join(self.args.processed_data_path, f'binance_{currency}', f'dollar_bars_{self.args.value}.csv')
+        elif self.args.run_subtype in ['time_aggregated', 'triple_barrier_time_aggregated']:  
+            file_path = os.path.join(self.args.processed_data_path, f'binance_{currency}', f'time_aggregated_{self.args.freq}.csv')
+        elif self.args.run_subtype in ['cumsum', 'cumsum_triple_barrier']:
+            file_path = os.path.join(self.args.processed_data_path, f'binance_{currency}', f'cumsum_{self.args.cumsum_threshold}.csv')
+        elif self.args.run_subtype in ['range_bar', 'range_bar_triple_barrier']:
+            file_path = os.path.join(self.args.processed_data_path, f'binance_{currency}', f'range_{self.args.cumsum_threshold}.csv')
 
         df = pd.read_csv(file_path, parse_dates=['datetime'])
         df.set_index('datetime', inplace=True)
 
-        if config.run_subtype in ['time_aggregated', 'triple_barrier_time_aggregated']:  
+        if self.args.run_subtype in ['time_aggregated', 'triple_barrier_time_aggregated']:  
             self.df_time_aggregated = df
-        if config.run_subtype in ['volume_bars','volume_bars_triple_barrier', 'dollar_bars', 'dollar_bars_triple_barrier']:  
+        if self.args.run_subtype in ['volume_bars','volume_bars_triple_barrier', 'dollar_bars', 'dollar_bars_triple_barrier']:  
             # df.drop(columns=['volume'], inplace=True)
             df = self.deal_with_duplicates(df)
-            if 'volume' in config.run_subtype:
+            if 'volume' in self.args.run_subtype:
                 self.df_volume_bars = df
             else:
                 self.df_dollar_bars = df
@@ -82,7 +80,7 @@ class CryptoFactory():
         Returns:
             pd.DataFrame: dataframe in standardized format: date, price, volume, others
         """
-        file_path = os.path.join(config.raw_data_path, f'Bitstamp_{currency}.csv')
+        file_path = os.path.join(self.args.raw_data_path, f'Bitstamp_{currency}.csv')
         df = pd.read_csv(file_path)
         df['datetime'] = pd.to_datetime(df['t'],unit='ms')
         df.sort_values(by='datetime', inplace=True)
@@ -205,8 +203,8 @@ class CryptoFactory():
                              high=df['high'],
                              low=df['low'],
                              close=df['close']))
-        fig.write_image(os.path.join(config.processed_data_path, 
-                                    f"{config.currency}_{config.provider}.png"))
+        fig.write_image(os.path.join(self.args.processed_data_path, 
+                                    f"{self.args.currency}_{self.args.provider}.png"))
 
 
     def get_daily_volatility(self,close,span0=20):
