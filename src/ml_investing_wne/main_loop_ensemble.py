@@ -138,7 +138,7 @@ def main():
     # summarize results from different seeds
     # daily end prices are needed for some performance metrics
     daily_records = os.path.join(args.processed_data_path, f'binance_{args.currency}', 'time_aggregated_1440min.csv')
-    performance_evaluator = PerformanceEvaluator(experiment.dir_path, daily_records, cost=args.cost)
+    performance_evaluator = PerformanceEvaluator(experiment.dir_path, daily_records_file=daily_records, cost=args.cost)
     performance_evaluator.run()
 
 if __name__ == "__main__":

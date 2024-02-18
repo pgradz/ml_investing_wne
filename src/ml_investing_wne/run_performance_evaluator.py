@@ -50,5 +50,5 @@ if __name__ == "__main__":
         else:  
             continue
         
-        performance_evaluator = PerformanceEvaluator(os.path.join(root_dir, dir), daily_records, cost=config.cost)
+        performance_evaluator = PerformanceEvaluator(os.path.join(root_dir, dir), daily_records_file=daily_records, cost=config.cost)
         performance_evaluator.run()
