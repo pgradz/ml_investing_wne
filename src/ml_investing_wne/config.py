@@ -7,14 +7,14 @@ import datetime
 # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 run_type = 'crypto' # forex or crypto
-run_subtype = '' #'triple_barrier_time_aggregated','time_aggregated', 'volume_bars', dollar_bars, 'cumsum', cumsum_triple_barrier', 'volume_bars_triple_barrier', dollar_bars_triple_barrier, range_bar, range_bar_triple_barrier
+run_subtype = 'cumsum_triple_barrier' #'triple_barrier_time_aggregated','time_aggregated', 'volume_bars', dollar_bars, 'cumsum', cumsum_triple_barrier', 'volume_bars_triple_barrier', dollar_bars_triple_barrier, range_bar, range_bar_triple_barrier
 provider = 'Binance' # hist_data, Bitstamp, Binance
-currency = 'ETHUSDT'
+currency = 'LINKUSDT'
 
 # model parameters
 input_dim = '1d'  # 2d or 1d
 # has to be defined inside tf_models folder
-model = '' #'keras_tuner_transformer_positional_encoding', resnet_lstm_regularized, keras_tuner_transformer_learnable_encoding, lstm, keras_tuner_CNN_LSTM, keras_tuner_LSTM
+model = 'keras_tuner_CNN_LSTM' #'keras_tuner_transformer_positional_encoding', resnet_lstm_regularized, keras_tuner_transformer_learnable_encoding, lstm, keras_tuner_CNN_LSTM, keras_tuner_LSTM
 seed = 12345
 # leave empty if training from scratch, for transfer learning specify currency to be used as a base
 load_model = ''
@@ -29,10 +29,10 @@ value = 300000000
 
 # Tripple barrier params
 t_final=24
-fixed_barrier=0.1
+fixed_barrier=0.09
 
 # cumsum params
-cumsum_threshold =0.1
+cumsum_threshold =0.05
 
 
 # if we want to skip consequtive sequences, it is configured by seq_stride. If seq_stride = seq_len then there is 0 overlap at expense of many observations dropped
@@ -57,7 +57,12 @@ COST_CRYPTO = {
     'MATICUSDT': 0.001,
     'SOLUSDT': 0.001,
     'ETHBTC': 0.001,
-    'LTCUSDT': 0.001
+    'LTCUSDT': 0.001,
+    'DOGEUSDT': 0.001,
+    'ADAUSDT': 0.001,
+    'LINKUSDT': 0.001,
+    'ETHUSDTNOTA': 0.001,
+    'BTCUSDTNOTA': 0.001
 }
 
 try:

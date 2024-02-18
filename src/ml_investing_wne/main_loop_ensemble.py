@@ -87,6 +87,8 @@ def main():
                 mlflow.tensorflow.autolog()
                 asset = create_asset(args)
                 experiment = experiment_factory(asset, args).get_experiment()
+                # uncomment to train the model without TA features
+                experiment.df = experiment.df[['open', 'close', 'high', 'low', 'volume', 'y_pred']]
                 experiment.train_test_val_split()
                 # make sure this is only done once - it is solved like that because of problem with keras tuner and tf on macos
                 if i == 0 and j ==0 and m == 0: 

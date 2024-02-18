@@ -1,7 +1,6 @@
 #!/bin/bash
-export CUDA_VISIBLE_DEVICES=1
 
-models=("keras_tuner_CNN_LSTM" "keras_tuner_transformer_learnable_encoding" "keras_tuner_tsmixer_flattened")
+models=("keras_tuner_CNN_LSTM" "keras_tuner_transformer_learnable_encoding")
 
 data_params=(
   "0.01,0.025,ETHUSDT" \
@@ -24,7 +23,7 @@ for model in "${models[@]}"; do
           --cumsum_threshold "$cumsum_threshold" \
           --fixed_barrier "$fixed_barrier" \
           --currency "$currency" \
-          --run_subtype "range_bar" \
+          --run_subtype "range_bar_triple_barrier" \
           --model $model 
     done
 done
