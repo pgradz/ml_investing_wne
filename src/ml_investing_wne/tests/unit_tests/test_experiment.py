@@ -1,11 +1,13 @@
+import datetime
 import unittest
 from unittest.mock import patch
-import datetime
-import pandas as pd
+
 import numpy as np
-from ml_investing_wne.experiment import Experiment
+import pandas as pd
 import pandas.testing as pd_testing
+
 from ml_investing_wne import config
+from ml_investing_wne.experiment import Experiment
 
 config.run_subtype = 'TEST'
 

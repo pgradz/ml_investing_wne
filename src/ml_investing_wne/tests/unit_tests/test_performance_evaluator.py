@@ -1,10 +1,11 @@
-import pandas as pd
 import datetime
-from io import StringIO
 import unittest
+from io import StringIO
 from unittest.mock import patch
-from ml_investing_wne.performance_evaluator import PerformanceEvaluator
 
+import pandas as pd
+
+from ml_investing_wne.performance_evaluator import PerformanceEvaluator
 
 
 class TestPerformanceEvaluatory(unittest.TestCase):

@@ -1,15 +1,16 @@
-import pandas as pd
-import numpy as np
-from tqdm import tqdm, tqdm_notebook
+import datetime as dt
+import json
 import multiprocessing as mp
+import os
+import re
 import sys
 import time
-import datetime as dt
-from datetime import datetime
 from collections import OrderedDict as od
-import re
-import os
-import json
+from datetime import datetime
+
+import numpy as np
+import pandas as pd
+from tqdm import tqdm, tqdm_notebook
 
 df = pd.read_csv('/Users/i0495036/Documents/sandbox/ml_investing_wne/ml_investing_wne/src/ml_investing_wne/data/raw/crypto/Bitstamp_ETHUSD.csv')
 

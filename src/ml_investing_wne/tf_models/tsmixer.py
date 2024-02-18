@@ -16,9 +16,11 @@
 """Implementation of TSMixer."""
 
 import os
+
 import tensorflow as tf
 from tensorflow.keras import layers
 from tensorflow.keras.utils import plot_model
+
 import ml_investing_wne.config as config
 
 

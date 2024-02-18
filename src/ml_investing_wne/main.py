@@ -1,11 +1,13 @@
 import random
+
+import mlflow.keras
 import numpy as np
 import tensorflow as tf
-import mlflow.keras
 
 from ml_investing_wne import config
+from ml_investing_wne.experiment_factory import (create_asset,
+                                                 experiment_factory)
 from ml_investing_wne.utils import get_logger
-from ml_investing_wne.experiment_factory import create_asset, experiment_factory
 
 random.seed(config.seed)
 np.random.seed(config.seed)

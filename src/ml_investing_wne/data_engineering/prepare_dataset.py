@@ -1,12 +1,14 @@
-import os
-import pandas as pd
-import numpy as np
-import logging
 import datetime
+import logging
+import os
+
+import numpy as np
+import pandas as pd
 import pandas_ta as ta
 
-from ml_investing_wne.data_engineering.load_data import import_forex_csv, aggregate_time_window, \
-    check_time_delta
+from ml_investing_wne.data_engineering.load_data import (aggregate_time_window,
+                                                         check_time_delta,
+                                                         import_forex_csv)
 
 logger = logging.getLogger(__name__)
 

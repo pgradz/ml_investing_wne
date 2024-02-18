@@ -15,21 +15,22 @@
 
 """Implementation of TSMixer."""
 
+import logging
 import os
 import random
+
+import keras_tuner as kt
 import numpy as np
 import tensorflow as tf
+from keras_tuner.tuners import hyperband
+from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras.utils import plot_model
-import ml_investing_wne.config as config
-from tensorflow import keras
-from keras_tuner.tuners import hyperband
-import keras_tuner as kt
-import logging
 
+import ml_investing_wne.config as config
 from ml_investing_wne import config
-from ml_investing_wne.utils import get_logger
 from ml_investing_wne.tf_models.keras_tuner_base import MyHyperModelBase
+from ml_investing_wne.utils import get_logger
 
 tf.keras.backend.set_image_data_format("channels_last")
 logger = logging.getLogger(__name__)

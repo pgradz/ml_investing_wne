@@ -1,16 +1,17 @@
+import logging
 import os
 import random
+
+import keras_tuner as kt
 import numpy as np
+import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
-import tensorflow as tf
 from tensorflow.keras.utils import plot_model
-import ml_investing_wne.config as config
-import keras_tuner as kt
-from ml_investing_wne.utils import get_logger
-import logging
 
+import ml_investing_wne.config as config
 from ml_investing_wne.tf_models.keras_tuner_base import MyHyperModelBase
+from ml_investing_wne.utils import get_logger
 
 logger = logging.getLogger(__name__)
 

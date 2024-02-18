@@ -1,17 +1,19 @@
+import logging
 import os
 import random
+
+import keras_tuner as kt
 import numpy as np
+import tensorflow as tf
+from keras_tuner.tuners import hyperband
 from tensorflow import keras
 from tensorflow.keras import layers
-import tensorflow as tf
 from tensorflow.keras.utils import plot_model
-from keras_tuner.tuners import hyperband
-import keras_tuner as kt
-import logging
 
 from ml_investing_wne import config
+from ml_investing_wne.experiment_factory import (create_asset,
+                                                 experiment_factory)
 from ml_investing_wne.utils import get_logger
-from ml_investing_wne.experiment_factory import create_asset, experiment_factory
 
 random.seed(config.seed)
 np.random.seed(config.seed)

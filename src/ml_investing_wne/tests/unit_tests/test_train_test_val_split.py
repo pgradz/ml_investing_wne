@@ -1,11 +1,14 @@
-import pytest
-import pandas as pd
-import numpy as np
 import datetime
+
+import numpy as np
+import pandas as pd
+import pytest
 from sklearn.preprocessing import StandardScaler
 from tensorflow.keras.utils import to_categorical
 
-from ml_investing_wne.train_test_val_split import split_sequences, train_test_val_split
+from ml_investing_wne.train_test_val_split import (split_sequences,
+                                                   train_test_val_split)
+
 
 @pytest.fixture
 def train_x():

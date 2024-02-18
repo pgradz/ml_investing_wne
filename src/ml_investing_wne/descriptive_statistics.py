@@ -1,11 +1,13 @@
-import pandas as pd
 import datetime
-from ml_investing_wne.data_engineering.prepare_dataset import prepare_processed_dataset
-import ml_investing_wne.config as config
-from ml_investing_wne.hist_data.helper import get_hist_data
+
 import matplotlib.pyplot as plt
+import pandas as pd
 import plotly.figure_factory as ff
 
+import ml_investing_wne.config as config
+from ml_investing_wne.data_engineering.prepare_dataset import \
+    prepare_processed_dataset
+from ml_investing_wne.hist_data.helper import get_hist_data
 
 currency = 'USDCHF'
 df = get_hist_data(currency=currency)

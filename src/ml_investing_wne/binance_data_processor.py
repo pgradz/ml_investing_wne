@@ -1,11 +1,12 @@
-import os
-import pandas as pd
-import numpy as np
-import logging
-import boto3
 import io
-from ml_investing_wne.utils import get_logger
+import logging
+import os
 
+import boto3
+import numpy as np
+import pandas as pd
+
+from ml_investing_wne.utils import get_logger
 
 # logger = logging.getLogger(__name__)
 logger = get_logger()

@@ -1,10 +1,12 @@
 import os
-from tensorflow import keras
+
+import numpy as np
 import tensorflow as tf
+from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras.utils import plot_model
+
 import ml_investing_wne.config as config
-import numpy as np
 
 
 class PositionEmbeddingFixedWeights(layers.Layer):

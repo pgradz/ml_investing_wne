@@ -1,11 +1,12 @@
+import datetime
 import unittest
 from unittest.mock import patch
-import datetime
-import pandas as pd
+
 import numpy as np
-from ml_investing_wne.cumsum_filter import cumsum_filter
+import pandas as pd
 import pandas.testing as pd_testing
 
+from ml_investing_wne.cumsum_filter import cumsum_filter
 
 datetime_col = [datetime.datetime(2021, 1, 1, 12, 0, 0), datetime.datetime(2021, 1, 2, 0, 0, 0),
                     datetime.datetime(2021, 1, 2, 12, 0, 0), datetime.datetime(2021, 1, 3, 0, 0, 0),

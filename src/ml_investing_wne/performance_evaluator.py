@@ -1,13 +1,15 @@
 '''
 This script calculates daily returns of the strategy. It is based on the backtest results.
 '''
-import os
-import pandas as pd
-import numpy as np
 import datetime
 import logging
-from ml_investing_wne.utils import get_logger
+import os
+
+import numpy as np
+import pandas as pd
 from scipy.stats import binom_test
+
+from ml_investing_wne.utils import get_logger
 
 logger = logging.getLogger(__name__)
 

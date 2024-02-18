@@ -1,14 +1,14 @@
+import datetime
 import random
+
+import mlflow.keras
 import numpy as np
 import tensorflow as tf
-import mlflow.keras
-import datetime
 
 from ml_investing_wne import config
+from ml_investing_wne.experiment_factory import (create_asset,
+                                                 experiment_factory)
 from ml_investing_wne.utils import get_logger
-from ml_investing_wne.experiment_factory import create_asset, experiment_factory
-
-
 
 train_end = [datetime.datetime(2022, 1, 1, 0, 0, 0), datetime.datetime(2022, 4, 1, 0, 0, 0), datetime.datetime(2022, 7, 1, 0, 0, 0), datetime.datetime(2022, 10, 1, 0, 0, 0), datetime.datetime(2023, 1, 1, 0, 0, 0)]
 val_end = [datetime.datetime(2022, 4, 1, 0, 0, 0), datetime.datetime(2022, 7, 1, 0, 0, 0), datetime.datetime(2022, 10, 1, 0, 0, 0), datetime.datetime(2023, 1, 1, 0, 0, 0), datetime.datetime(2023, 4, 1, 0, 0, 0)]

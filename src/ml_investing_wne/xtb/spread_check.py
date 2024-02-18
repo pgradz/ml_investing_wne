@@ -1,10 +1,12 @@
-import os
-import logging
-import datetime
-import time
-from ml_investing_wne.xtb.xAPIConnector import APIClient, APIStreamClient, loginCommand
-import ml_investing_wne.config as config
 import csv
+import datetime
+import logging
+import os
+import time
+
+import ml_investing_wne.config as config
+from ml_investing_wne.xtb.xAPIConnector import (APIClient, APIStreamClient,
+                                                loginCommand)
 
 # logger settings
 logger = logging.getLogger()

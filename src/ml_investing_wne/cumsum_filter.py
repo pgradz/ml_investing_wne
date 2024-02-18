@@ -1,12 +1,14 @@
-import random
 import os
-import pandas as pd
+import random
+
 import numpy as np
+import pandas as pd
 import tensorflow as tf
 
 from ml_investing_wne import config
+from ml_investing_wne.experiment_factory import (create_asset,
+                                                 experiment_factory)
 from ml_investing_wne.utils import get_logger
-from ml_investing_wne.experiment_factory import create_asset, experiment_factory
 
 logger = get_logger()
 EXCHANGE = 'binance'

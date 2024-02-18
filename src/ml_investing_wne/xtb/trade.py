@@ -1,18 +1,22 @@
-import os
-import pandas as pd
-import logging
 import datetime
+import logging
+import os
 import time
+
 import joblib
+import pandas as pd
 from tensorflow.keras.models import load_model
-from ml_investing_wne.xtb.xAPIConnector import APIClient, APIStreamClient, loginCommand
-from ml_investing_wne.data_engineering.prepare_dataset import prepare_processed_dataset
+
 import ml_investing_wne.config as config
-from ml_investing_wne.train_test_val_split import test_split
-from ml_investing_wne.helper import get_scaler, compute_profitability_classes
-from ml_investing_wne.xtb.Trader import Trader
 from ml_investing_wne import config
+from ml_investing_wne.data_engineering.prepare_dataset import \
+    prepare_processed_dataset
+from ml_investing_wne.helper import compute_profitability_classes, get_scaler
 from ml_investing_wne.models import model_factory
+from ml_investing_wne.train_test_val_split import test_split
+from ml_investing_wne.xtb.Trader import Trader
+from ml_investing_wne.xtb.xAPIConnector import (APIClient, APIStreamClient,
+                                                loginCommand)
 
 # logger settings
 logger = logging.getLogger()

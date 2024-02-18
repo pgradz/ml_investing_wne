@@ -1,9 +1,11 @@
+import datetime
 import unittest
 from unittest.mock import patch
-import datetime
+
 import pandas as pd
-from ml_investing_wne.data_engineering.crypto_factory import CryptoFactory
 import pandas.testing as pd_testing
+
+from ml_investing_wne.data_engineering.crypto_factory import CryptoFactory
 
 
 class TestCryptoFactory(unittest.TestCase):

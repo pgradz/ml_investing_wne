@@ -1,8 +1,8 @@
 import json
-import socket
 import logging
-import time
+import socket
 import ssl
+import time
 from threading import Thread
 
 # set to true on debug environment only

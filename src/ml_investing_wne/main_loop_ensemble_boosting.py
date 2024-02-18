@@ -1,20 +1,23 @@
 import argparse
-import os
-import random
-import numpy as np
 import datetime
-import pandas as pd
+import os
 import pickle
+import random
+
+import numpy as np
+import pandas as pd
 import xgboost as xgb
-from sklearn.model_selection import GridSearchCV, RandomizedSearchCV, PredefinedSplit
 from sklearn.metrics import accuracy_score
+from sklearn.model_selection import (GridSearchCV, PredefinedSplit,
+                                     RandomizedSearchCV)
 
 from ml_investing_wne import config
-from ml_investing_wne.utils import get_logger
-from ml_investing_wne.experiment_factory import create_asset, experiment_factory
+from ml_investing_wne.experiment_factory import (create_asset,
+                                                 experiment_factory)
 from ml_investing_wne.performance_evaluator import PerformanceEvaluator
+from ml_investing_wne.utils import get_logger
 
-
+# if parameters won't be passed from command line, they will be taken from config.py
 parser = argparse.ArgumentParser(description='Most commonly changing settings')
 
 parser.add_argument('--run_type', type=str, default=config.run_type, help='data sampling and target labelling method')

@@ -1,8 +1,8 @@
 import logging
+
 import pandas as pd
 
 from ml_investing_wne import config
-
 
 logger = logging.getLogger(__name__)
 

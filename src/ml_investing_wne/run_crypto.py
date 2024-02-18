@@ -1,6 +1,7 @@
-from ml_investing_wne.data_engineering.crypto_factory import CryptoFactory
 from ml_investing_wne import config
-from ml_investing_wne.data_engineering.prepare_dataset import prepare_processed_dataset
+from ml_investing_wne.data_engineering.crypto_factory import CryptoFactory
+from ml_investing_wne.data_engineering.prepare_dataset import \
+    prepare_processed_dataset
 
 crypto = CryptoFactory(config.provider, config.currency)
 crypto.generate_volumebars(frequency=4022)

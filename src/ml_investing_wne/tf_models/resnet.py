@@ -1,8 +1,10 @@
 import os
-import tensorflow.keras as keras
-import tensorflow as tf
+
 import numpy as np
+import tensorflow as tf
+import tensorflow.keras as keras
 from tensorflow.keras.utils import plot_model
+
 import ml_investing_wne.config as config
 
 

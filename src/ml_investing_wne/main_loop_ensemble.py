@@ -1,16 +1,17 @@
 import argparse
+import datetime
 import os
 import random
+
+import mlflow.keras
 import numpy as np
 import tensorflow as tf
-import mlflow.keras
-import datetime
 
 from ml_investing_wne import config
-from ml_investing_wne.utils import get_logger
-from ml_investing_wne.experiment_factory import create_asset, experiment_factory
+from ml_investing_wne.experiment_factory import (create_asset,
+                                                 experiment_factory)
 from ml_investing_wne.performance_evaluator import PerformanceEvaluator
-
+from ml_investing_wne.utils import get_logger
 
 parser = argparse.ArgumentParser(description='Most commonly changing settings')
 
@@ -88,7 +89,7 @@ def main():
                 asset = create_asset(args)
                 experiment = experiment_factory(asset, args).get_experiment()
                 # uncomment to train the model without TA features
-                experiment.df = experiment.df[['open', 'close', 'high', 'low', 'volume', 'y_pred']]
+                # experiment.df = experiment.df[['open', 'close', 'high', 'low', 'volume', 'y_pred']]
                 experiment.train_test_val_split()
                 # make sure this is only done once - it is solved like that because of problem with keras tuner and tf on macos
                 if i == 0 and j ==0 and m == 0: 

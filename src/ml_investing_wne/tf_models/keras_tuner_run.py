@@ -1,16 +1,19 @@
 import os
+
+import keras_tuner as kt
+import tensorflow as tf
+from keras_tuner.tuners import hyperband
 from tensorflow import keras
 from tensorflow.keras import layers
-import tensorflow as tf
 from tensorflow.keras.utils import plot_model
-from keras_tuner.tuners import hyperband
-import keras_tuner as kt
 
 import ml_investing_wne.config as config
 from ml_investing_wne.data_engineering.load_data import get_hist_data
-from ml_investing_wne.data_engineering.prepare_dataset import prepare_processed_dataset
+from ml_investing_wne.data_engineering.prepare_dataset import \
+    prepare_processed_dataset
+from ml_investing_wne.helper import (compute_profitability_classes,
+                                     confusion_matrix_plot)
 from ml_investing_wne.train_test_val_split import train_test_val_split
-from ml_investing_wne.helper import confusion_matrix_plot, compute_profitability_classes
 from ml_investing_wne.utils import get_logger
 
 logger = get_logger()

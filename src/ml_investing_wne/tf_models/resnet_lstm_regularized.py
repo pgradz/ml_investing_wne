@@ -1,7 +1,9 @@
 import os
+
 import tensorflow as tf
 import tensorflow.keras as keras
 from tensorflow.keras.utils import plot_model
+
 import ml_investing_wne.config as config
 
 # tf.keras.backend.set_image_data_format("channels_first")

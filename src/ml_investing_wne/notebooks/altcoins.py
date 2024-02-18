@@ -1,12 +1,14 @@
 # %%
 import random
+
+import mlflow.keras
 import numpy as np
 import tensorflow as tf
-import mlflow.keras
 
 from ml_investing_wne import config
+from ml_investing_wne.experiment_factory import (create_asset,
+                                                 experiment_factory)
 from ml_investing_wne.utils import get_logger
-from ml_investing_wne.experiment_factory import create_asset, experiment_factory
 
 random.seed(config.seed)
 np.random.seed(config.seed)
@@ -14,6 +16,7 @@ tf.random.set_seed(config.seed)
 
 # %%
 import pandas as pd
+
 pd.set_option('display.max_columns', None)
 import numpy as np
 
@@ -130,6 +133,7 @@ thresholds[9500]
 
 # %%
 import matplotlib.pyplot as plt
+
 plt.fill_between(recall, precision)
 plt.ylabel("Precision")
 plt.xlabel("Recall")

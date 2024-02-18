@@ -1,5 +1,5 @@
-import os
 import datetime
+import os
 
 # hide GPU from tensorflow
 # os.environ['CUDA_VISIBLE_DEVICES'] = '-1'

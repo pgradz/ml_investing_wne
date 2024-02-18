@@ -1,9 +1,11 @@
 import os
+
 import tensorflow.keras as keras
-from tensorflow.keras.utils import plot_model
-import ml_investing_wne.config as config
 from keras.layers import LSTM, Dense
 from keras.models import Sequential
+from tensorflow.keras.utils import plot_model
+
+import ml_investing_wne.config as config
 
 
 def build_model(input_shape, nb_classes):

@@ -1,12 +1,13 @@
 """
     This module builds model defined in a configuration files
 """
-import os
 import importlib
 import logging
-from tensorflow.keras.models import load_model
-from ml_investing_wne import config
+import os
 
+from tensorflow.keras.models import load_model
+
+from ml_investing_wne import config
 
 logger = logging.getLogger(__name__)
 

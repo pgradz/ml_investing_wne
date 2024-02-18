@@ -1,10 +1,12 @@
 import os
-from datetime import datetime
 import warnings
+from datetime import datetime
+
+from pandas.errors import SettingWithCopyWarning
+
 import ml_investing_wne.config as config
 from ml_investing_wne.performance_evaluator import PerformanceEvaluator
 from ml_investing_wne.utils import get_logger
-from pandas.errors import SettingWithCopyWarning
 
 logger = get_logger()
 warnings.simplefilter(action="ignore", category=SettingWithCopyWarning)

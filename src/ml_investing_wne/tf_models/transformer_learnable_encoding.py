@@ -1,8 +1,10 @@
 import os
+
+import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
-import tensorflow as tf
 from tensorflow.keras.utils import plot_model
+
 import ml_investing_wne.config as config
 
 # inspired by https://keras.io/examples/timeseries/timeseries_transformer_classification/

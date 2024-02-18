@@ -1,6 +1,7 @@
-import os
-import pandas as pd
 import logging
+import os
+
+import pandas as pd
 
 import ml_investing_wne.config as config
 
@@ -11,6 +12,7 @@ df = pd.read_csv(os.path.join(config.raw_data_path, 'crypto', config.currency + 
 df.index = pd.to_datetime(df['t'], unit='ms')
 freq = config.freq
 import datetime
+
 temp = df.loc[df.index<datetime.datetime(2019,8,1,0,0,0,0)]
 temp = df.loc[df.index>datetime.datetime(2021,1,1,0,0,0,0)]
 df.d.unique()

@@ -1,10 +1,11 @@
+import datetime
 import unittest
 from unittest.mock import patch
-import datetime
+
 import pandas as pd
-from ml_investing_wne.binance_data_processor import BinanceDataProcessor
 import pandas.testing as pd_testing
 
+from ml_investing_wne.binance_data_processor import BinanceDataProcessor
 
 datetime_col = [datetime.datetime(2021, 1, 1, 12, 0, 0), datetime.datetime(2021, 1, 2, 0, 0, 0),
                     datetime.datetime(2021, 1, 2, 12, 0, 0), datetime.datetime(2021, 1, 3, 0, 0, 0),

@@ -1,10 +1,10 @@
 import logging
 
-from ml_investing_wne.data_engineering.load_data import get_hist_data
-from ml_investing_wne.data_engineering.prepare_dataset import prepare_processed_dataset
 from ml_investing_wne.data_engineering.crypto_factory import CryptoFactory
+from ml_investing_wne.data_engineering.load_data import get_hist_data
+from ml_investing_wne.data_engineering.prepare_dataset import \
+    prepare_processed_dataset
 from ml_investing_wne.experiment import Experiment
-
 
 logger = logging.getLogger(__name__)
 

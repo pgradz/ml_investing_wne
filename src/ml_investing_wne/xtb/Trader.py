@@ -1,9 +1,12 @@
 import datetime
-import pandas as pd
-import time
 import logging
-from ml_investing_wne.data_engineering.prepare_dataset import prepare_processed_dataset
+import time
+
+import pandas as pd
+
 import ml_investing_wne.config as config
+from ml_investing_wne.data_engineering.prepare_dataset import \
+    prepare_processed_dataset
 from ml_investing_wne.train_test_val_split import test_split
 from ml_investing_wne.xtb.xtb_utils import prepare_xtb_data
 
