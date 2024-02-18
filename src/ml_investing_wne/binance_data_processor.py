@@ -21,15 +21,18 @@ class BinanceDataProcessor():
     def __init__(self, crypto :str=None, file: str=None, volume_frequency: int=500, value_frequency: int=10000000, freq: str='60min', strategy:str ='volume_bars', 
     files_path: str=None, output_path: str=None, s3_path: str=None) -> None:
         '''
-        it allows to process data in two ways:
+        it allows to process data in three ways:
         1. volume_bars - it generates volume bars from raw data
+        2. dollar_bars - it generates dollar bars from raw data
         2. time_aggregated - it aggregates data based on time
         data can be processed from one file or from multiple files in a directory
         Args:
+            crypto: crypto currency ticker
             file: path to file
             volume_frequency: frequency of volume bars
+            value_frequency: frequency of dollar bars
             freq: frequency of time aggregation
-            strategy: strategy to use, either volume_bars or time_aggregated
+            strategy: strategy to use, either volume_bars, dollar_bars or time_aggregated
             files_path: path to directory with files
             output_path: path to save processed data
             s3_path: path to s3 bucket
@@ -257,74 +260,30 @@ class BinanceDataProcessor():
             # save work in progress        
             self.processed_df.to_csv(self.output_path, index=False)
 
-#binance_processor = BinanceDataProcessor(file='/Users/i0495036/Downloads/BTCUSDT-trades-2023-01.csv')
-# binance_processor = BinanceDataProcessor(volume_frequency=100000, 
-#                                          files_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/raw/crypto/binance_ETHUSDT',
-#                                          output_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed',
-#                                          strategy='volume_bars'
-#                                          )
-# binance_processor.load_chunks()
-# binance_processor = BinanceDataProcessor(value_frequency=50000000, crypto = 'ETHUSDT',
-#                                          files_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/raw/crypto/binance_ETHUSDT',
-#                                          output_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed',
-#                                          strategy='dollar_bars'
-#                                          )
-# binance_processor.load_chunks()
-# binance_processor = BinanceDataProcessor(freq='1440min', 
-#                                          crypto = 'ETHUSDT',
-#                                          files_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/raw/crypto/binance_ETHUSDT',
-#                                          output_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed',
-#                                          strategy='time_aggregated'
-#                                          )
-# binance_processor.load_chunks()
-# binance_processor = BinanceDataProcessor(freq='10min', 
-#                                          files_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/raw/crypto/binance_BTCUSDT',
-#                                          output_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_BTCUSDT',
-#                                          strategy='time_aggregated'
-#                                          )
 
-# binance_processor = BinanceDataProcessor(freq='1min', 
-#                                          crypto = 'LTCUSDT',
-#                                          files_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/raw/crypto/binance_LTCUSDT',
-#                                          output_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed',
-#                                          strategy='time_aggregated'
-#                                          )
-# binance_processor.load_chunks()
+if __name__ == '__main__':
+
+    # examplary runs
+    binance_processor = BinanceDataProcessor(freq='1min', 
+                                            crypto = 'BTCUSDT',
+                                            files_path='./data/raw/crypto/binance_BTCUSDT',
+                                            output_path='./data/processed',
+                                            strategy='time_aggregated'
+                                            )
+
+    # binance_processor = BinanceDataProcessor(volume_frequency=30000, 
+    #                                         crypto = 'ETHUSDT',
+    #                                         files_path='./data/raw/crypto/binance_ETHUSDT',
+    #                                         output_path='./data/processed',
+    #                                         strategy='volume_bars'
+    #                                         )
+    
+    # binance_processor = BinanceDataProcessor(freq='60min', 
+    #                                      crypto = 'BTCUSDT',
+    #                                      s3_path='bucket_name',
+    #                                      output_path='./data/processed',
+    #                                      strategy='time_aggregated'
+    #                                      )
+    binance_processor.load_chunks()
 
 
-# binance_processor = BinanceDataProcessor(freq='1440min', 
-#                                          crypto = 'SOLUSDT',
-#                                          files_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/raw/crypto/binance_SOLUSDT',
-#                                          output_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed',
-#                                          strategy='time_aggregated'
-#                                          )
-# binance_processor.load_chunks()
-
-binance_processor = BinanceDataProcessor(volume_frequency=30000, 
-                                         crypto = 'ETHUSDT',
-                                         files_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/raw/crypto/binance_ETHUSDT',
-                                         output_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed',
-                                         strategy='volume_bars'
-                                         )
-binance_processor.load_chunks()
-
-# binance_processor = BinanceDataProcessor(volume_frequency='60min', 
-#                                          files_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/raw/crypto/binance_ETHBTC',
-#                                          output_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_ETHBTC',
-#                                          strategy='time_aggregated'
-#                                          )
-# binance_processor = BinanceDataProcessor(freq='60min', 
-#                                          crypto = 'BTCUSDT',
-#                                          s3_path='crypto-data-uw',
-#                                          output_path='/home/ec2-user/SageMaker/ml_investing_wne/src/ml_investing_wne/data/processed',
-#                                          strategy='time_aggregated'
-#                                          )
-                                         
-# binance_processor.load_from_s3()
-# binance_processor = BinanceDataProcessor(freq='1440min', 
-#                                          crypto = 'MATICUSDT',
-#                                          files_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/raw/crypto/binance_MATICUSDT',
-#                                          output_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed',
-#                                          strategy='time_aggregated'
-#                                          )
-# binance_processor.load_chunks()

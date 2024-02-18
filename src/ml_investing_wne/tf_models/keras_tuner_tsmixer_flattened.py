@@ -45,6 +45,8 @@ def res_block(inputs, norm_type, activation, dropout, ff_dim):
     )   
     # Temporal Linear
     x = norm(axis=[-2, -1])(inputs)
+    if inputs.shape[1] != 96:
+        print('test')
     x = tf.transpose(x, perm=[0, 2, 1])  # [Batch, Channel, Input Length]
     x = layers.Dense(x.shape[-1], activation=activation)(x)
     x = tf.transpose(x, perm=[0, 2, 1])  # [Batch, Input Length, Channel]

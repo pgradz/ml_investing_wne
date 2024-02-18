@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 def create_asset(args):
 
     if args.run_type == 'forex':
-        # TODO: something is worng with the order
+        # TODO: forex data currently not working properly
         df = get_hist_data(currency=args.currency)
         asset = CryptoFactory(args, df=df)
     else:
