@@ -11,17 +11,17 @@ from scipy.stats import binom_test
 
 logger = logging.getLogger(__name__)
 
-backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/BTCUSDT_96_time_aggregated_keras_tuner_transformer_learnable_encoding_1440min'
+backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ETHUSDT_96_cumsum_triple_barrier_keras_tuner_CNN_LSTM_cusum_001_triple_005_24'
 # backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_MATICUSDT_cumsum_triple_barrier_with_volume_no_SMA'
 # backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_SOLUSDT_cumsum_triple_barrier'
 # backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_BTCUSDT_cumsum_triple_barrier_with_volume_no_SMA'
 # backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_BTCUSDT_cumsum'
 # backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_ETHUSDT_cumsum'
 # backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_MATICUSDT_cumsum'
-daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_BTCUSDT/time_aggregated_1440min.csv'
+# daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_BTCUSDT/time_aggregated_1440min.csv'
 # daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_SOLUSDT/time_aggregated_1440min.csv'
 # daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_MATICUSDT/time_aggregated_1440min.csv'
-# daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_ETHUSDT/time_aggregated_1440min.csv'
+daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_ETHUSDT/time_aggregated_1440min.csv'
 # output folder
 output_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/results'
 # output_folder = '/root/ml_investing_wne/src/ml_investing_wne/models/results'
@@ -31,9 +31,9 @@ class PerformanceEvaluator():
     This class calculates daily returns of the strategy. It is based on the backtest results.
     '''
 
-    def __init__(self, backtest_folder, daily_records, risk_free_rate=0.0314, seeds = ['12345', '123456', '1234567'],name=None, 
+    def __init__(self, backtest_folder, daily_records_file=None, daily_records_dataframe=None, risk_free_rate=0.0314, seeds = ['12345', '123456', '1234567'],name=None, 
                  start_date=datetime.date(2022, 3, 31), end_date=datetime.date(2023, 7, 1),
-                 cost=0):
+                 cost=0.001):
         # risk free rate is taken as average overnight rate for corresponding period from https://treasurydirect.gov/GA-FI/FedInvest/selectOvernightRateDate
         self.backtest_folder = backtest_folder
         self.triple_barrier = False
@@ -46,8 +46,12 @@ class PerformanceEvaluator():
         self.start_date = start_date
         self.end_date = end_date
         self.cost = cost
-        self.df_daily = pd.read_csv(daily_records, parse_dates=['datetime'])
-        self.df_daily['datetime'] = pd.to_datetime(self.df_daily['datetime']) 
+        if daily_records_file is not None:
+            self.df_daily = pd.read_csv(daily_records, parse_dates=['datetime'])
+            self.df_daily['datetime'] = pd.to_datetime(self.df_daily['datetime']) 
+        elif daily_records_dataframe is not None:
+            self.df_daily = daily_records_dataframe
+        # shift daily records to represent end of the day    
         self.df_daily['datetime'] = self.df_daily['datetime'] +  pd.DateOffset(hours=23) + pd.DateOffset(minutes=59) +  pd.DateOffset(seconds=59)
         self.risk_free_rate = risk_free_rate
         self.seeds = seeds
@@ -463,7 +467,9 @@ class PerformanceEvaluator():
         """
         if len(portfolio_values) == 0:
             return 0.0
-
+        # make sure portfolio values start with 100
+        portfolio_start = pd.Series([100])
+        portfolio_values = pd.concat([portfolio_start, portfolio_values]).reset_index(drop=True)
         peak = portfolio_values[0]
         max_drawdown_percentage = 0.0
         current_drawdown = 0.0

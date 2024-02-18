@@ -10,10 +10,10 @@ from ml_investing_wne.experiment_factory import create_asset, experiment_factory
 
 logger = get_logger()
 EXCHANGE = 'binance'
-threshold = 0.01
+threshold = 0.05
 output_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed'
 output_path = os.path.join(output_path, f'{EXCHANGE}_{config.currency}')
-range_bar = True
+range_bar = False
 
 
 def cumsum_filter(df,h,range_bar=False):
