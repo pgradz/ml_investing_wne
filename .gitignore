@@ -129,8 +129,8 @@ dmypy.json
 .pyre/
 
 # data
-src/ml_investing_wne/data/raw/*
-src/ml_investing_wne/data/processed/*
+src/ml_investing_wne/data/raw/hist_data
+# src/ml_investing_wne/data/processed/*
 src/ml_investing_wne/logs/*
 src/ml_investing_wne/models/*
 src/ml_investing_wne/data/xtb/
@@ -144,6 +144,11 @@ mlruns/
 
 keras_tuner/
 my_dir/
-results/
+# results/
 
 *.png
+
+# include exemplary files
+!src/ml_investing_wne/data/processed/binance_ETHUSDT/time_aggregated_1440min.csv
+!src/ml_investing_wne/data/processed/binance_ETHUSDT/cumsum_0.02.csv
+

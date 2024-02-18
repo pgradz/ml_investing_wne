@@ -10,10 +10,12 @@ from ml_investing_wne.experiment_factory import (create_asset,
                                                  experiment_factory)
 from ml_investing_wne.utils import get_logger
 
+# set the config for time bars and 1 min bars before running this script
+
 logger = get_logger()
 EXCHANGE = 'binance'
 threshold = 0.05
-output_path='/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed'
+output_path='./data/processed'
 output_path = os.path.join(output_path, f'{EXCHANGE}_{config.currency}')
 range_bar = False
 

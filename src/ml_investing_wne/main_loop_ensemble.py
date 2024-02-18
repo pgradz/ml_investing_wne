@@ -94,7 +94,7 @@ def main():
                 # make sure this is only done once - it is solved like that because of problem with keras tuner and tf on macos
                 if i == 0 and j ==0 and m == 0: 
                     models, best_hps, my_hyper_model= experiment.hyperparameter_tunning(m)
-                # model = copy.deepcopy(models[m])
+                # model = copy.deepcopy(models[m]) - this won't work
                 model = my_hyper_model.tuner.hypermodel.build(best_hps[m])
                 # once again
                 set_seed(seed)

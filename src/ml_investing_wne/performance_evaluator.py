@@ -10,23 +10,12 @@ import pandas as pd
 from scipy.stats import binom_test
 
 from ml_investing_wne.utils import get_logger
+from ml_investing_wne.config import package_directory
 
 logger = logging.getLogger(__name__)
 
-backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/BTCUSDT_96_time_aggregated_keras_tuner_transformer_learnable_encoding_1440min'
-# backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_MATICUSDT_cumsum_triple_barrier_with_volume_no_SMA'
-# backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_SOLUSDT_cumsum_triple_barrier'
-# backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_BTCUSDT_cumsum_triple_barrier_with_volume_no_SMA'
-# backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_BTCUSDT_cumsum'
-# backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_ETHUSDT_cumsum'
-# backtest_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/models/ensemble_full_run_MATICUSDT_cumsum'
-daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_BTCUSDT/time_aggregated_1440min.csv'
-# daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_SOLUSDT/time_aggregated_1440min.csv'
-# daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_MATICUSDT/time_aggregated_1440min.csv'
-# daily_records = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/data/processed/binance_ETHUSDT/time_aggregated_1440min.csv'
-# output folder
-output_folder = '/Users/i0495036/Documents/sandbox/ml_investing_wne/src/ml_investing_wne/results'
-# output_folder = '/root/ml_investing_wne/src/ml_investing_wne/models/results'
+output_folder = os.path.join(package_directory, 'results')
+
 
 class PerformanceEvaluator():
     '''
@@ -69,6 +58,9 @@ class PerformanceEvaluator():
 
 
     def load_backtest_data(self, seed):
+        '''
+        This function loads backtest results
+        '''
         backtest_files  = [os.path.join(self.backtest_folder, file) for file in os.listdir(self.backtest_folder) if file.endswith( seed + '.csv')]
         for file in backtest_files:
             yield pd.read_csv(file, parse_dates=['datetime'])
@@ -540,9 +532,8 @@ class PerformanceEvaluator():
     
 
 if __name__ == "__main__":
-
+    backtest_folder = 'path_to_folder_with_backtest_results'
+    daily_records = 'path_to_folder_with_daily_prices/time_aggregated_1440min.csv'
     logger = get_logger()
     performance_evaluator = PerformanceEvaluator(backtest_folder, daily_records)
     performance_evaluator.run()
-
-

@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 def create_asset(args):
 
     if args.run_type == 'forex':
-        # TODO: forex data currently not working properly
+        # TODO: forex data currently not working 
         df = get_hist_data(currency=args.currency)
         asset = CryptoFactory(args, df=df)
     else:
@@ -21,12 +21,18 @@ def create_asset(args):
 
 
 class experiment_factory():
+    '''
+    This class is responsible for creating an experiment object based on the configuration provided in the args
+    '''
 
     def __init__(self, asset, args) -> None:
         self.asset = asset
         self.args = args
 
     def get_experiment(self,  **kwargs):
+        '''
+        This method creates an experiment object based on the configuration provided in the args
+        '''
 
         if self.args.run_type == 'forex':
             if self.args.provider == 'hist_data':
@@ -72,7 +78,7 @@ class experiment_factory():
         return experiment
 
     def crypto_time_aggregated(self, **kwargs):
-        
+
         if self.asset.df_time_aggregated is None:
             self.asset.time_aggregation(freq=self.args.freq)
         df = self.asset.df_time_aggregated

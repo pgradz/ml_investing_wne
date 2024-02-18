@@ -27,6 +27,10 @@ logger = logging.getLogger(__name__)
 # logger = get_logger()
 
 class Experiment():
+    '''
+    This class is responsible for running the experiment. It is responsible for splitting the data into train, test and validation sets,
+    training the model and evaluating its performance.
+    '''
     def __init__(self, df, args, binarize_target=True, budget=None) -> None:
         self.df = df
         self.binarize_target=binarize_target 
@@ -64,6 +68,9 @@ class Experiment():
             os.makedirs(self.dir_path)
 
     def run(self):
+        '''
+        This method runs the experiment. It splits the data into train, test and validation sets, trains the model and evaluates its performance.
+        '''
         self.train_test_val_split()
         self.train_model()
         self.evaluate_model()
@@ -112,6 +119,7 @@ class Experiment():
             df: dataframe to split
             sc_x: scaler to use, if None, StandardScaler will be used. Option of passing scaler is needed for making ad-hoc predictions
         '''
+        # to_keep was developed to drop certain rows from the dataset to prevent overfitting, it is not used in the current version
         # columns to be dropped from training. y_pred is the target and datetime was carried for technical purposes. index and level_0 are just in case.
         COLUMNS_TO_DROP = ['y_pred', 'datetime', 'index', 'level_0', 'to_keep']
 
@@ -395,6 +403,8 @@ class Experiment():
 
 
     def train_model(self):
+        ''' This function is used to train the model
+        '''
         mlflow.tensorflow.autolog()
         mlflow.set_experiment(experiment_name=self.get_ml_flow_experiment_name())
         callbacks = self.get_callbacks()
@@ -405,6 +415,8 @@ class Experiment():
         self.model.save(self.get_final_model_path())
 
     def evaluate_model(self):
+        ''' This function is used to evaluate the model
+        '''
 
         test_loss, test_acc = self.model.evaluate(self.test_dataset)
         logger.info('Test accuracy : %.4f', test_acc)
@@ -468,7 +480,8 @@ class Experiment():
 
 
     def backtest(self, df, lower_bound, upper_bound):
-        ''' This function is used to backtest the model
+        ''' This function is used to backtest the model.
+        This is inital backtest function, it will be replaced with the one from PerformanceEvaluator
         args:
             df: dataframe with predictions and actual values
             lower_bound: lower bound for the prediction
@@ -660,6 +673,12 @@ class Experiment():
         return start_date, end_date
 
     def add_cost(self, df):
+        ''' This function is used to add cost to the dataframe
+        args:
+            df: dataframe to which cost will be added
+        return: 
+            df: dataframe with cost column
+        '''
         if self.args.run_type == 'forex':
             if 'JPY' in self.args.currency:
                 df['cost'] = (self.args.cost / 100) / df['close']
