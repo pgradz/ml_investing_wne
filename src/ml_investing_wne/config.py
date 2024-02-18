@@ -7,9 +7,9 @@ import os
 # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 run_type = 'crypto' # forex or crypto
-run_subtype = 'time_aggregated' #'triple_barrier_time_aggregated','time_aggregated', 'volume_bars', dollar_bars, 'cumsum', cumsum_triple_barrier', 'volume_bars_triple_barrier', dollar_bars_triple_barrier, range_bar, range_bar_triple_barrier
+run_subtype = 'cumsum_triple_barrier' #'triple_barrier_time_aggregated','time_aggregated', 'volume_bars', dollar_bars, 'cumsum', cumsum_triple_barrier', 'volume_bars_triple_barrier', dollar_bars_triple_barrier, range_bar, range_bar_triple_barrier
 provider = 'Binance' # hist_data, Bitstamp, Binance
-currency = 'LINKUSDT'
+currency = 'ETCUSDT'
 
 # model parameters
 input_dim = '1d'  # 2d or 1d
@@ -27,7 +27,7 @@ t_final=24
 fixed_barrier=0.05
 
 # cusum andrange bars params
-cumsum_threshold = 0.03
+cumsum_threshold = 0.02
 
 # if we want to skip consequtive sequences, it is configured by seq_stride. If seq_stride = seq_len then there is 0 overlap at expense of many observations dropped
 seq_stride = 1

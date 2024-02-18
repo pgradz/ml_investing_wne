@@ -4,10 +4,10 @@ This repository was built with the aim of researching novel AI models in the con
 
 ## Setup
 ```
-First, install dependencies
+First, install dependencies. If training is done on macos, uncomment  tensorflow-macos and tensorflow-metal
     pip install -r requirements.txt
 
-then install the package ittself
+then install the package itself
     pip install ml_investing_wne
 ```
 ## USAGE
