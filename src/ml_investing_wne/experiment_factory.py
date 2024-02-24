@@ -77,7 +77,16 @@ class experiment_factory():
         experiment = Experiment(df, time_step=self.args.time_step, binarize_target=False, **kwargs)
         return experiment
 
-    def crypto_time_aggregated(self, **kwargs):
+    def crypto_time_aggregated(self, **kwargs) -> Experiment:
+        """
+        Creates an experiment object using time-aggregated crypto data.
+
+        Args:
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Experiment: The experiment object.
+        """
 
         if self.asset.df_time_aggregated is None:
             self.asset.time_aggregation(freq=self.args.freq)
@@ -86,7 +95,16 @@ class experiment_factory():
         experiment = Experiment(df, args=self.args, **kwargs)
         return experiment
 
-    def crypto_volume_bars(self, **kwargs):
+    def crypto_volume_bars(self, **kwargs) -> Experiment:
+        """
+        Creates an experiment object using volume bars crypto data.
+
+        Args:
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Experiment: The experiment object.
+        """
         
         if self.asset.df_volume_bars is None:
             self.asset.generate_volumebars(frequency=self.args.volume)
@@ -95,7 +113,16 @@ class experiment_factory():
         experiment = Experiment(df, args=self.args, **kwargs)
         return experiment
 
-    def crypto_dollar_bars(self, **kwargs):
+    def crypto_dollar_bars(self, **kwargs) -> Experiment:
+        """
+        Creates an experiment object using dollar bars crypto data.
+
+        Args:
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Experiment: The experiment object.
+        """
         
         if self.asset.df_dollar_bars is None:
             self.asset.generate_dollarbars(frequency=self.args.volume)
@@ -105,7 +132,16 @@ class experiment_factory():
         return experiment
     
 
-    def crypto_triple_barrier_time_aggregated(self, **kwargs):
+    def crypto_triple_barrier_time_aggregated(self, **kwargs) -> Experiment:
+        """
+        Creates an experiment object using time-aggregated crypto data with triple barrier.
+
+        Args:
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Experiment: The experiment object.
+        """
 
         # if self.asset.df_time_aggregated is None:
         #     self.asset.time_aggregation(freq=args.freq)
@@ -119,65 +155,113 @@ class experiment_factory():
         experiment.df_3_barriers_additional_info = self.asset.df_3_barriers_additional_info
         return experiment
     
-    def crypto_triple_barrier_volume_bars(self, **kwargs):
-            
+    def crypto_triple_barrier_volume_bars(self, **kwargs) -> Experiment:
+        """
+        Creates an experiment object using volume bars crypto data with triple barrier.
+
+        Args:
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Experiment: The experiment object.
+        """
         self.asset.run_3_barriers(t_final=self.args.t_final, fixed_barrier=self.args.fixed_barrier)
         df = self.asset.df_3_barriers
         df = prepare_processed_dataset(self.args, df=df, add_target=False)
-        logger.info(f' df shape before merge wiith 3 barriers additional info is {df.shape}')
+        logger.info(f' df shape before merge with 3 barriers additional info is {df.shape}')
         # df = df.merge(self.asset.df_3_barriers_additional_info[['datetime', 'time_step']], on='datetime', how='inner')
-        logger.info(f' df shape after merge wiith 3 barriers additional info is {df.shape}')
+        logger.info(f' df shape after merge with 3 barriers additional info is {df.shape}')
         experiment = Experiment(df, args=self.args, binarize_target=False, **kwargs)
         experiment.df_3_barriers_additional_info = self.asset.df_3_barriers_additional_info
         return experiment
 
-    def crypto_triple_barrier_dollar_bars(self, **kwargs):
-            
+    def crypto_triple_barrier_dollar_bars(self, **kwargs) -> Experiment:
+        """
+        Creates an experiment object using dollar bars crypto data with triple barrier.
+
+        Args:
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Experiment: The experiment object.
+        """
         self.asset.run_3_barriers(t_final=self.args.t_final, fixed_barrier=self.args.fixed_barrier)
         df = self.asset.df_3_barriers
         df = prepare_processed_dataset(self.args, df=df, add_target=False)
-        logger.info(f' df shape before merge wiith 3 barriers additional info is {df.shape}')
+        logger.info(f' df shape before merge with 3 barriers additional info is {df.shape}')
         # df = df.merge(self.asset.df_3_barriers_additional_info[['datetime', 'time_step']], on='datetime', how='inner')
-        logger.info(f' df shape after merge wiith 3 barriers additional info is {df.shape}')
+        logger.info(f' df shape after merge with 3 barriers additional info is {df.shape}')
         experiment = Experiment(df, args=self.args, binarize_target=False, **kwargs)
         experiment.df_3_barriers_additional_info = self.asset.df_3_barriers_additional_info
         return experiment
 
 
-    def crypto_cumsum(self, **kwargs):
+    def crypto_cumsum(self, **kwargs) -> Experiment:
+        """
+        Creates an experiment object using cumulative sum crypto data.
+
+        Args:
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Experiment: The experiment object.
+        """
         df = prepare_processed_dataset(self.args, df=self.asset.df, add_target=True)
         experiment = Experiment(df, args=self.args, **kwargs)
         return experiment
     
-    def crypto_range_bar(self, **kwargs):
+    def crypto_range_bar(self, **kwargs) -> Experiment:
+        """
+        Creates an experiment object using range bar crypto data.
+
+        Args:
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Experiment: The experiment object.
+        """
         df = prepare_processed_dataset(self.args, df=self.asset.df, add_target=True)
         experiment = Experiment(df, args=self.args,  **kwargs)
         return experiment
 
     
-    def crypto_cumsum_triple_barrier(self, **kwargs):
+    def crypto_cumsum_triple_barrier(self, **kwargs) -> Experiment:
+        """
+        Creates an experiment object using cumulative sum crypto data with triple barrier.
 
+        Args:
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Experiment: The experiment object.
+        """
         self.asset.run_3_barriers(t_final=self.args.t_final, fixed_barrier=self.args.fixed_barrier)
         df = self.asset.df_3_barriers
         df = prepare_processed_dataset(self.args, df=df, add_target=False)
-        logger.info(f' df shape before merge wiith 3 barriers additional info is {df.shape}')
+        logger.info(f' df shape before merge with 3 barriers additional info is {df.shape}')
         # df = df.merge(self.asset.df_3_barriers_additional_info[['datetime', 'time_step']], on='datetime', how='inner')
-        logger.info(f' df shape after merge wiith 3 barriers additional info is {df.shape}')
+        logger.info(f' df shape after merge with 3 barriers additional info is {df.shape}')
         experiment = Experiment(df, args=self.args, binarize_target=False, **kwargs)
         experiment.df_3_barriers_additional_info = self.asset.df_3_barriers_additional_info
         return experiment
     
-    def crypto_triple_barrier_range_bar(self, **kwargs):
-            
+    def crypto_triple_barrier_range_bar(self, **kwargs) -> Experiment:
+        """
+        Creates an experiment object using range bar crypto data with triple barrier.
+
+        Args:
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Experiment: The experiment object.
+        """
         self.asset.run_3_barriers(t_final=self.args.t_final, fixed_barrier=self.args.fixed_barrier)
         df = self.asset.df_3_barriers
         df = prepare_processed_dataset(self.args, df=df, add_target=False)
-        logger.info(f' df shape before merge wiith 3 barriers additional info is {df.shape}')
+        logger.info(f' df shape before merge with 3 barriers additional info is {df.shape}')
         # df = df.merge(self.asset.df_3_barriers_additional_info[['datetime', 'time_step']], on='datetime', how='inner')
-        logger.info(f' df shape after merge wiith 3 barriers additional info is {df.shape}')
+        logger.info(f' df shape after merge with 3 barriers additional info is {df.shape}')
         experiment = Experiment(df, args=self.args, binarize_target=False, **kwargs)
         experiment.df_3_barriers_additional_info = self.asset.df_3_barriers_additional_info
         return experiment
-
-
 

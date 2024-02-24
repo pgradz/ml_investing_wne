@@ -14,6 +14,13 @@ class CryptoFactory():
     FIRST_COLUMNS = ['datetime', 'price', 'volume']
 
     def __init__(self, args, df=None) -> None:
+        """
+        Initialize CryptoFactory object.
+
+        Args:
+            args: Arguments for CryptoFactory.
+            df (pd.DataFrame, optional): Dataframe to be loaded. Defaults to None.
+        """
         self.args = args
         self.df_time_aggregated = None
         self.df_volume_bars = None
@@ -23,8 +30,9 @@ class CryptoFactory():
             self.df = self.load_data(self.args.provider, self.args.currency)
 
 
-    def load_data(self, exchange, currency):
-        """ Loads csv files for corresponding exchange and  currency, and returns dataframe in 
+    def load_data(self, exchange: str, currency: str) -> pd.DataFrame:
+        """ 
+        Loads csv files for corresponding exchange and currency, and returns dataframe in 
         standardized format: date, price, volume, others
 
         Args:
@@ -32,7 +40,7 @@ class CryptoFactory():
             currency (str): name of the crypocurrency
 
         Returns:
-            pd.DataFrame: dataframe in standardized format: date, price, volume, others
+            pd.DataFrame: dataframe in standardized format
         """
         if self.args.provider == 'Bitstamp':
             df = self.load_bitstamp(self.args.currency)
@@ -44,8 +52,7 @@ class CryptoFactory():
         return df
     
     def load_binance(self, currency):
-        '''
-        '''
+
         if self.args.run_subtype in ['volume_bars', 'volume_bars_triple_barrier']:   
             file_path = os.path.join(self.args.processed_data_path, f'binance_{currency}', f'volume_bars_{self.args.volume}.csv')
             # volume bars are almost exactly the same, so don't bring any information
@@ -73,20 +80,21 @@ class CryptoFactory():
 
         return df
 
-    def load_bitstamp(self, currency):
-        """ Loads data from Bitstamp
+    def load_bitstamp(self, currency: str) -> pd.DataFrame:
+        """Loads data from Bitstamp.
+
         Args:
-            currency (str): name of the crypocurrency
+            currency (str): Name of the cryptocurrency.
 
         Returns:
-            pd.DataFrame: dataframe in standardized format: date, price, volume, others
+            pd.DataFrame: Dataframe in standardized format: date, price, volume, others.
         """
         file_path = os.path.join(self.args.raw_data_path, f'Bitstamp_{currency}.csv')
         df = pd.read_csv(file_path)
-        df['datetime'] = pd.to_datetime(df['t'],unit='ms')
+        df['datetime'] = pd.to_datetime(df['t'], unit='ms')
         df.sort_values(by='datetime', inplace=True)
         logger.info(f'head of raw dataset: {df.head()}')
-        df.rename(columns={'p':'price', 'q': 'volume'}, inplace=True)
+        df.rename(columns={'p': 'price', 'q': 'volume'}, inplace=True)
         df.drop(columns=['t'], inplace=True)
         rest_of_columns = [x for x in df.columns if (x not in CryptoFactory.FIRST_COLUMNS)]
         column_order = CryptoFactory.FIRST_COLUMNS + rest_of_columns
@@ -95,13 +103,17 @@ class CryptoFactory():
         return df
         
         
-    def generate_volumebars(self, frequency=10):
-        
+    def generate_volumebars(self, frequency: int = 10):
+        """Generates volume bars.
+
+        Args:
+            frequency (int, optional): Frequency for volume bars. Defaults to 10.
+        """
         df_np = self.df.to_numpy()
-        times = df_np[:,0]
-        prices = df_np[:,1]
-        volumes = df_np[:,2]
-        ans =  np.empty([len(prices), 6], dtype=object)
+        times = df_np[:, 0]
+        prices = df_np[:, 1]
+        volumes = df_np[:, 2]
+        ans = np.empty([len(prices), 6], dtype=object)
         candle_counter = 0
         vol = 0
         lasti = 0

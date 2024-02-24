@@ -36,7 +36,7 @@ test_df['high'] = np.ceil(pd.to_numeric(test_df['high'] , errors='coerce')).asty
 class TestBinance(unittest.TestCase):
 
     def test_cumsum_filter(self):
-        df_processed = cumsum_filter(test_df, 0.02)
+        df_processed, _ = cumsum_filter(test_df, 0.02)
         df_processed = df_processed.astype({'open':'int64','high':'int64','low':'int64','close':'int64', 'volume': 'int64'})
         df_expected = pd.DataFrame({"datetime": [datetime.datetime(2021, 1, 2, 12, 0, 0), datetime.datetime(2021, 1, 4, 0, 0, 0),
                                                 datetime.datetime(2021, 1, 4, 12, 0, 0), datetime.datetime(2021, 1, 6, 0, 0, 0),
