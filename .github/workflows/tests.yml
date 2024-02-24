@@ -25,5 +25,4 @@ jobs:
 
     - name: Run unit tests
       run: |
-        cd src/ml_investing_wne/tests/unit_tests
         python -m unittest discover -s src/ml_investing_wne/tests/unit_tests -p 'test*.py'
