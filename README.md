@@ -8,7 +8,7 @@ First, install dependencies. If training is done on macos, uncomment  tensorflow
     pip install -r requirements.txt
 
 then install the package itself
-    pip install ml_investing_wne
+    pip install .
 ```
 ## USAGE
 
@@ -24,6 +24,8 @@ In order to access mlflow UI run:
 ```
 mlflow.sh --folder-to-mlruns
 ```
+
+All notebooks are non essential to the function of the library.
 
 ## DATA
 Forex data can be found here https://www.histdata.com/

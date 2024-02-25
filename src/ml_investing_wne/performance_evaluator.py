@@ -38,7 +38,7 @@ class PerformanceEvaluator():
         self.end_date = end_date
         self.cost = cost
         if daily_records_file is not None:
-            self.df_daily = pd.read_csv(daily_records, parse_dates=['datetime'])
+            self.df_daily = pd.read_csv(daily_records_file, parse_dates=['datetime'])
             self.df_daily['datetime'] = pd.to_datetime(self.df_daily['datetime']) 
         elif daily_records_dataframe is not None:
             self.df_daily = daily_records_dataframe

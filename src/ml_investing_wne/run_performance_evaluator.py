@@ -11,6 +11,7 @@ from ml_investing_wne.utils import get_logger
 logger = get_logger()
 warnings.simplefilter(action="ignore", category=SettingWithCopyWarning)
 
+# This script is to manually run performance evaluator for all models in the folder after a certain date
 
 def get_modified_directories(root_dir):
     modified_dirs = []
@@ -18,15 +19,16 @@ def get_modified_directories(root_dir):
         for dir in dirs:
             dir_path = os.path.join(root, dir)
             modification_time = os.path.getmtime(dir_path)
-            if modification_time > datetime(2024, 2, 9, 0, 0, 0).timestamp() and \
+            if modification_time > datetime(2024, 2, 23, 0, 0, 0).timestamp() and \
             (dir.startswith('ETH') or dir.startswith('BTC') or dir.startswith('ADA') or dir.startswith('LTC')):
                 modified_dirs.append(dir)
     return modified_dirs
 
 
 if __name__ == "__main__":
+    # provide path to folder with models and results
     root_dir = "/root/ml_investing_wne/src/ml_investing_wne/models"
-    #root_dir = "/root/FEDformer/results"
+
     daily_records_eth = os.path.join(config.processed_data_path, f'binance_ETHUSDT', 'time_aggregated_1440min.csv')
     daily_records_btc = os.path.join(config.processed_data_path, f'binance_BTCUSDT', 'time_aggregated_1440min.csv')
     daily_records_ada = os.path.join(config.processed_data_path, f'binance_ADAUSDT', 'time_aggregated_1440min.csv')
